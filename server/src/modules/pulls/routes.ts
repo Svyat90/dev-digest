@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { PrMeta, PrDetail, GitHubClient, PrReviewComment } from '@devdigest/shared';
 import { PrCommentInput } from '@devdigest/shared';
 import * as t from '../../db/schema.js';
@@ -30,6 +30,12 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
       .from(t.repos)
       .where(and(eq(t.repos.workspaceId, workspaceId), eq(t.repos.id, req.params.id)));
     if (!repo) throw new NotFoundError('Repo not found');
+
+    // Optional free-text filter for the list's search box.
+    const search = (req.query as { q?: string }).q ?? '';
+    const titleFilter = search
+      ? sql.raw(`AND lower(title) LIKE lower('%${search}%')`)
+      : sql.raw('');
 
     let gh: GitHubClient | null = null;
     try {
@@ -77,7 +83,7 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
       }
     }
 
-    const rows = await container.db
+    let rows = await container.db
       .select()
       .from(t.pullRequests)
       .where(eq(t.pullRequests.repoId, repo.id));
@@ -115,6 +121,14 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
     // from reviews (no FK denorm); the list is small, so one IN-query + JS
     // grouping is cheap. (The per-severity FINDINGS breakdown is intentionally
     // not surfaced on the list — findings live on the PR detail page.)
+    if (search) {
+      const matched = await container.db.execute(
+        sql`SELECT id FROM pull_requests WHERE repo_id = ${repo.id} ${titleFilter}`,
+      );
+      const keep = new Set(matched.map((m: Record<string, unknown>) => m.id as string));
+      rows = rows.filter((r) => keep.has(r.id));
+    }
+
     const prIds = rows.map((r) => r.id);
     const latestReviewByPr = new Map<string, { score: number | null }>();
     if (prIds.length > 0) {
@@ -135,8 +149,8 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
     // report — so while a round is still running the total grows as each agent
     // lands. This is a SUM across the round, not one run: a three-reviewer
     // round reported as its newest run alone was the bug this replaced.
-    let latestRunCostByPr = new Map<string, number | null>();
-    if (prIds.length > 0) {
+    const latestRunCostByPr = new Map<string, number | null>();
+    for (const prId of prIds) {
       const runRows = await container.db
         .select({
           prId: t.agentRuns.prId,
@@ -144,9 +158,10 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
           costUsd: t.agentRuns.costUsd,
         })
         .from(t.agentRuns)
-        .where(and(inArray(t.agentRuns.prId, prIds), eq(t.agentRuns.status, 'done')))
+        .where(and(eq(t.agentRuns.prId, prId), eq(t.agentRuns.status, 'done')))
         .orderBy(desc(t.agentRuns.ranAt));
-      latestRunCostByPr = rollupLatestRoundCost(runRows);
+      const cost = rollupLatestRoundCost(runRows).get(prId) ?? null;
+      latestRunCostByPr.set(prId, cost);
     }
 
     const now = Date.now();
