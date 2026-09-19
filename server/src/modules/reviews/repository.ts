@@ -137,6 +137,11 @@ export class ReviewRepository {
 
   // ---- observability: agent_runs + run_traces ----------------------------
 
+  /** Open a review round; every run of one `runReview` call shares its id. */
+  createRound(workspaceId: string, prId: string): Promise<string> {
+    return runRepo.createRound(this.db, workspaceId, prId);
+  }
+
   /** Create an agent_runs row in `running` state; returns its id (= the runId). */
   createAgentRun(values: {
     workspaceId: string;
@@ -144,6 +149,8 @@ export class ReviewRepository {
     prId: string;
     provider: string | null;
     model: string | null;
+    /** The round this run belongs to; null only for runs created outside one. */
+    roundId?: string | null;
   }): Promise<string> {
     return runRepo.createAgentRun(this.db, values);
   }
@@ -155,6 +162,8 @@ export class ReviewRepository {
       durationMs: number;
       tokensIn: number;
       tokensOut: number;
+      /** USD cost; null = no price data (unknown model, or the run never ran). */
+      costUsd?: number | null;
       findingsCount: number;
       grounding: string;
       /** Review score (0-100); null on failed/cancelled runs. */

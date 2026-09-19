@@ -170,6 +170,12 @@ export const PrMeta = z.object({
   updated_at: z.string().nullish(),
   // Latest-review score (list endpoint only; null/absent until reviewed).
   score: z.number().int().nullish(),
+  // Cost of the latest review ROUND — summed across every agent of that round,
+  // since one review starts N agents at once (list endpoint only). Falls back
+  // to a single run's cost for runs predating round tracking. Null until
+  // reviewed, or when no contributing run's model has a known price; runs on
+  // unpriced models simply contribute nothing, so the sum can be partial.
+  cost_usd: z.number().nullish(),
 });
 export type PrMeta = z.infer<typeof PrMeta>;
 

@@ -7,7 +7,7 @@ import * as t from '../../db/schema.js';
 import { getContext } from '../_shared/context.js';
 import { IdParams } from '../_shared/schemas.js';
 import { AppError, NotFoundError } from '../../platform/errors.js';
-import { deriveReviewStatus } from './status.js';
+import { deriveReviewStatus, rollupLatestRoundCost } from './status.js';
 
 /**
  * F1 — pulls module. PR import via Octokit (list + per-PR detail).
@@ -129,6 +129,26 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
       }
     }
 
+    // Latest review ROUND's cost per PR for the list's COST column. Same
+    // read-time derivation as the score above: newest-first rows, grouped in a
+    // pure helper. Only status='done' counts — a failed run has no spend to
+    // report — so while a round is still running the total grows as each agent
+    // lands. This is a SUM across the round, not one run: a three-reviewer
+    // round reported as its newest run alone was the bug this replaced.
+    let latestRunCostByPr = new Map<string, number | null>();
+    if (prIds.length > 0) {
+      const runRows = await container.db
+        .select({
+          prId: t.agentRuns.prId,
+          roundId: t.agentRuns.roundId,
+          costUsd: t.agentRuns.costUsd,
+        })
+        .from(t.agentRuns)
+        .where(and(inArray(t.agentRuns.prId, prIds), eq(t.agentRuns.status, 'done')))
+        .orderBy(desc(t.agentRuns.ranAt));
+      latestRunCostByPr = rollupLatestRoundCost(runRows);
+    }
+
     const now = Date.now();
     return rows.map((r) => {
       const review = latestReviewByPr.get(r.id);
@@ -153,6 +173,7 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
         opened_at: r.openedAt?.toISOString() ?? null,
         updated_at: r.updatedAt?.toISOString() ?? null,
         score: review ? review.score : null,
+        cost_usd: latestRunCostByPr.get(r.id) ?? null,
       };
     });
   });

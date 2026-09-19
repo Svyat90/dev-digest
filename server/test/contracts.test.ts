@@ -12,6 +12,7 @@ import {
   EvalRun,
   MemoryItem,
   RunTrace,
+  RunSummary,
   Settings,
   Repo,
   PrDetail,
@@ -166,6 +167,57 @@ describe('AI contracts parse fixtures', () => {
       log: [{ t: '00.00', kind: 'info', msg: 'started' }],
     });
     expect(trace.tool_calls).toHaveLength(1);
+    // This fixture has no `cost_usd` — the shape of every run_traces document
+    // written before cost tracking existed. Parsing MUST still succeed, which
+    // is why RunStats.cost_usd is nullish rather than required.
+    expect(trace.stats.cost_usd).toBeUndefined();
+  });
+
+  it('RunTrace carries a run cost when one was recorded', () => {
+    const trace = RunTrace.parse({
+      config: { agent: 'Security Reviewer', version: 'v7', model: 'gpt-4.1', pr: 482, source: 'local' },
+      stats: {
+        duration_ms: 8200,
+        tokens_in: 14820,
+        tokens_out: 1240,
+        cost_usd: 0.06,
+        findings: 3,
+        grounding: '3/3 passed',
+      },
+      prompt_assembly: { system: 's', user: 'u' },
+      tool_calls: [],
+      raw_output: '{}',
+      memory_pulled: [],
+      specs_read: [],
+      log: [],
+    });
+    expect(trace.stats.cost_usd).toBe(0.06);
+  });
+
+  it('RunSummary distinguishes an unpriced run from a free one', () => {
+    const base = {
+      run_id: 'r1',
+      agent_id: 'a1',
+      agent_name: 'Security Reviewer',
+      provider: 'openrouter',
+      model: 'deepseek/deepseek-v4-flash',
+      status: 'done',
+      error: null,
+      duration_ms: 8200,
+      tokens_in: 9000,
+      tokens_out: 119,
+      findings_count: 2,
+      grounding: '2/2 passed',
+      ran_at: '2026-06-01T09:14:02.000Z',
+      score: 61,
+      blockers: 1,
+    };
+    // null = no price data; 0 = a genuinely free model. Both are valid, and the
+    // UI renders them differently ("—" vs "$0").
+    expect(RunSummary.parse({ ...base, cost_usd: null }).cost_usd).toBeNull();
+    expect(RunSummary.parse({ ...base, cost_usd: 0 }).cost_usd).toBe(0);
+    // Absent is NOT acceptable here: this shape comes straight from a DB column.
+    expect(() => RunSummary.parse(base)).toThrow();
   });
 });
 

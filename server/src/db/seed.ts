@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { createDb, type Db } from './client.js';
 import * as t from './schema.js';
 import { eq, and } from 'drizzle-orm';
+import type { RunTrace } from '@devdigest/shared';
 import {
   GENERAL_REVIEWER_PROMPT,
   SECURITY_REVIEWER_PROMPT,
@@ -212,15 +213,226 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
       createdBy: userId,
     },
   ];
+  const agentIds: Record<string, string> = {};
   for (const a of seedAgents) {
     const [existing] = await db
       .select()
       .from(t.agents)
       .where(and(eq(t.agents.workspaceId, workspaceId), eq(t.agents.name, a.name)));
-    if (!existing) await db.insert(t.agents).values(a);
+    if (existing) {
+      agentIds[a.name] = existing.id;
+    } else {
+      const [inserted] = await db.insert(t.agents).values(a).returning();
+      agentIds[a.name] = inserted!.id;
+    }
   }
 
+  await seedAgentRuns(db, workspaceId, pr!.id, agentIds);
+
   return { workspaceId, userId };
+}
+
+/**
+ * Demo `agent_runs` (+ their traces) for the seeded PR.
+ *
+ * Without these the run timeline and the trace drawer are empty after a fresh
+ * seed, so cost has nothing to render against. The set covers every branch the
+ * PR list's COST column must handle:
+ *   - a ROUND of several agents      → the column SUMS them
+ *   - an unpriced model in the round → contributes nothing, sum stays partial
+ *     (and it is the round's NEWEST done run, which is exactly the shape that
+ *      used to blank the column entirely)
+ *   - a failed run in the round      → ignored, it never reached the model
+ *   - an older run with no round     → a "round of one", the legacy branch
+ * A null cost renders an em dash, NEVER "$0.00".
+ *
+ * Idempotent: skipped entirely once the PR has any run.
+ */
+async function seedAgentRuns(
+  db: Db,
+  workspaceId: string,
+  prId: string,
+  agentIds: Record<string, string>,
+): Promise<void> {
+  const [existingRun] = await db
+    .select({ id: t.agentRuns.id })
+    .from(t.agentRuns)
+    .where(eq(t.agentRuns.prId, prId));
+  if (existingRun) return;
+
+  const now = Date.now();
+  const [round] = await db
+    .insert(t.multiAgentRuns)
+    .values({ workspaceId, prId })
+    .returning({ id: t.multiAgentRuns.id });
+
+  interface SeedRun {
+    agent: string;
+    model: string;
+    roundId: string | null;
+    minutesAgo: number;
+    status: 'done' | 'failed';
+    durationMs: number;
+    tokensIn: number;
+    tokensOut: number;
+    costUsd: number | null;
+    findings: number;
+    grounding: string;
+    score: number | null;
+    blockers: number | null;
+    error?: string;
+  }
+
+  // Ordered oldest → newest. Within the round the UNPRICED run is deliberately
+  // the newest completed one: before round totals existed, that single null
+  // blanked the whole PR's cost even though $0.00164 had really been spent.
+  const seedRuns: SeedRun[] = [
+    {
+      agent: 'Performance Reviewer',
+      model: DEFAULT_MODEL,
+      roundId: null, // legacy: predates round tracking
+      minutesAgo: 20,
+      status: 'done',
+      durationMs: 6400,
+      tokensIn: 11_800,
+      tokensOut: 211,
+      costUsd: 0.0009,
+      findings: 1,
+      grounding: '1/1 passed',
+      score: 73,
+      blockers: 0,
+    },
+    {
+      agent: 'Security Reviewer',
+      model: DEFAULT_MODEL,
+      roundId: round!.id,
+      minutesAgo: 5,
+      status: 'done',
+      durationMs: 8200,
+      tokensIn: 9000,
+      tokensOut: 119,
+      costUsd: 0.0013,
+      findings: 2,
+      grounding: '2/2 passed',
+      score: 61,
+      blockers: 1,
+    },
+    {
+      agent: 'General Reviewer',
+      model: DEFAULT_MODEL,
+      roundId: round!.id,
+      minutesAgo: 4,
+      status: 'done',
+      durationMs: 4165,
+      tokensIn: 1400,
+      tokensOut: 131,
+      costUsd: 0.00034,
+      findings: 0,
+      grounding: '0/0 passed',
+      score: 100,
+      blockers: 0,
+    },
+    {
+      agent: 'Performance Reviewer',
+      model: 'acme/unpriced-model-v1',
+      roundId: round!.id,
+      minutesAgo: 3,
+      status: 'done',
+      durationMs: 3400,
+      tokensIn: 3300,
+      tokensOut: 147,
+      costUsd: null, // model has no price -> contributes nothing to the sum
+      findings: 0,
+      grounding: '0/0 passed',
+      score: 100,
+      blockers: 0,
+    },
+    {
+      agent: 'General Reviewer',
+      model: DEFAULT_MODEL,
+      roundId: round!.id,
+      minutesAgo: 2,
+      status: 'failed',
+      durationMs: 1400,
+      tokensIn: 0,
+      tokensOut: 0,
+      costUsd: null,
+      findings: 0,
+      grounding: '0/0 passed',
+      score: null,
+      blockers: null,
+      error: '429 You exceeded your current quota, please check your plan and billing details.',
+    },
+  ];
+
+  for (const r of seedRuns) {
+    const stats: RunTrace['stats'] = {
+      duration_ms: r.durationMs,
+      tokens_in: r.tokensIn,
+      tokens_out: r.tokensOut,
+      cost_usd: r.costUsd,
+      findings: r.findings,
+      grounding: r.grounding,
+    };
+    const [run] = await db
+      .insert(t.agentRuns)
+      .values({
+        workspaceId,
+        agentId: agentIds[r.agent] ?? null,
+        prId,
+        roundId: r.roundId,
+        provider: DEFAULT_PROVIDER,
+        model: r.model,
+        ranAt: new Date(now - r.minutesAgo * 60_000),
+        durationMs: r.durationMs,
+        tokensIn: r.tokensIn,
+        tokensOut: r.tokensOut,
+        costUsd: r.costUsd,
+        status: r.status,
+        error: r.error ?? null,
+        findingsCount: r.findings,
+        grounding: r.grounding,
+        score: r.score,
+        blockers: r.blockers,
+      })
+      .returning();
+
+    await db.insert(t.runTraces).values({
+      runId: run!.id,
+      trace: {
+        config: {
+          agent: r.agent,
+          version: '1',
+          provider: DEFAULT_PROVIDER,
+          model: r.model,
+          pr: 482,
+          source: 'local',
+        },
+        stats,
+        prompt_assembly: {
+          system: `${r.agent} system prompt (seed)`,
+          skills: null,
+          memory: null,
+          specs: null,
+          user: 'Review PR #482 — Add rate limiting to public API endpoints',
+        },
+        tool_calls:
+          r.status === 'done'
+            ? [{ tool: 'review_file', args: 'all files', meta: 'single-pass', ms: r.durationMs }]
+            : [],
+        raw_output: '',
+        memory_pulled: [],
+        specs_read: [],
+        log:
+          r.status === 'done'
+            ? [
+                { t: '00.10', kind: 'info', msg: `Starting review with agent "${r.agent}"` },
+                { t: '00.90', kind: 'result', msg: `Persisted review with ${r.findings} finding(s)` },
+              ]
+            : [{ t: '00.05', kind: 'error', msg: `Run failed: ${r.error}` }],
+      } satisfies RunTrace,
+    });
+  }
 }
 
 // CLI entrypoint

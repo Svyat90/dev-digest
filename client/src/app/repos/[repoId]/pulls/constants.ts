@@ -24,7 +24,7 @@ export const SIZE_COLOR: Record<string, string> = {
 };
 
 /** Grid template for both the header row and PR rows. */
-export const GRID = "1fr 132px 92px 60px 118px 78px";
+export const GRID = "1fr 132px 92px 60px 118px 76px 78px";
 
 /** Line-count thresholds for the S/M/L size bucket. */
 export const SIZE_SMALL_MAX = 100;
@@ -45,8 +45,16 @@ export const COLUMN_KEYS: string[] = [
   "size",
   "score",
   "status",
+  "cost",
   "updated",
 ];
+
+/**
+ * Columns whose header is right-aligned, matching their right-aligned cells.
+ * Keyed rather than positional: "last column wins" broke as soon as a numeric
+ * column (cost) landed before `updated`.
+ */
+export const RIGHT_ALIGNED_COLUMNS = new Set(["cost", "updated"]);
 
 /** Number of skeleton rows shown while loading. */
 export const SKELETON_ROWS = 4;
