@@ -60,6 +60,18 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of the dependencies this package pins.
 
+- **2026-09-19 — Drizzle types `sum()` as `string | null`, even over `doublePrecision`.**
+  `aggregate.d.ts` declares `sum(expression): SQL<string | null>` regardless of
+  the column type, while postgres.js hands back a real number for
+  `double precision` — so an aggregate's value must be coerced accepting BOTH.
+  The trap is the null: `Number(null)` is 0, which turns "no price data" into
+  "this was free" (the read-path twin of the write-path rule in Codebase
+  Patterns). Postgres `sum()` already skips NULLs and yields NULL when none
+  remain, so the partial-sum rule needs no JS branches — only the coercion.
+  Rule: put every SQL aggregate over a nullable numeric column through
+  `parseAggregateCost`, and NEVER shorten it to a bare `Number(...)`.
+  `server/src/modules/pulls/status.ts`, `server/src/modules/pulls/routes.ts` (PR-list COST)
+
 ## Recurring Errors & Fixes
 
 An error seen twice, plus the fix that actually worked.

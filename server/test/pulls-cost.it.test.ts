@@ -1,10 +1,13 @@
 /**
  * PR list COST column — the round total, against a real Postgres.
  *
- * Regression guard for the reported bug: a PR reviewed by three agents in one
- * round showed only the newest agent's spend. Rows are inserted directly (no
- * LLM, no background executor) so the arithmetic is exact and the test is
- * deterministic — the route's own SQL + rollup are what is under test here.
+ * The column is the PR's LIFETIME spend: every completed run it has ever had,
+ * across every round. Rows are inserted directly (no LLM, no background
+ * executor) so the arithmetic is exact and the test is deterministic — the
+ * route's own SUM is what is under test here.
+ *
+ * The cases that keep mattering: unknown cost must never read as free, and a
+ * free model must never read as unknown.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { startPg, dockerAvailable, type PgFixture } from './helpers/pg.js';
@@ -91,21 +94,7 @@ d('PR list cost rollup (Testcontainers pg)', () => {
     return list.find((p: { id: string }) => p.id === prId).cost_usd;
   }
 
-  it('totals every agent of the latest round, not just the newest run', async () => {
-    const { repo, pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
-    const [round] = await pg.handle.db
-      .insert(t.multiAgentRuns)
-      .values({ workspaceId, prId: pr.id })
-      .returning();
-    // The exact shape from the bug report: three agents, one round, newest last.
-    await addRun(pr.id, round!.id, 0.000034, 5);
-    await addRun(pr.id, round!.id, 0.00022, 4);
-    await addRun(pr.id, round!.id, 0.00015, 3);
-
-    expect(await listedCost(repo.id, pr.id)).toBeCloseTo(0.000404, 9);
-  });
-
-  it('counts only the newest round, and ignores failed runs in it', async () => {
+  it("totals every run the PR has ever had, across separate rounds", async () => {
     const { repo, pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
     const rounds = await pg.handle.db
       .insert(t.multiAgentRuns)
@@ -114,46 +103,59 @@ d('PR list cost rollup (Testcontainers pg)', () => {
         { workspaceId, prId: pr.id },
       ])
       .returning();
-    await addRun(pr.id, rounds[0]!.id, 99, 30); // an older, expensive round
-    await addRun(pr.id, rounds[1]!.id, 0.001, 5);
-    await addRun(pr.id, rounds[1]!.id, 0.002, 4);
-    await addRun(pr.id, rounds[1]!.id, null, 3, 'failed'); // never reached a model
+    // An older review round...
+    await addRun(pr.id, rounds[0]!.id, 0.0005, 30);
+    await addRun(pr.id, rounds[0]!.id, 0.0004, 29);
+    // ...and a newer one. The column bills the PR for both.
+    await addRun(pr.id, rounds[1]!.id, 0.000034, 5);
+    await addRun(pr.id, rounds[1]!.id, 0.00022, 4);
+    await addRun(pr.id, rounds[1]!.id, 0.00015, 3);
 
-    expect(await listedCost(repo.id, pr.id)).toBeCloseTo(0.003, 9);
+    expect(await listedCost(repo.id, pr.id)).toBeCloseTo(0.001304, 9);
   });
 
-  it('sums the priced runs when the round is only partly priced', async () => {
+  it('counts runs that predate round tracking alongside rounded ones', async () => {
     const { repo, pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
     const [round] = await pg.handle.db
       .insert(t.multiAgentRuns)
       .values({ workspaceId, prId: pr.id })
       .returning();
+    await addRun(pr.id, null, 0.0009, 30); // no round_id
     await addRun(pr.id, round!.id, 0.0013, 5);
-    await addRun(pr.id, round!.id, 0.00034, 4);
-    // Newest run has no price — this single null used to blank the whole PR.
-    await addRun(pr.id, round!.id, null, 3);
+
+    expect(await listedCost(repo.id, pr.id)).toBeCloseTo(0.0022, 9);
+  });
+
+  it('ignores failed runs, which never reached a model', async () => {
+    const { repo, pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
+    await addRun(pr.id, null, 0.002, 5);
+    await addRun(pr.id, null, null, 4, 'failed');
+
+    expect(await listedCost(repo.id, pr.id)).toBeCloseTo(0.002, 9);
+  });
+
+  it('sums the priced runs when some models have no known price', async () => {
+    const { repo, pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
+    await addRun(pr.id, null, 0.0013, 5);
+    await addRun(pr.id, null, 0.00034, 4);
+    await addRun(pr.id, null, null, 3); // unpriced model, still `done`
 
     expect(await listedCost(repo.id, pr.id)).toBeCloseTo(0.00164, 9);
   });
 
-  it('reports an entirely unpriced round as unknown, not zero', async () => {
+  it('reports an entirely unpriced PR as unknown, not zero', async () => {
     const { repo, pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
-    const [round] = await pg.handle.db
-      .insert(t.multiAgentRuns)
-      .values({ workspaceId, prId: pr.id })
-      .returning();
-    await addRun(pr.id, round!.id, null, 5);
-    await addRun(pr.id, round!.id, null, 4);
+    await addRun(pr.id, null, null, 5);
+    await addRun(pr.id, null, null, 4);
 
     expect(await listedCost(repo.id, pr.id)).toBeNull();
   });
 
-  it('falls back to a single run for rows predating round tracking', async () => {
+  it('reports a free model as a real zero', async () => {
     const { repo, pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
-    await addRun(pr.id, null, 0.005, 5);
-    await addRun(pr.id, null, 0.007, 3); // newest wins outright
+    await addRun(pr.id, null, 0, 5);
 
-    expect(await listedCost(repo.id, pr.id)).toBeCloseTo(0.007, 9);
+    expect(await listedCost(repo.id, pr.id)).toBe(0);
   });
 
   it('leaves an unreviewed PR empty', async () => {

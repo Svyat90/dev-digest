@@ -1,13 +1,13 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, sum } from 'drizzle-orm';
 import type { PrMeta, PrDetail, GitHubClient, PrReviewComment } from '@devdigest/shared';
 import { PrCommentInput } from '@devdigest/shared';
 import * as t from '../../db/schema.js';
 import { getContext } from '../_shared/context.js';
 import { IdParams } from '../_shared/schemas.js';
 import { AppError, NotFoundError } from '../../platform/errors.js';
-import { deriveReviewStatus, rollupLatestRoundCost } from './status.js';
+import { deriveReviewStatus, parseAggregateCost } from './status.js';
 
 /**
  * F1 — pulls module. PR import via Octokit (list + per-PR detail).
@@ -129,24 +129,26 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
       }
     }
 
-    // Latest review ROUND's cost per PR for the list's COST column. Same
-    // read-time derivation as the score above: newest-first rows, grouped in a
-    // pure helper. Only status='done' counts — a failed run has no spend to
-    // report — so while a round is still running the total grows as each agent
-    // lands. This is a SUM across the round, not one run: a three-reviewer
-    // round reported as its newest run alone was the bug this replaced.
-    let latestRunCostByPr = new Map<string, number | null>();
+    // LIFETIME cost per PR for the list's COST column: every completed run this
+    // PR has ever had, across every review round. Only status='done' counts — a
+    // failed run never reached a model. Aggregated in SQL, unlike the score
+    // above: `agent_runs` grows without bound as a PR is re-reviewed, so
+    // reading every row back just to add them up would not hold up.
+    //
+    // Postgres `sum()` ignores NULLs and yields NULL when there are none, which
+    // is exactly the rule this column needs: runs on unpriced models contribute
+    // nothing, and "—" means nothing at all is known.
+    const totalCostByPr = new Map<string, number | null>();
     if (prIds.length > 0) {
-      const runRows = await container.db
-        .select({
-          prId: t.agentRuns.prId,
-          roundId: t.agentRuns.roundId,
-          costUsd: t.agentRuns.costUsd,
-        })
+      const costRows = await container.db
+        .select({ prId: t.agentRuns.prId, total: sum(t.agentRuns.costUsd) })
         .from(t.agentRuns)
         .where(and(inArray(t.agentRuns.prId, prIds), eq(t.agentRuns.status, 'done')))
-        .orderBy(desc(t.agentRuns.ranAt));
-      latestRunCostByPr = rollupLatestRoundCost(runRows);
+        .groupBy(t.agentRuns.prId);
+      for (const row of costRows) {
+        // prId is nullable (agents/PRs delete with `set null`).
+        if (row.prId) totalCostByPr.set(row.prId, parseAggregateCost(row.total));
+      }
     }
 
     const now = Date.now();
@@ -173,7 +175,7 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
         opened_at: r.openedAt?.toISOString() ?? null,
         updated_at: r.updatedAt?.toISOString() ?? null,
         score: review ? review.score : null,
-        cost_usd: latestRunCostByPr.get(r.id) ?? null,
+        cost_usd: totalCostByPr.get(r.id) ?? null,
       };
     });
   });

@@ -54,55 +54,15 @@ export function deriveReviewStatus(args: {
   return 'reviewed';
 }
 
-/** One completed `agent_runs` row, as far as the PR list's COST column cares. */
-export interface RunCostRow {
-  /** Nullable: agents/PRs delete with `set null`. */
-  prId: string | null;
-  roundId: string | null;
-  costUsd: number | null;
-}
-
 /**
- * Cost of each PR's most recent review ROUND, keyed by PR id.
+ * Coerce a SQL aggregate's value into a cost.
  *
- * `rows` must be COMPLETED runs (`status='done'`) ordered newest-first — the
- * same newest-first contract the score rollup relies on. This function does
- * not sort; drop the caller's `orderBy` and it silently picks the wrong run.
- *
- * Per PR, the newest run picks the round and every run of that round adds to
- * the total. That is the whole point: one `runReview` call starts N agents
- * back to back, so reporting only the newest run credits a three-reviewer
- * round with one reviewer's spend.
- *
- * Unknown costs (a model missing from the price book) contribute nothing, so a
- * partly-priced round still reports the spend it can account for. `null` — the
- * em dash in the UI — is reserved for "nothing is known", never for "some of
- * it is unknown", and never conflated with a genuinely free model's 0.
- *
- * A run with no `roundId` predates round tracking and counts as a round of one.
+ * Drizzle types `sum()` as `string | null` even over a double-precision column,
+ * and postgres.js may hand back either a string or a number — so both are
+ * accepted. NULL must survive as null: `Number(null)` is 0, which would report
+ * a PR whose every run is unpriced as free. That distinction (unknown vs free)
+ * is the one this column keeps getting wrong, so it lives in one tested place.
  */
-export function rollupLatestRoundCost(rows: RunCostRow[]): Map<string, number | null> {
-  const byPr = new Map<string, RunCostRow[]>();
-  for (const row of rows) {
-    if (!row.prId) continue;
-    const bucket = byPr.get(row.prId);
-    if (bucket) bucket.push(row);
-    else byPr.set(row.prId, [row]);
-  }
-
-  const costByPr = new Map<string, number | null>();
-  for (const [prId, prRows] of byPr) {
-    const newest = prRows[0]!; // caller guarantees newest-first
-    if (newest.roundId == null) {
-      costByPr.set(prId, newest.costUsd);
-      continue;
-    }
-    let total: number | null = null;
-    for (const row of prRows) {
-      if (row.roundId !== newest.roundId || row.costUsd == null) continue;
-      total = (total ?? 0) + row.costUsd;
-    }
-    costByPr.set(prId, total);
-  }
-  return costByPr;
+export function parseAggregateCost(value: string | number | null): number | null {
+  return value == null ? null : Number(value);
 }

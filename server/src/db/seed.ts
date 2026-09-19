@@ -237,13 +237,12 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
  *
  * Without these the run timeline and the trace drawer are empty after a fresh
  * seed, so cost has nothing to render against. The set covers every branch the
- * PR list's COST column must handle:
- *   - a ROUND of several agents      → the column SUMS them
- *   - an unpriced model in the round → contributes nothing, sum stays partial
- *     (and it is the round's NEWEST done run, which is exactly the shape that
- *      used to blank the column entirely)
- *   - a failed run in the round      → ignored, it never reached the model
- *   - an older run with no round     → a "round of one", the legacy branch
+ * PR list's COST column must handle. That column is the PR's LIFETIME total, so
+ * all of these land in one figure ($0.0022 as seeded):
+ *   - several priced runs       → summed, across rounds and outside them
+ *   - a run on an unpriced model → contributes nothing, the sum stays partial
+ *   - a failed run               → ignored, it never reached the model
+ *   - a run with no round        → still counted; rounds do not gate the total
  * A null cost renders an em dash, NEVER "$0.00".
  *
  * Idempotent: skipped entirely once the PR has any run.

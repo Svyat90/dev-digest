@@ -9,9 +9,8 @@ import { describe, it, expect } from 'vitest';
 import {
   deriveReviewStatus,
   rollupSeverities,
-  rollupLatestRoundCost,
+  parseAggregateCost,
   STALE_DAYS,
-  type RunCostRow,
 } from '../src/modules/pulls/status.js';
 
 const DAY = 86_400_000;
@@ -73,77 +72,19 @@ describe('rollupSeverities', () => {
   });
 });
 
-/**
- * The COST column totals a review ROUND. Regression guard for the bug where a
- * three-reviewer round reported only its newest reviewer's spend.
- */
-describe('rollupLatestRoundCost', () => {
-  // Newest-first, as the route's `orderBy(desc(ranAt))` delivers them.
-  const row = (o: Partial<RunCostRow>): RunCostRow => ({
-    prId: 'pr-1',
-    roundId: 'round-1',
-    costUsd: 0.001,
-    ...o,
+describe('parseAggregateCost', () => {
+  it('keeps an absent aggregate absent — NOT zero', () => {
+    // SUM() over rows that are all NULL yields NULL. Number(null) is 0, which
+    // would tell the user an unpriced PR was free.
+    expect(parseAggregateCost(null)).toBeNull();
   });
 
-  it('sums every reviewer of the latest round, not just the newest one', () => {
-    // The exact shape from the bug report: three agents, one round.
-    const out = rollupLatestRoundCost([
-      row({ costUsd: 0.00015 }),
-      row({ costUsd: 0.00022 }),
-      row({ costUsd: 0.000034 }),
-    ]);
-    expect(out.get('pr-1')).toBeCloseTo(0.000404, 9);
+  it('reads the string Drizzle types sum() as', () => {
+    expect(parseAggregateCost('0.0022')).toBeCloseTo(0.0022, 9);
   });
 
-  it('ignores runs from an older round', () => {
-    const out = rollupLatestRoundCost([
-      row({ costUsd: 0.0002 }),
-      row({ costUsd: 0.0001 }),
-      row({ roundId: 'round-0', costUsd: 99 }),
-    ]);
-    expect(out.get('pr-1')).toBeCloseTo(0.0003, 9);
-  });
-
-  it('sums only the known costs when a round mixes priced and unpriced models', () => {
-    const out = rollupLatestRoundCost([
-      row({ costUsd: null }), // newest run is the unpriced one
-      row({ costUsd: 0.0013 }),
-      row({ costUsd: 0.00034 }),
-    ]);
-    expect(out.get('pr-1')).toBeCloseTo(0.00164, 9);
-  });
-
-  it('reports an entirely unpriced round as unknown, not as zero', () => {
-    const out = rollupLatestRoundCost([row({ costUsd: null }), row({ costUsd: null })]);
-    expect(out.get('pr-1')).toBeNull();
-  });
-
-  it('counts a free model as a real zero', () => {
-    const out = rollupLatestRoundCost([row({ costUsd: 0 })]);
-    expect(out.get('pr-1')).toBe(0);
-  });
-
-  it('treats a run with no round as a round of one', () => {
-    const out = rollupLatestRoundCost([
-      row({ roundId: null, costUsd: 0.005 }),
-      row({ roundId: 'round-1', costUsd: 99 }),
-    ]);
-    expect(out.get('pr-1')).toBe(0.005);
-  });
-
-  it('keeps PRs apart and drops rows whose PR was detached', () => {
-    const out = rollupLatestRoundCost([
-      row({ prId: 'pr-1', costUsd: 0.001 }),
-      row({ prId: 'pr-2', roundId: 'round-2', costUsd: 0.002 }),
-      row({ prId: null, costUsd: 99 }),
-    ]);
-    expect(out.get('pr-1')).toBe(0.001);
-    expect(out.get('pr-2')).toBe(0.002);
-    expect(out.size).toBe(2);
-  });
-
-  it('has no entry for a PR with no completed runs', () => {
-    expect(rollupLatestRoundCost([]).get('pr-1')).toBeUndefined();
+  it('passes a number straight through, zero included', () => {
+    expect(parseAggregateCost(0.0022)).toBeCloseTo(0.0022, 9);
+    expect(parseAggregateCost(0)).toBe(0); // a free model really did cost 0
   });
 });
