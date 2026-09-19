@@ -10,6 +10,15 @@ Always search the relevant package's `docs/`, `specs/`, and `INSIGHTS.md` for
 what the user asks about FIRST — these are curated and may already answer it —
 then read code.
 
+## Session protocol
+
+- **Before answering anything**, identify the package the request touches and read
+  its `INSIGHTS.md` (plus the root one) — then confirm in one line what you read
+  and which entries bear on the task. This precedes reading code.
+- **When a task ends**, run the `engineering-insights` skill to capture what was
+  learned. Append only entries that pass its quality gate; when nothing qualifies,
+  write nothing and say so. Do not skip this step.
+
 ## Stack
 
 - Node >=22 · pnpm >=10 · TypeScript 5.7 · **Zod 3, not 4** (`^3.24`) everywhere
@@ -73,3 +82,4 @@ Only Postgres runs in Docker; server and client run on the host.
 - Read `<package>/INSIGHTS.md` before starting non-trivial work there.
 - Read `<package>/specs/` when the feature you are implementing has a written spec.
 - Read `<package>/docs/` when you need a package-local deep dive.
+- Read the `engineering-insights` skill before appending to any `INSIGHTS.md`.

@@ -52,4 +52,5 @@ then read code.
 - Read `INSIGHTS.md` before starting non-trivial work here.
 - Read `specs/` when the feature you are implementing has a written spec.
 
-Found a trap that cost you time? Append it to `INSIGHTS.md`.
+Found a trap that cost you time? Capture it with the `engineering-insights`
+skill, which appends it to `INSIGHTS.md`.

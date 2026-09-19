@@ -46,4 +46,5 @@ asks about FIRST — these are curated and may already answer it — then read c
 - Read `INSIGHTS.md` before starting non-trivial work here.
 - Write feature specs into `docs/`, not `specs/` — that folder holds flow JSON.
 
-Found a trap that cost you time? Append it to `INSIGHTS.md`.
+Found a trap that cost you time? Capture it with the `engineering-insights`
+skill, which appends it to `INSIGHTS.md`.

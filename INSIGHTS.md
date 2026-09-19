@@ -1,6 +1,8 @@
-# reviewer-core — insights
+# devdigest — cross-cutting insights
 
-Traps found while working here. Newest first, one entry per trap.
+Traps that belong to no single package: `scripts/`, Docker, CI, contract drift
+between server and client, the pnpm/npm split. Package-local traps go in
+`<package>/INSIGHTS.md`. Newest first, one entry per trap.
 Format: date · symptom · cause · rule.
 
 Appended by the `engineering-insights` skill: append-only, never rewritten.
@@ -20,7 +22,7 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 ## Tool & Library Notes
 
-Quirks of the dependencies this package pins.
+Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
 
 ## Recurring Errors & Fixes
 
@@ -28,7 +30,7 @@ An error seen twice, plus the fix that actually worked.
 
 ## Session Notes
 
-Dated summary, only when a session changed how this package is worked on.
+Dated summary, only when a session changed how the stack is worked on.
 
 ## Open Questions
 
