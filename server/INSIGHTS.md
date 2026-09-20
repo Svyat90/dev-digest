@@ -25,6 +25,18 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-09-20 — Grepping `pgTable('name'` silently UNDERCOUNTS the schema.**
+  The schema files mix two formattings: `pgTable('agents', {` on one line, and
+  `pgTable(` with the name on the NEXT line (`pulls.ts`, `repos.ts`, and others).
+  `grep -oE "pgTable\(\s*'[a-z_]+'"` therefore returned a table list that was
+  missing `pull_requests` and `repos` entirely — with no error, just a shorter
+  answer that looked complete. An inventory built on it is wrong in the one way
+  nobody double-checks.
+  Rule: to enumerate tables, match BOTH shapes (same-line and the line after
+  `pgTable(`), or read the barrel `src/db/schema.ts` and each file's exports —
+  never trust a single-line grep over this schema.
+  `server/src/db/schema/pulls.ts`, `server/src/db/schema/repos.ts`
+
 - **2026-09-19 — The seeded review was invisible to anything that joins reviews to runs.**
   `seed.ts` wrote the demo review with no `run_id` and no `agent_id` (it is
   inserted before any agent exists), while `seedAgentRuns` wrote five unrelated
