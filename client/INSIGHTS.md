@@ -14,9 +14,71 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-09-19 — Mixing the `border` shorthand with a `borderColor` override is a runtime error in dev.**
+  A style object with `border: "1px solid transparent"` whose active variant
+  overrides only `borderColor` makes React log, the moment the variant turns
+  OFF: "Removing a style property during rerender (borderColor) when a
+  conflicting property is set (border) can lead to styling bugs." It fires on
+  the toggle-off, not the first render, so a component can look fine until a
+  user clicks twice — a unit test that renders both states separately will not
+  catch it either. `FindingCard/styles.ts:7` already carries this rule as a code
+  comment; it is written here because a code comment in one component does not
+  reach the next component.
+  Rule: any style whose variant changes ONE border facet is all-longhand —
+  `borderWidth` / `borderStyle` / `borderColor`, never `border`.
+  `client/src/app/repos/[repoId]/pulls/[number]/_components/FindingsSummary/styles.ts`
+
+- **2026-09-19 — Re-exporting a shared helper through a page-local `helpers.ts` breaks the dev server.**
+  Moving `lineLabel` into `src/components/findings-preview` and leaving
+  `FindingCard/helpers.ts` as `export { lineLabel } from "..."` compiled clean
+  under `tsc` and vitest, but the Next dev server kept logging "Attempted import
+  error: 'lineLabel' is not exported from './helpers'" — through the package
+  barrel AND through the concrete module. The page still rendered, so nothing
+  but the browser console showed it.
+  Rule: when a page-local helper becomes shared, move it and update the call
+  sites to import the shared module directly — do NOT leave a re-export shim
+  behind to preserve the old import path.
+  `client/src/app/repos/[repoId]/pulls/[number]/_components/FindingCard/FindingCard.tsx:22`
+  Confidence: low (cause not isolated from dev-server HMR staleness)
+
+- **2026-09-19 — A `position: absolute` hover card in the PR list is clipped away.**
+  `s.tableCard` sets `overflow: "hidden"` (`pulls/styles.ts:91-97`), so a popover
+  absolutely positioned inside a row is cut off at the table's edge — it does not
+  overlay the page, it disappears. The working shape is `position: fixed` with
+  coordinates taken from the anchor's `getBoundingClientRect()` on mouseenter and
+  clamped against the viewport (including flipping ABOVE the anchor for rows near
+  the bottom, or the last rows open a card nobody can read).
+  Second constraint that looks removable and is not: the card must stay a DOM
+  CHILD of the element that opens it. Portal it elsewhere and moving the pointer
+  onto the card fires the anchor's `mouseleave`, so the card closes as you reach
+  for it. Fixed positioning gives the visual escape; DOM containment gives hover
+  stability — they are separate problems.
+  Rule: any hover card inside a list row or timeline row is `fixed` + rect-anchored
+  + rendered inside its anchor.
+  `client/src/components/findings-preview/{styles.ts,helpers.ts}` (`anchorFor`)
+
 ## Codebase Patterns
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
+
+- **2026-09-19 — In `FindingsTab`, `runs` are REVIEWS and `prRuns` are runs.**
+  The prop named `runs` holds `ReviewRecord[]` (`/pulls/:id/reviews`, findings
+  embedded); the actual `agent_runs` rows are `prRuns` (`RunSummary[]`). So
+  `<RunHistory runs={prRuns} reviews={runs} />` is CORRECT despite reading like
+  swapped arguments — do not "fix" it. The two are matched by `run_id`, which is
+  also the only key between them: `RunSummary` carries just `findings_count` and
+  `blockers`, never a severity breakdown, so per-run severity data is derived on
+  the client from reviews already loaded — no extra request, and none needed.
+  `client/src/app/repos/[repoId]/pulls/[number]/_components/FindingsTab/FindingsTab.tsx`
+
+- **2026-09-19 — `<SeverityBadge compact>` drops the text label, leaving colour + icon.**
+  The primitive's own comment promises "always icon + label (WCAG AA: never color
+  alone)", but `compact` renders only the icon and the count — in a dense cell
+  that is exactly the colour-only signal the comment forbids.
+  Rule: a `compact` SeverityBadge must be wrapped in something carrying the
+  severity in words (`title` / `aria-label`); use the non-compact badge wherever
+  there is room.
+  `client/src/vendor/ui/primitives/Badge.tsx:52-88`
 
 - **2026-09-19 — A missing number renders as an em dash, never as `$0.00`.**
   Cost is absent for runs on unpriced models and for failed runs; `$0.00` would

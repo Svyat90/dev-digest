@@ -8,7 +8,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   deriveReviewStatus,
-  rollupSeverities,
+  emptySeverityCounts,
+  foldSeverityCounts,
   parseAggregateCost,
   STALE_DAYS,
 } from '../src/modules/pulls/status.js';
@@ -54,21 +55,36 @@ describe('deriveReviewStatus', () => {
   });
 });
 
-describe('rollupSeverities', () => {
-  it('tallies findings into critical / warning / suggestion buckets (ignores unknown)', () => {
-    expect(
-      rollupSeverities([
-        { severity: 'CRITICAL' },
-        { severity: 'CRITICAL' },
-        { severity: 'WARNING' },
-        { severity: 'SUGGESTION' },
-        { severity: 'WEIRD' },
-      ]),
-    ).toEqual({ critical: 2, warning: 1, suggestion: 1 });
+describe('foldSeverityCounts', () => {
+  it('folds GROUP BY rows into one tally per PR, keeping PRs apart', () => {
+    const byPr = foldSeverityCounts([
+      { prId: 'a', severity: 'CRITICAL', n: 2 },
+      { prId: 'a', severity: 'WARNING', n: 1 },
+      { prId: 'b', severity: 'SUGGESTION', n: 5 },
+    ]);
+    expect(byPr.get('a')).toEqual({ CRITICAL: 2, WARNING: 1, SUGGESTION: 0 });
+    expect(byPr.get('b')).toEqual({ CRITICAL: 0, WARNING: 0, SUGGESTION: 5 });
   });
 
-  it('is all-zero for no findings', () => {
-    expect(rollupSeverities([])).toEqual({ critical: 0, warning: 0, suggestion: 0 });
+  it('drops an unknown severity instead of crashing or inflating a bucket', () => {
+    // `findings.severity` is a plain text column — nothing stops a stray value.
+    const byPr = foldSeverityCounts([
+      { prId: 'a', severity: 'WEIRD', n: 3 },
+      { prId: 'a', severity: 'CRITICAL', n: 1 },
+    ]);
+    expect(byPr.get('a')).toEqual({ CRITICAL: 1, WARNING: 0, SUGGESTION: 0 });
+  });
+
+  it('leaves a PR with no rows OUT of the map — the caller decides what that means', () => {
+    // Absent is not the same as zero: only the route knows whether the PR has
+    // a review at all (clean) or has never been reviewed (unknown).
+    expect(foldSeverityCounts([]).has('a')).toBe(false);
+  });
+
+  it('hands out a fresh zero tally each call — never a shared object', () => {
+    const one = emptySeverityCounts();
+    one.CRITICAL += 1;
+    expect(emptySeverityCounts()).toEqual({ CRITICAL: 0, WARNING: 0, SUGGESTION: 0 });
   });
 });
 

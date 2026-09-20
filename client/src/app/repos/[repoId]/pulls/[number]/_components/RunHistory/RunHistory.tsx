@@ -2,9 +2,22 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Badge, Icon, CircularScore, type IconName } from "@devdigest/ui";
-import type { RunSummary, PrCommit } from "@devdigest/shared";
+import {
+  Badge,
+  Icon,
+  CircularScore,
+  SeverityBadge,
+  type IconName,
+  type Severity,
+} from "@devdigest/ui";
+import type { FindingRecord, PrCommit, ReviewRecord, RunSummary } from "@devdigest/shared";
 import { formatTokenCount, formatUsd } from "@/lib/format";
+import {
+  FindingsPreviewCard,
+  anchorFor,
+  countBySeverity,
+  PREVIEW_SEVERITIES,
+} from "@/components/findings-preview";
 
 /**
  * PR timeline — every agent run interleaved with the PR's commits, newest-first
@@ -87,12 +100,19 @@ function tsOf(s: string | null | undefined): number {
 
 export function RunHistory({
   runs,
+  reviews = [],
   commits = [],
   onOpenTrace,
   onGoToReview,
   onDelete,
 }: {
   runs: RunSummary[];
+  /**
+   * The PR's persisted reviews, matched to runs by `run_id`. A run row itself
+   * carries only a total and a blocker count, but the page already holds every
+   * finding — so the per-severity breakdown costs no extra request.
+   */
+  reviews?: ReviewRecord[];
   commits?: PrCommit[];
   /** Open the trace + log drawer for a run (the logs icon). */
   onOpenTrace: (runId: string) => void;
@@ -101,6 +121,22 @@ export function RunHistory({
   onDelete?: (runId: string) => void;
 }) {
   const t = useTranslations("prReview");
+
+  const findingsByRun = React.useMemo(() => {
+    const map = new Map<string, FindingRecord[]>();
+    for (const rv of reviews) {
+      if (rv.run_id && rv.findings.length > 0) map.set(rv.run_id, rv.findings);
+    }
+    return map;
+  }, [reviews]);
+
+  // One preview at a time, keyed by run so hovering a second row replaces it.
+  const [preview, setPreview] = React.useState<{
+    runId: string;
+    top: number;
+    left: number;
+  } | null>(null);
+
   if (runs.length === 0 && commits.length === 0) return null;
 
   const items: TimelineItem[] = [
@@ -150,6 +186,8 @@ export function RunHistory({
         const r = item.run;
         const o = outcomeOf(r);
         const settled = r.status === "done";
+        const runFindings = findingsByRun.get(r.run_id);
+        const runCounts = runFindings ? countBySeverity(runFindings) : null;
         return (
           <div key={`run:${r.run_id}`} style={rowStyle}>
             <Badge color={o.color} bg={o.bg} icon={o.icon}>
@@ -189,12 +227,54 @@ export function RunHistory({
                   {r.error}
                 </div>
               )}
-              {settled && (
-                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                  {t("runStatus.findings", { count: r.findings_count ?? 0 })}
-                  {(r.blockers ?? 0) > 0 ? t("runStatus.blockers", { count: r.blockers ?? 0 }) : ""}
-                </div>
-              )}
+              {settled &&
+                (runCounts ? (
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+                    onMouseEnter={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setPreview({
+                        runId: r.run_id,
+                        ...anchorFor(rect, {
+                          width: window.innerWidth,
+                          height: window.innerHeight,
+                        }),
+                      });
+                    }}
+                    onMouseLeave={() => setPreview(null)}
+                  >
+                    {PREVIEW_SEVERITIES.filter((sev) => runCounts[sev] > 0).map((sev) => (
+                      <SeverityBadge
+                        key={sev}
+                        severity={sev as Severity}
+                        count={runCounts[sev]}
+                        compact
+                      />
+                    ))}
+                    {(r.blockers ?? 0) > 0 && (
+                      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                        {t("runStatus.blockers", { count: r.blockers ?? 0 })}
+                      </span>
+                    )}
+                    {preview?.runId === r.run_id && (
+                      <FindingsPreviewCard
+                        findings={runFindings!}
+                        title={t("timeline.findingsInRun", { count: runFindings!.length })}
+                        top={preview.top}
+                        left={preview.left}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  // No review matched this run — its review was deleted, or the
+                  // run predates run_id. Fall back to the denormalized counts.
+                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                    {t("runStatus.findings", { count: r.findings_count ?? 0 })}
+                    {(r.blockers ?? 0) > 0
+                      ? t("runStatus.blockers", { count: r.blockers ?? 0 })
+                      : ""}
+                  </div>
+                ))}
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, fontSize: 11, color: "var(--text-muted)", flexShrink: 0 }}>
               {r.ran_at && <span>{new Date(r.ran_at).toLocaleTimeString()}</span>}

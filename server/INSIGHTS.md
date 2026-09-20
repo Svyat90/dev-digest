@@ -25,6 +25,20 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-09-19 — The seeded review was invisible to anything that joins reviews to runs.**
+  `seed.ts` wrote the demo review with no `run_id` and no `agent_id` (it is
+  inserted before any agent exists), while `seedAgentRuns` wrote five unrelated
+  `agent_runs`. A timeline feature that matches `RunSummary.run_id` to
+  `ReviewRecord.run_id` therefore rendered its fallback branch on every row of a
+  freshly seeded DB and looked broken. Fixed by having one seeded run claim the
+  review (`ownsSeedReview` → `UPDATE reviews SET run_id, agent_id`).
+  Second half of the trap: `seed()` skips the whole PR block once PR #482 exists,
+  so editing seeded rows changes NOTHING on an existing dev DB — verify seed
+  edits against a fresh database (testcontainers or the hermetic e2e stack).
+  Rule: when seeding two tables that a feature joins, seed the link too, and
+  never conclude a seed edit works because the dev DB still looks right.
+  `server/src/db/seed.ts` (`seedAgentRuns`, `ownsSeedReview`)
+
 - **2026-09-19 — `waitForPrRuns` returns on TIMEOUT, it does not throw.**
   Its doc says it "polls until every row reaches a terminal status", but after
   `timeoutMs` (default 10s) it returns whatever rows exist. A `POST
@@ -40,6 +54,17 @@ valuable one.
 ## Codebase Patterns
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
+
+- **2026-09-19 — `findings` is the ONE domain table with no `workspace_id`.**
+  Root `CLAUDE.md` says every domain table carries `workspace_id` and every query
+  scopes by it — `findings` does not, and it has no indexes either (not even on
+  `review_id`). Tenancy reaches a finding only through its review, so any
+  aggregate over findings must `innerJoin(t.reviews, eq(t.reviews.id,
+  t.findings.reviewId))` and scope on `t.reviews.workspaceId`. The join is not an
+  optimisation, it IS the tenancy boundary.
+  Rule: NEVER filter findings by PR id alone — join reviews and assert the
+  workspace there, the way the PR-list FINDINGS rollup does.
+  `server/src/db/schema/reviews.ts:29-47`, `server/src/modules/pulls/routes.ts` (FINDINGS rollup)
 
 - **2026-09-19 — A run's cost is `null` for "unknown", `0` for "free" — never conflate them.**
   `estimateCost` returns `null` for a model missing from the price table, while
@@ -59,6 +84,17 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 ## Tool & Library Notes
 
 Quirks of the dependencies this package pins.
+
+- **2026-09-19 — Drizzle's `count()` is NOT the same hazard as `sum()`: it maps to a number.**
+  `sum()` is typed `string | null` and has to go through `parseAggregateCost`
+  (see the entry below). `count()` is declared with `.mapWith(Number)` and, over
+  a `GROUP BY` whose group exists, is never NULL — Postgres returns 0 rows for an
+  empty group rather than a row containing NULL.
+  Rule: do NOT wrap `count()` in `parseAggregateCost` "for symmetry" — the null
+  it guards against cannot occur, and the wrapper only hides that fact. Decide
+  "absent vs zero" in the caller instead (the PR-list rollup gates on whether the
+  PR has a review at all).
+  `server/src/modules/pulls/routes.ts` (FINDINGS rollup), `server/src/modules/pulls/status.ts`
 
 - **2026-09-19 — Drizzle types `sum()` as `string | null`, even over `doublePrecision`.**
   `aggregate.d.ts` declares `sum(expression): SQL<string | null>` regardless of

@@ -14,6 +14,7 @@ import { PrDetailHeader } from "./_components/PrDetailHeader";
 import { OverviewTab } from "./_components/OverviewTab";
 import { FindingsTab } from "./_components/FindingsTab";
 import { DiffTab } from "./_components/DiffTab";
+import { parseSeverityParam } from "./_components/FindingsPanel/helpers";
 import RunTraceDrawer from "./_components/RunTraceDrawer";
 import { usePullDetail, usePulls } from "../../../../../lib/hooks";
 import { useQueryClient } from "@tanstack/react-query";
@@ -66,6 +67,11 @@ export default function PRDetailPage() {
     router.replace(`/repos/${repoId}/pulls/${number}${sp.toString() ? `?${sp.toString()}` : ""}`);
   };
   const setTab = (t: string) => setParam("tab", t);
+  // The severity filter lives in the URL, not in component state: it spans
+  // every run's findings panel, survives back/forward, and makes "look at the
+  // criticals on this PR" a link someone can send.
+  const severityFilter = parseSeverityParam(search.get("severity"));
+  const setSeverityFilter = (sev: string | null) => setParam("severity", sev);
 
   // Reviews come newest-first; each is its own run (grouped into accordions).
   const runs = reviews ?? [];
@@ -158,6 +164,8 @@ export default function PRDetailPage() {
               invalidateRunHistory();
               refetchReviews();
             }}
+            severityFilter={severityFilter}
+            onSeverityChange={setSeverityFilter}
           />
         )}
 

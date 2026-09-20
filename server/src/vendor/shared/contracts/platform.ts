@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Provider } from './knowledge.js';
+import { FindingsBySeverity } from './findings.js';
 
 /**
  * Platform / scaffolding DTOs owned by F1:
@@ -177,6 +178,12 @@ export const PrMeta = z.object({
   // price; runs on unpriced models contribute nothing, so the sum can be
   // partial.
   cost_usd: z.number().nullish(),
+  // LIFETIME per-severity finding tally: every finding of every review this PR
+  // has ever had, across all rounds and all agents (list endpoint only) — the
+  // same billing model as `cost_usd` above. Accepted and dismissed findings
+  // still count: this reports what the agents FOUND, not what is still open.
+  // null = never reviewed · all-zero = reviewed and clean.
+  findings_by_severity: FindingsBySeverity.nullish(),
 });
 export type PrMeta = z.infer<typeof PrMeta>;
 

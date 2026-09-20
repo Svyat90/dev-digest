@@ -5,6 +5,7 @@ import { Icon, Badge, Button, SectionLabel, EmptyState } from "@devdigest/ui";
 import { RunStatus } from "../RunStatus";
 import { RunHistory } from "../RunHistory/RunHistory";
 import { ReviewRunAccordion } from "../ReviewRunAccordion";
+import { FindingsSummary } from "../FindingsSummary";
 import { s } from "./styles";
 import type { FindingRecord, ReviewRecord, RunSummary, PrCommit } from "@devdigest/shared";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -24,6 +25,9 @@ interface FindingsTabProps {
   onOpenTrace: (id: string) => void;
   onDelete: (id: string) => void;
   onRunDone: () => void;
+  /** URL-backed severity filter, shared by the summary and every run's panel. */
+  severityFilter: string | null;
+  onSeverityChange: (severity: string | null) => void;
 }
 
 export function FindingsTab({
@@ -40,6 +44,8 @@ export function FindingsTab({
   onOpenTrace,
   onDelete,
   onRunDone,
+  severityFilter,
+  onSeverityChange,
 }: FindingsTabProps) {
   const handleCancelAll = useCallback(() => {
     liveRunIds.forEach((id) => cancelMutation.mutate(id));
@@ -130,6 +136,9 @@ export function FindingsTab({
           </SectionLabel>
           <RunHistory
             runs={prRuns ?? []}
+            // `runs` here are the PR's REVIEWS (see the prop list above) — the
+            // timeline matches them to its run rows by run_id.
+            reviews={runs}
             commits={prCommits}
             onOpenTrace={handleOpenTrace}
             onGoToReview={handleGoToReview}
@@ -144,6 +153,11 @@ export function FindingsTab({
       >
         Review runs
       </SectionLabel>
+      <FindingsSummary
+        findings={runs.flatMap((r) => r.findings)}
+        severityFilter={severityFilter}
+        onSeverityChange={onSeverityChange}
+      />
       {runs.length === 0 ? (
         reviewRunning || liveRunIds.length > 0 ? null : (
           <EmptyState
@@ -164,6 +178,7 @@ export function FindingsTab({
             headSha={headSha}
             targetRunId={target?.runId ?? null}
             targetNonce={target?.n ?? 0}
+            severityFilter={severityFilter}
           />
         ))
       )}
