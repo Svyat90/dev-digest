@@ -44,12 +44,15 @@ then read code.
 
 - Read `README.md` before adding a route or a screen — it maps each screen to
   the API surface it leans on.
+- Read `docs/ui-architecture.md` before adding a screen or a data hook — the
+  Server/Client boundary, the provider stack, the error-UX taxonomy, cache keys.
+- Read `specs/pages.md` before changing a route or a query parameter — the URL
+  contract (`?status=`, `?tab=`, `?trace=`, `?severity=`) is shareable state.
 - Read `src/vendor/ui/README.md` before using or extending the UI primitives.
 - Read `../TESTING.md` before adding or changing a test.
 - Read `../server/src/vendor/shared/` — the canonical copy — whenever you change
   a contract.
 - Read `INSIGHTS.md` before starting non-trivial work here.
-- Read `specs/` when the feature you are implementing has a written spec.
 
 Found a trap that cost you time? Capture it with the `engineering-insights`
 skill, which appends it to `INSIGHTS.md`.

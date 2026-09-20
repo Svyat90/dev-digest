@@ -47,10 +47,13 @@ then read code.
 ## Read when
 
 - Read `README.md` before changing the pipeline or the public API.
+- Read `docs/pipeline.md` for the stage-by-stage walk-through (mode selection,
+  prompt assembly, structured output, reduce, grounding, scoring).
+- Read `specs/review-contract.md` before touching `reviewPullRequest`, the
+  grounding gate or the score — both callers depend on what it states.
 - Read `../docs/agent-prompts/` before editing reviewer system prompts.
 - Read `../TESTING.md` before adding or changing a test.
 - Read `INSIGHTS.md` before starting non-trivial work here.
-- Read `specs/` when the feature you are implementing has a written spec.
 
 Found a trap that cost you time? Capture it with the `engineering-insights`
 skill, which appends it to `INSIGHTS.md`.
