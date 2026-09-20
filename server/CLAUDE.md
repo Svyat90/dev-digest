@@ -56,7 +56,7 @@ then read code.
 - Read `docs/architecture.md` before adding a module, touching the DI container
   or changing the error envelope — request lifecycle, ports, data layer.
 - Read `specs/review-flow.md` before changing anything on the review path — it
-  states the invariants (grounding, null-vs-zero cost, lifetime rollups).
+  states the invariants (grounding, null-vs-zero cost, lifetime cost vs latest-per-agent findings).
 - Read `src/modules/repo-intel/README.md` before working on the indexer.
 - Read `../TESTING.md` before adding or changing a test.
 - Read `../docs/agent-prompts/` before editing reviewer system prompts.

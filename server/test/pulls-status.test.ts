@@ -11,6 +11,7 @@ import {
   emptySeverityCounts,
   foldSeverityCounts,
   parseAggregateCost,
+  pickLatestReviewIds,
   STALE_DAYS,
 } from '../src/modules/pulls/status.js';
 
@@ -102,5 +103,44 @@ describe('parseAggregateCost', () => {
   it('passes a number straight through, zero included', () => {
     expect(parseAggregateCost(0.0022)).toBeCloseTo(0.0022, 9);
     expect(parseAggregateCost(0)).toBe(0); // a free model really did cost 0
+  });
+});
+
+describe('pickLatestReviewIds', () => {
+  // Rows are newest-first, exactly as the route's `ORDER BY created_at DESC` hands them over.
+  const row = (id: string, prId: string, agentId: string | null) => ({ id, prId, agentId });
+
+  it('keeps only the newest review of an agent that ran several times', () => {
+    expect(
+      pickLatestReviewIds([row('r3', 'p', 'gen'), row('r2', 'p', 'gen'), row('r1', 'p', 'gen')]),
+    ).toEqual(['r3']);
+  });
+
+  it('keeps one review per agent — the newest of each', () => {
+    expect(
+      pickLatestReviewIds([
+        row('gen-3', 'p', 'gen'),
+        row('gen-2', 'p', 'gen'),
+        row('tq-1', 'p', 'tq'),
+        row('gen-1', 'p', 'gen'),
+      ]),
+    ).toEqual(['gen-3', 'tq-1']);
+  });
+
+  it('keeps PRs apart even when the same agent reviewed both', () => {
+    expect(pickLatestReviewIds([row('a2', 'pa', 'gen'), row('b1', 'pb', 'gen'), row('a1', 'pa', 'gen')])).toEqual([
+      'a2',
+      'b1',
+    ]);
+  });
+
+  it('treats reviews without an agent as one bucket per PR', () => {
+    expect(
+      pickLatestReviewIds([row('n2', 'p', null), row('n1', 'p', null), row('g1', 'p', 'gen')]),
+    ).toEqual(['n2', 'g1']);
+  });
+
+  it('is empty for no reviews', () => {
+    expect(pickLatestReviewIds([])).toEqual([]);
   });
 });

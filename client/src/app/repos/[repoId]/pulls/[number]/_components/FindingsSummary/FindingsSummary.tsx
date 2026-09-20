@@ -1,7 +1,9 @@
 /* FindingsSummary — the PR's findings at a glance, above the Review runs
-   section: one counter per severity over EVERY run's findings (the same
-   lifetime population the PR list's FINDINGS column counts). Each counter is a
-   toggle: clicking one filters every run's panel down to that severity. */
+   section: one counter per severity over EVERY run's findings, i.e. the whole
+   lifetime. This is deliberately NOT the PR list's FINDINGS column, which counts
+   only each agent's latest review; here every run is on screen in the timeline,
+   so the counters have to add up to all of them. Each counter is a toggle:
+   clicking one filters every run's panel down to that severity. */
 "use client";
 
 import React from "react";

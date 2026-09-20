@@ -10,6 +10,7 @@ import { usePrReviews } from "@/lib/hooks/reviews";
 import {
   FindingsPreviewCard,
   anchorFor,
+  latestReviewPerAgent,
   PREVIEW_SEVERITIES,
 } from "@/components/findings-preview";
 import { PREVIEW_HOVER_DELAY_MS, SIZE_COLOR, STATUS_META } from "../../constants";
@@ -25,7 +26,8 @@ export function PRRow({ pr, repoId }: { pr: PrMeta; repoId: string }) {
   const { size, lines } = sizeOf(pr);
   const reviewed = pr.score != null; // null score ⇒ PR has never been reviewed
 
-  // FINDINGS: lifetime per-severity counts, straight off the list payload.
+  // FINDINGS: per-severity counts over each agent's latest review, straight off
+  // the list payload.
   const counts = pr.findings_by_severity;
   const total = counts ? counts.CRITICAL + counts.WARNING + counts.SUGGESTION : 0;
 
@@ -109,7 +111,7 @@ export function PRRow({ pr, repoId }: { pr: PrMeta; repoId: string }) {
         )}
         {preview && total > 0 && (
           <FindingsPreviewCard
-            findings={(reviews ?? []).flatMap((r) => r.findings)}
+            findings={latestReviewPerAgent(reviews ?? []).flatMap((r) => r.findings)}
             total={total}
             title={t("list.findingsPreviewTitle", { count: total })}
             loading={isLoading}

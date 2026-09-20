@@ -3,6 +3,7 @@ export {
   anchorFor,
   countBySeverity,
   emptyCounts,
+  latestReviewPerAgent,
   lineLabel,
   sortForPreview,
   CARD_MAX_HEIGHT,

@@ -178,11 +178,13 @@ export const PrMeta = z.object({
   // price; runs on unpriced models contribute nothing, so the sum can be
   // partial.
   cost_usd: z.number().nullish(),
-  // LIFETIME per-severity finding tally: every finding of every review this PR
-  // has ever had, across all rounds and all agents (list endpoint only) — the
-  // same billing model as `cost_usd` above. Accepted and dismissed findings
-  // still count: this reports what the agents FOUND, not what is still open.
-  // null = never reviewed · all-zero = reviewed and clean.
+  // Per-severity finding tally over each agent's LATEST review only (list
+  // endpoint only): for every agent that ever ran on this PR its newest review
+  // counts and its older ones do not, then the agents are summed. Re-running one
+  // agent therefore replaces that agent's contribution rather than adding to it.
+  // NOT symmetric with `cost_usd` above, which stays a lifetime sum. Accepted and
+  // dismissed findings still count: this reports what the agents FOUND, not what
+  // is still open. null = never reviewed · all-zero = reviewed and clean.
   findings_by_severity: FindingsBySeverity.nullish(),
 });
 export type PrMeta = z.infer<typeof PrMeta>;

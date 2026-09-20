@@ -18,6 +18,7 @@ import {
   emptySeverityCounts,
   foldSeverityCounts,
   parseAggregateCost,
+  pickLatestReviewIds,
 } from './status.js';
 
 /**
@@ -129,9 +130,16 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
     const prIds = rows.map((r) => r.id);
     const latestReviewByPr = new Map<string, { score: number | null }>();
     const reviewedPrIds = new Set<string>();
+    // Each agent's latest review per PR — the population the FINDINGS tally counts.
+    let latestReviewIds: string[] = [];
     if (prIds.length > 0) {
       const reviewRows = await container.db
-        .select({ prId: t.reviews.prId, score: t.reviews.score })
+        .select({
+          id: t.reviews.id,
+          prId: t.reviews.prId,
+          agentId: t.reviews.agentId,
+          score: t.reviews.score,
+        })
         .from(t.reviews)
         .where(and(inArray(t.reviews.prId, prIds), eq(t.reviews.kind, 'review')))
         .orderBy(desc(t.reviews.createdAt));
@@ -140,22 +148,25 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
         reviewedPrIds.add(rv.prId);
         if (!latestReviewByPr.has(rv.prId)) latestReviewByPr.set(rv.prId, { score: rv.score });
       }
+      latestReviewIds = pickLatestReviewIds(reviewRows);
     }
 
-    // LIFETIME per-severity FINDINGS tally per PR: every finding of every review
-    // this PR has ever had, across all rounds and all agents — the same billing
-    // model as the COST column below, and deliberately NOT the latest round.
-    // Accepted/dismissed findings still count: the column reports what the
+    // Per-severity FINDINGS tally per PR over each agent's LATEST review only: for
+    // every agent that ever ran on the PR, its newest review counts and its older
+    // ones do not, so re-running one agent replaces that agent's contribution
+    // instead of stacking on top of it. Agents that ran once are unaffected.
+    // Deliberately NOT symmetric with the COST column below, which stays a
+    // lifetime sum: cost is money spent, findings are the current picture.
+    // Accepted/dismissed findings still count — the column reports what the
     // agents found, not what is still open.
     //
-    // Aggregated in SQL for the same reason as the cost SUM: `findings` grows
-    // without bound as a PR is re-reviewed, so reading every row back to tally
-    // them in JS would not hold up. GROUP BY returns at most three rows per PR.
+    // Aggregated in SQL: GROUP BY returns at most three rows per PR. The review
+    // ids come from the score pass above (`pickLatestReviewIds`).
     //
     // `findings` carries no workspace_id — tenancy reaches it only through its
     // review, so this join IS the tenancy boundary.
     const severityByPr = new Map<string, FindingsBySeverity>();
-    if (prIds.length > 0) {
+    if (latestReviewIds.length > 0) {
       const severityRows = await container.db
         .select({ prId: t.reviews.prId, severity: t.findings.severity, n: count() })
         .from(t.findings)
@@ -163,7 +174,7 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
         .where(
           and(
             eq(t.reviews.workspaceId, workspaceId),
-            inArray(t.reviews.prId, prIds),
+            inArray(t.reviews.id, latestReviewIds),
             eq(t.reviews.kind, 'review'),
           ),
         )

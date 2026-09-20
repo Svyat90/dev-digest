@@ -132,6 +132,52 @@ describe("PRRow — FINDINGS column", () => {
     expect(usePrReviews).toHaveBeenLastCalledWith("pr1");
   });
 
+  it("previews only each agent's latest review — the ones the chips count", () => {
+    vi.useFakeTimers();
+    const finding = (id: string, title: string) => ({
+      id,
+      severity: "CRITICAL",
+      category: "security",
+      title,
+      file: "src/config.ts",
+      start_line: 1,
+      end_line: 1,
+      rationale: "r",
+      confidence: 0.9,
+    });
+    usePrReviews.mockReturnValue({
+      data: [
+        {
+          id: "gen-old",
+          agent_id: "gen",
+          created_at: "2026-01-01T10:00:00Z",
+          findings: [finding("f1", "Stale finding from an older run")],
+        },
+        {
+          id: "gen-new",
+          agent_id: "gen",
+          created_at: "2026-01-02T10:00:00Z",
+          findings: [finding("f2", "Fresh finding from the latest run")],
+        },
+        {
+          id: "tq",
+          agent_id: "tq",
+          created_at: "2026-01-01T12:00:00Z",
+          findings: [finding("f3", "Finding from the other agent")],
+        },
+      ],
+      isLoading: false,
+    });
+    renderRow(pr());
+
+    fireEvent.mouseEnter(screen.getByRole("group", { name: "Findings by severity" }));
+    act(() => void vi.advanceTimersByTime(200));
+
+    expect(screen.getByText("Fresh finding from the latest run")).toBeInTheDocument();
+    expect(screen.getByText("Finding from the other agent")).toBeInTheDocument();
+    expect(screen.queryByText("Stale finding from an older run")).not.toBeInTheDocument();
+  });
+
   it("never opens a preview for a PR with nothing to preview", () => {
     vi.useFakeTimers();
     usePrReviews.mockReturnValue({ data: undefined, isLoading: false });

@@ -125,7 +125,13 @@ per column is cheaper than maintaining one.
 | `status` | `merged` / `closed` keep GitHub's state. Open PRs derive: never reviewed **or** head moved since the last review → `needs_review`; current head reviewed but untouched for `STALE_DAYS` → `stale`; else `reviewed`. |
 | `score` | the **latest** review's score (newest-first, first seen per PR wins). |
 | `cost_usd` | **lifetime**: `SUM(cost_usd)` over every `status='done'` run of the PR, across all rounds. Failed runs never reached a model, so they are excluded. Postgres `sum()` skips NULLs and yields NULL when none remain — exactly the "partial sum, or nothing known" rule this column needs. |
-| `findings_by_severity` | **lifetime**: every finding of every `kind='review'` review of the PR, across all rounds and agents, counted per severity in SQL. Accepted and dismissed findings still count — the column reports what the agents *found*, not what is still open. |
+| `findings_by_severity` | **latest review per agent**: for every agent that ever ran on the PR only its newest `kind='review'` review counts, and the agents are then summed — so re-running one agent replaces that agent's contribution rather than adding to it. The unit is the agent's latest *review*, not its latest run: a run that failed wrote no review, so the agent's last real result still stands. Reviews with no `agent_id` form one bucket per PR. Counted per severity in SQL over the chosen review ids (`pickLatestReviewIds`). Accepted and dismissed findings still count — the column reports what the agents *found*, not what is still open. |
+
+**These two columns are deliberately asymmetric.** `cost_usd` is money spent, so it
+only ever grows; `findings_by_severity` is the current picture, so it can shrink
+when an agent is re-run and finds less. The PR detail page's severity counters
+(`FindingsSummary`) stay lifetime — every run is on screen there — so they do not
+have to match the list.
 
 Two null rules that are easy to get backwards:
 
@@ -146,5 +152,5 @@ Per [`../../TESTING.md`](../../TESTING.md) — typological, not exhaustive:
 |---|---|---|
 | integration | `test/reviews.it.test.ts` | the real run lifecycle incl. grounding |
 | integration | `test/pulls-cost.it.test.ts` | lifetime cost: rounds, failed runs, unpriced models, free models |
-| integration | `test/pulls-findings.it.test.ts` | lifetime severity tally: across rounds, dismissed included, clean vs never reviewed, PR isolation |
-| unit | `test/pulls-status.test.ts` | status derivation, aggregate coercion, severity folding |
+| integration | `test/pulls-findings.it.test.ts` | latest-review-per-agent severity tally: re-runs replace, agents sum, failed run keeps last review, dismissed included, clean vs never reviewed, PR isolation |
+| unit | `test/pulls-status.test.ts` | status derivation, aggregate coercion, severity folding, latest-review selection |

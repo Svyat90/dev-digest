@@ -20,6 +20,17 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-09-20 — "Which reviews does the PR-list FINDINGS column count?" is defined TWICE.**
+  The server picks them for the chips (`pickLatestReviewIds`: each agent's newest
+  `kind='review'` review, per PR), and the client re-derives the same set for the
+  hover preview (`latestReviewPerAgent`) from `GET /pulls/:id/reviews`, because the
+  list payload carries only counts. Change the rule on one side and nothing fails:
+  the chips and the card just disagree, and `FindingsPreviewCard`'s "+N more"
+  goes negative. `PRRow.test.tsx` mocks `usePrReviews`, so no test spans both.
+  Rule: touch either function → change and test the other in the same commit.
+  `server/src/modules/pulls/status.ts` (`pickLatestReviewIds`),
+  `client/src/components/findings-preview/helpers.ts` (`latestReviewPerAgent`)
+
 - **2026-09-19 — `diff -r` over the two `vendor/shared` copies is NOT a drift gate.**
   Root `CLAUDE.md` says the client copy "has already drifted", but not that the
   drift is permanent and load-bearing: `eval-ci.ts`, `knowledge.ts`,

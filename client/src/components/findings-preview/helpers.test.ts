@@ -5,10 +5,11 @@
  * as pure arithmetic rather than through a render).
  */
 import { describe, it, expect } from "vitest";
-import type { FindingRecord } from "@devdigest/shared";
+import type { FindingRecord, ReviewRecord } from "@devdigest/shared";
 import {
   anchorFor,
   countBySeverity,
+  latestReviewPerAgent,
   lineLabel,
   sortForPreview,
   CARD_MAX_HEIGHT,
@@ -105,5 +106,42 @@ describe("anchorFor", () => {
 
   it("never pushes the card above the viewport, even in a short window", () => {
     expect(anchorFor({ top: 20, bottom: 50, left: 10 }, { width: 800, height: 300 }).top).toBe(8);
+  });
+});
+
+describe("latestReviewPerAgent", () => {
+  const review = (id: string, agent_id: string | null, created_at: string): ReviewRecord =>
+    ({ id, agent_id, created_at, findings: [] }) as unknown as ReviewRecord;
+
+  it("keeps only the newest review of an agent that ran several times", () => {
+    const kept = latestReviewPerAgent([
+      review("old", "gen", "2026-01-01T10:00:00Z"),
+      review("new", "gen", "2026-01-03T10:00:00Z"),
+      review("mid", "gen", "2026-01-02T10:00:00Z"),
+    ]);
+    expect(kept.map((r) => r.id)).toEqual(["new"]);
+  });
+
+  it("keeps one review per agent, whatever order the input arrives in", () => {
+    const kept = latestReviewPerAgent([
+      review("tq", "tq", "2026-01-01T10:00:00Z"),
+      review("gen-1", "gen", "2026-01-01T11:00:00Z"),
+      review("gen-3", "gen", "2026-01-03T11:00:00Z"),
+    ]);
+    expect(kept.map((r) => r.id).sort()).toEqual(["gen-3", "tq"]);
+  });
+
+  it("treats reviews with no agent as a single bucket", () => {
+    const kept = latestReviewPerAgent([
+      review("n1", null, "2026-01-01T10:00:00Z"),
+      review("n2", null, "2026-01-02T10:00:00Z"),
+    ]);
+    expect(kept.map((r) => r.id)).toEqual(["n2"]);
+  });
+
+  it("does not mutate its input", () => {
+    const input = [review("a", "x", "2026-01-01T10:00:00Z"), review("b", "x", "2026-01-02T10:00:00Z")];
+    latestReviewPerAgent(input);
+    expect(input.map((r) => r.id)).toEqual(["a", "b"]);
   });
 });
