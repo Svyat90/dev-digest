@@ -10,7 +10,9 @@ import { Icon, Badge } from "@devdigest/ui";
 import type { ReviewRecord, Verdict } from "@devdigest/shared";
 import { FindingsPanel } from "../FindingsPanel";
 import { VerdictBanner } from "../VerdictBanner";
+import { useTranslations } from "next-intl";
 import { useDeleteReview } from "@/lib/hooks/reviews";
+import { useConfirm } from "@/components/confirm-dialog";
 
 const VERDICT_COLOR: Record<string, string> = {
   request_changes: "var(--crit)",
@@ -56,7 +58,9 @@ export function ReviewRunAccordion({
       rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [targetRunId, targetNonce, review.run_id]);
+  const t = useTranslations("prReview");
   const del = useDeleteReview(prId);
+  const { confirm, dialog } = useConfirm();
   const findings = review.findings;
   const blockers = findings.filter((f) => f.severity === "CRITICAL" && !f.dismissed_at).length;
   const verdictColor = review.verdict ? VERDICT_COLOR[review.verdict] ?? "var(--text-muted)" : "var(--text-muted)";
@@ -114,9 +118,14 @@ export function ReviewRunAccordion({
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (window.confirm(`Delete this "${review.agent_name ?? "agent"}" review run and its findings?`)) {
-              del.mutate(review.id);
-            }
+            confirm(
+              {
+                title: t("panel.deleteReviewConfirm.title"),
+                body: t("panel.deleteReviewConfirm.body", { agent: review.agent_name ?? "agent" }),
+                confirmLabel: t("panel.deleteReviewConfirm.confirm"),
+              },
+              () => del.mutate(review.id),
+            );
           }}
           disabled={del.isPending}
           title="Delete this review run"
@@ -161,6 +170,7 @@ export function ReviewRunAccordion({
           />
         </div>
       )}
+      {dialog}
     </div>
   );
 }

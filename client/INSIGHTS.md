@@ -61,6 +61,17 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-09-21 — `@devdigest/ui` `Modal` is not portaled: clicks inside it bubble to the parent that renders it.**
+  `Modal` is a `position: fixed` div rendered in place, so a dialog rendered
+  inside a clickable card (`AgentCard`) or accordion header
+  (`ReviewRunAccordion`) sends every click in it up to that parent's `onClick`
+  — a "Cancel" would also navigate or toggle the row. `ConfirmDialog` wraps the
+  Modal in a `stopPropagation` div for this reason; a new overlay built on
+  `Modal` needs the same.
+  Rule: render `{dialog}` from `useConfirm()` wherever convenient, but any other
+  `Modal` placed under a clickable ancestor must stop click propagation itself.
+  `client/src/vendor/ui/kit/Modal.tsx`, `client/src/components/confirm-dialog/ConfirmDialog.tsx`
+
 - **2026-09-21 — `messages/*.json` sits outside `src/`, so `@/` cannot import it; use `@messages/…`.**
   Tests import the real bundle (`messages/en/prReview.json`) to fail on a missing
   i18n key, and 20 of the 52 deep `../../../` imports were exactly that. `@/*`

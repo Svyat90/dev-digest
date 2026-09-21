@@ -16,6 +16,8 @@ import { FindingsTab } from "../FindingsTab";
 import { DiffTab } from "../DiffTab";
 import { parseSeverityParam } from "./helpers";
 import RunTraceDrawer from "../RunTraceDrawer";
+import { useTranslations } from "next-intl";
+import { useConfirm } from "@/components/confirm-dialog";
 import { useSearchParamState } from "@/lib/hooks/useSearchParamState";
 import { usePullDetail, usePulls } from "@/lib/hooks";
 import { usePrReviews, useCancelRun, usePrActiveRuns, usePrRuns, useDeleteRun, useInvalidateActiveRuns, useInvalidatePrRuns } from "@/lib/hooks/reviews";
@@ -25,6 +27,8 @@ import { githubPrUrl } from "@/lib/github-urls";
 import type { FindingRecord } from "@devdigest/shared";
 
 export function PrDetailView() {
+  const t = useTranslations("prReview");
+  const { confirm, dialog } = useConfirm();
   const params = useParams<{ repoId: string; number: string }>();
   const { repoId, number } = params;
   const { activeRepo } = useActiveRepo();
@@ -143,8 +147,14 @@ export function PrDetailView() {
             cancelMutation={cancel}
             onOpenTrace={setTraceRunId}
             onDelete={(id) => {
-              if (window.confirm("Delete this run from history? (its logs are removed too)"))
-                deleteRun.mutate(id);
+              confirm(
+                {
+                  title: t("timeline.deleteRunConfirm.title"),
+                  body: t("timeline.deleteRunConfirm.body"),
+                  confirmLabel: t("timeline.deleteRunConfirm.confirm"),
+                },
+                () => deleteRun.mutate(id),
+              );
             }}
             onRunDone={() => {
               invalidateActiveRuns();
@@ -175,6 +185,7 @@ export function PrDetailView() {
           onClose={() => setTraceRunId(null)}
         />
       )}
+      {dialog}
     </AppShell>
   );
 }
