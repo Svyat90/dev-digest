@@ -42,9 +42,14 @@ asks about FIRST — these are curated and may already answer it — then read c
 
 - Read `README.md` before writing or changing a flow — flow format, env knobs
   and the coverage table are there.
+- Read `docs/flow-authoring.md` before writing or debugging a flow — runner
+  mechanics, why exit codes are the assertions, locator rules.
+- Read `docs/coverage-spec.md` before changing a flow or the seed — it states
+  what each flow pins and what is deliberately not covered.
 - Read `../TESTING.md` before adding or changing a test anywhere in the repo.
 - Read `INSIGHTS.md` before starting non-trivial work here.
-- Write feature specs into `docs/`, not `specs/` — that folder holds flow JSON.
+- Write feature specs into `docs/`, not `specs/` — that folder holds flow JSON
+  (`specs/behaviour-spec.md` is only a pointer to `docs/coverage-spec.md`).
 
 Found a trap that cost you time? Capture it with the `engineering-insights`
 skill, which appends it to `INSIGHTS.md`.

@@ -24,7 +24,14 @@ export const SIZE_COLOR: Record<string, string> = {
 };
 
 /** Grid template for both the header row and PR rows. */
-export const GRID = "1fr 132px 92px 60px 118px 76px 78px";
+export const GRID = "1fr 132px 92px 60px 128px 118px 76px 78px";
+
+/**
+ * How long the pointer must rest on the FINDINGS cell before its preview opens
+ * (and its findings are fetched). Without the delay, dragging the cursor down a
+ * long list fires one request per row it crosses.
+ */
+export const PREVIEW_HOVER_DELAY_MS = 150;
 
 /** Line-count thresholds for the S/M/L size bucket. */
 export const SIZE_SMALL_MAX = 100;
@@ -44,6 +51,7 @@ export const COLUMN_KEYS: string[] = [
   "author",
   "size",
   "score",
+  "findings",
   "status",
   "cost",
   "updated",

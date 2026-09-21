@@ -53,11 +53,14 @@ then read code.
 
 - Read `README.md` before adding a route or touching the review path — it holds
   the API map, the DI flow and the non-obvious "Review context" notes.
+- Read `docs/architecture.md` before adding a module, touching the DI container
+  or changing the error envelope — request lifecycle, ports, data layer.
+- Read `specs/review-flow.md` before changing anything on the review path — it
+  states the invariants (grounding, null-vs-zero cost, lifetime cost vs latest-per-agent findings).
 - Read `src/modules/repo-intel/README.md` before working on the indexer.
 - Read `../TESTING.md` before adding or changing a test.
 - Read `../docs/agent-prompts/` before editing reviewer system prompts.
 - Read `INSIGHTS.md` before starting non-trivial work here.
-- Read `specs/` when the feature you are implementing has a written spec.
 
 Found a trap that cost you time? Capture it with the `engineering-insights`
 skill, which appends it to `INSIGHTS.md`.

@@ -17,18 +17,27 @@ export function FindingsPanel({
   prId,
   repoFullName,
   headSha,
+  severityFilter = null,
 }: {
   findings: FindingRecord[];
   prId: string;
   repoFullName?: string | null;
   headSha?: string | null;
+  /** Page-wide severity filter (URL-backed) — owned by the page, not the panel,
+   *  because every run's panel filters together. */
+  severityFilter?: string | null;
 }) {
   const t = useTranslations("prReview");
   const action = useFindingAction();
   const [hideLow, setHideLow] = React.useState(false);
   const [focusIdx, setFocusIdx] = React.useState(0);
 
-  const shown = React.useMemo(() => visibleFindings(findings, hideLow), [findings, hideLow]);
+  const shown = React.useMemo(
+    () => visibleFindings(findings, hideLow, severityFilter),
+    [findings, hideLow, severityFilter],
+  );
+  // The filter can also change from browser back/forward, not just a click.
+  React.useEffect(() => setFocusIdx(0), [severityFilter]);
 
   // j/k navigation + a/d shortcuts on the focused finding (keyboard).
   React.useEffect(() => {

@@ -29,7 +29,10 @@
   "panel": {
     "hideLowConfidence": "Hide low confidence",
     "noMatchTitle": "No findings match",
-    "noMatchBody": "Adjust the filters above, or run a review to generate findings."
+    "noMatchBody": "Adjust the filters above, or run a review to generate findings.",
+    "severityCounters": "Filter findings by severity",
+    "showOnlySeverity": "Show only {severity} findings",
+    "showAllSeverities": "Show findings of every severity"
   },
   "runReview": {
     "runAll": "Run all enabled agents",
@@ -91,6 +94,7 @@
       "author": "Author",
       "size": "Size",
       "score": "Score",
+      "findings": "Findings",
       "status": "Status",
       "cost": "Cost",
       "updated": "Updated"
@@ -100,11 +104,20 @@
     "errorBody": "The engine returned an error.",
     "emptyTitle": "No pull requests",
     "emptyAllBody": "No open PRs found for this repo yet. Refresh to sync from GitHub.",
-    "emptyStatusBody": "No PRs with status “{status}”."
+    "emptyStatusBody": "No PRs with status “{status}”.",
+    "findingsBySeverity": "Findings by severity",
+    "severityCount": "{count} {severity} findings",
+    "findingsPreviewTitle": "{count} findings",
+    "noFindings": "No findings"
   },
   "timeline": {
     "goToReview": "Jump to this run’s findings below",
     "openTrace": "Open run trace & logs",
-    "deleteRun": "Delete run"
+    "deleteRun": "Delete run",
+    "findingsInRun": "{count} findings in this run"
+  },
+  "findingsPreview": {
+    "more": "+{count} more",
+    "loading": "Loading findings…"
   }
 }

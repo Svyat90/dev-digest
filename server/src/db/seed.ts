@@ -93,6 +93,9 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
   const repoId = repo!.id;
 
   // ---- PR #482 (rate limiting) ----
+  // Set only when this run creates the demo review, so the matching seeded
+  // agent_run below can claim it (see seedAgentRuns).
+  let seedReviewId: string | null = null;
   let [pr] = await db
     .select()
     .from(t.pullRequests)
@@ -173,7 +176,22 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
         suggestion: 'Use a single IN query and group in memory.',
         confidence: 0.86,
       },
+      {
+        // The third severity bucket. Without a SUGGESTION the FINDINGS column
+        // and its hover preview can only ever be demoed two-thirds lit.
+        reviewId: review!.id,
+        file: 'src/middleware/ratelimit.ts',
+        startLine: 28,
+        endLine: 28,
+        severity: 'SUGGESTION',
+        category: 'style',
+        title: 'Extract magic number 3600',
+        rationale: 'The number 3600 appears twice without explanation.',
+        suggestion: 'Name it SECONDS_IN_AN_HOUR.',
+        confidence: 0.62,
+      },
     ]);
+    seedReviewId = review!.id;
   }
 
   // ---- built-in agents (the three starter presets) ----
@@ -227,7 +245,7 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
     }
   }
 
-  await seedAgentRuns(db, workspaceId, pr!.id, agentIds);
+  await seedAgentRuns(db, workspaceId, pr!.id, agentIds, seedReviewId);
 
   return { workspaceId, userId };
 }
@@ -238,12 +256,16 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
  * Without these the run timeline and the trace drawer are empty after a fresh
  * seed, so cost has nothing to render against. The set covers every branch the
  * PR list's COST column must handle. That column is the PR's LIFETIME total, so
- * all of these land in one figure ($0.0022 as seeded):
+ * all of these land in one figure ($0.00254 as seeded):
  *   - several priced runs       → summed, across rounds and outside them
  *   - a run on an unpriced model → contributes nothing, the sum stays partial
  *   - a failed run               → ignored, it never reached the model
  *   - a run with no round        → still counted; rounds do not gate the total
  * A null cost renders an em dash, NEVER "$0.00".
+ *
+ * One of these runs also CLAIMS the demo review seeded above (`ownsSeedReview`)
+ * by writing its id into `reviews.run_id` — that link is what lets the run
+ * timeline show a per-run severity breakdown on freshly seeded data.
  *
  * Idempotent: skipped entirely once the PR has any run.
  */
@@ -252,6 +274,7 @@ async function seedAgentRuns(
   workspaceId: string,
   prId: string,
   agentIds: Record<string, string>,
+  seedReviewId: string | null,
 ): Promise<void> {
   const [existingRun] = await db
     .select({ id: t.agentRuns.id })
@@ -280,6 +303,8 @@ async function seedAgentRuns(
     score: number | null;
     blockers: number | null;
     error?: string;
+    /** This run produced the demo review seeded above — link the two. */
+    ownsSeedReview?: boolean;
   }
 
   // Ordered oldest → newest. Within the round the UNPRICED run is deliberately
@@ -311,10 +336,13 @@ async function seedAgentRuns(
       tokensIn: 9000,
       tokensOut: 119,
       costUsd: 0.0013,
-      findings: 2,
-      grounding: '2/2 passed',
+      // Counts mirror the demo review this run claims below — the timeline row
+      // and the findings it links to must not disagree.
+      findings: 3,
+      grounding: '3/3 passed',
       score: 61,
       blockers: 1,
+      ownsSeedReview: true,
     },
     {
       agent: 'General Reviewer',
@@ -395,6 +423,16 @@ async function seedAgentRuns(
         blockers: r.blockers,
       })
       .returning();
+
+    // Hand the demo review to its run. `reviews.run_id` has no FK, and the
+    // review is written before any agent exists — without this link the run
+    // timeline cannot show the findings it produced.
+    if (r.ownsSeedReview && seedReviewId) {
+      await db
+        .update(t.reviews)
+        .set({ runId: run!.id, agentId: agentIds[r.agent] ?? null })
+        .where(eq(t.reviews.id, seedReviewId));
+    }
 
     await db.insert(t.runTraces).values({
       runId: run!.id,
