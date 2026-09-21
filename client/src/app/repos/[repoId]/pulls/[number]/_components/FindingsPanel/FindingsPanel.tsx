@@ -36,8 +36,15 @@ export function FindingsPanel({
     () => visibleFindings(findings, hideLow, severityFilter),
     [findings, hideLow, severityFilter],
   );
-  // The filter can also change from browser back/forward, not just a click.
-  React.useEffect(() => setFocusIdx(0), [severityFilter]);
+  // Reset the focused row when the filter changes — it can also change from
+  // browser back/forward, not just a click. Adjusting state during render
+  // (react.dev, "storing information from previous renders") instead of an
+  // effect avoids a frame with a stale focusIdx.
+  const [prevFilter, setPrevFilter] = React.useState(severityFilter);
+  if (prevFilter !== severityFilter) {
+    setPrevFilter(severityFilter);
+    setFocusIdx(0);
+  }
 
   // j/k navigation + a/d shortcuts on the focused finding (keyboard).
   React.useEffect(() => {

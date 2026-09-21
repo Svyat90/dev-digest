@@ -47,12 +47,14 @@ export function ReviewRunAccordion({
 }) {
   const [open, setOpen] = React.useState(defaultOpen);
   const rootRef = React.useRef<HTMLDivElement | null>(null);
+  // An effect on purpose: scrollIntoView needs the DOM AFTER `open` commits, and
+  // `targetNonce` re-fires it when the same run is targeted twice in a row (same
+  // `targetRunId`, so no other dependency changes).
   React.useEffect(() => {
     if (review.run_id && review.run_id === targetRunId) {
       setOpen(true);
       rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetRunId, targetNonce, review.run_id]);
   const del = useDeleteReview(prId);
   const findings = review.findings;
