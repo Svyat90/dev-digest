@@ -1,5 +1,6 @@
 /* PR list — /repos/:repoId/pulls. Ported from screen_dashboard.jsx; fetches
-   GET /repos/:id/pulls (F1). Filters/sort live in query (?status&sort). */
+   GET /repos/:id/pulls (F1). Only the status filter lives in the URL (?status);
+   text search and sort are local state — not shareable, and not in specs/pages.md. */
 "use client";
 
 import React from "react";
