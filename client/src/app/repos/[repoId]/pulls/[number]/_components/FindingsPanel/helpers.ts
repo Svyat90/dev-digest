@@ -14,13 +14,3 @@ export function visibleFindings(
     (a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9),
   );
 }
-
-/**
- * Read the `?severity=` filter off the URL.
- *
- * Anything unrecognised reads as "no filter": a hand-edited or stale link must
- * fall back to showing everything, never to an inexplicably empty page.
- */
-export function parseSeverityParam(raw: string | null | undefined): string | null {
-  return raw && raw in SEVERITY_ORDER ? raw : null;
-}

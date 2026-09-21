@@ -8,16 +8,15 @@ obvious from reading one file. The route → API map lives in
 
 ## The Server/Client boundary
 
-Next 15 App Router, but the server half is deliberately thin. Only three files
-are Server Components:
+Next 15 App Router, but the server half is deliberately thin. Only the root layout
+and the thin route entries are Server Components:
 
 | File | Why it stays on the server |
 |---|---|
 | `app/layout.tsx` | awaits `getLocale()` / `getMessages()` from `next-intl/server`, so the message bundle is embedded in the first HTML instead of fetched after hydration |
-| `app/agents/page.tsx` | a two-line route entry that renders a client view |
-| `app/settings/[section]/page.tsx` | same shape |
+| every `page.tsx` (`agents`, `agents/[id]`, `settings/[section]`, `repos/[repoId]/pulls`, `…/pulls/[number]`) | a route entry that only renders a client `<X>View` from `_components/`; the `"use client"` boundary sits on the view |
 
-Every other page is `"use client"`, because each one owns interaction state and
+Every view (and the pages that have not been thinned yet) is `"use client"`, because each one owns interaction state and
 TanStack queries against a separate API origin. There is no server-side data
 fetching and no server action anywhere: the Fastify engine is a different
 process on a different port, reached from the browser.

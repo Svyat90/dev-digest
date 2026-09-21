@@ -1,10 +1,10 @@
 /**
- * FindingsPanel helpers — the filtering the severity counters drive, plus the
- * URL parsing that stands between a hand-edited link and an empty page.
+ * FindingsPanel helpers — the filtering the severity counters drive. (URL
+ * parsing of `?severity=` lives with the route: PrDetailView/helpers.)
  */
 import { describe, it, expect } from "vitest";
 import type { FindingRecord } from "@devdigest/shared";
-import { parseSeverityParam, visibleFindings } from "./helpers";
+import { visibleFindings } from "./helpers";
 
 const f = (id: string, severity: string, confidence = 0.9): FindingRecord =>
   ({
@@ -41,17 +41,4 @@ describe("visibleFindings", () => {
     expect(visibleFindings(all, true, "SUGGESTION")).toEqual([]);
   });
 });
-
-describe("parseSeverityParam", () => {
-  it("accepts a known severity", () => {
-    expect(parseSeverityParam("CRITICAL")).toBe("CRITICAL");
-  });
-
-  it("reads junk, the wrong case and an absent param as NO filter", () => {
-    // A stale or hand-typed link must show everything, not nothing.
-    expect(parseSeverityParam("critical")).toBeNull();
-    expect(parseSeverityParam("BANANA")).toBeNull();
-    expect(parseSeverityParam(null)).toBeNull();
-    expect(parseSeverityParam("")).toBeNull();
-  });
-});
+;

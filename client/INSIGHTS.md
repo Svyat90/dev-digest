@@ -118,6 +118,17 @@ Quirks of the dependencies this package pins.
 
 An error seen twice, plus the fix that actually worked.
 
+- **2026-09-21 — `pnpm typecheck` fails with TS2344 in `.next/types/validator.ts` right after a `page.tsx` is moved.**
+  Literal text: `.next/types/validator.ts(86,52): error TS2344: Type '"/repos/[repoId]/pulls"' does not satisfy the constraint 'AppRoutes'.`
+  Seen while `git mv page.tsx …/View.tsx` and re-creating a thin `page.tsx`: the
+  first run failed, the identical rerun (no source change) passed. `tsconfig`
+  includes `.next/types/**`, so a stale generated route list from an earlier dev
+  run is type-checked against the new tree.
+  Rule: on this error, rerun `pnpm typecheck` once before hunting in `src/`; do
+  not edit `.next/**` (do-not-touch).
+  `client/tsconfig.json` (`include`), `client/.next/types/validator.ts`
+  Confidence: low (cause inferred, seen once)
+
 ## Session Notes
 
 Dated summary, only when a session changed how this package is worked on.
