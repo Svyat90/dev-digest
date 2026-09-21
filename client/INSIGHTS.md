@@ -171,6 +171,12 @@ Dated summary, only when a session changed how this package is worked on.
 
 What was left unresolved, so the next session does not re-investigate blind.
 
+- **2026-09-21 — CLOSED: the `client/CLAUDE.md` vs `TESTING.md` test-policy conflict (entry of 2026-09-21 below).**
+  `client/CLAUDE.md` now says tests are typological (`../TESTING.md`) and that a
+  component folder without a `*.test.tsx` is not a defect. The workaround rule in
+  the entry below is no longer needed; the entry itself is left as written.
+  `client/CLAUDE.md` ("Non-default conventions")
+
 - **2026-09-21 — `client/CLAUDE.md` and `TESTING.md` disagree on whether every component gets a test.**
   `client/CLAUDE.md` says each `_components/<Name>/` folder has "its own
   `*.test.tsx`"; `TESTING.md:8` says tests are "typological, not exhaustive". The
