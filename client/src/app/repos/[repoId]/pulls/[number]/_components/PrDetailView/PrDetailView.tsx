@@ -79,7 +79,7 @@ export function PrDetailView() {
   const repoFullName = activeRepo?.full_name ?? null;
   const crumb = [
     { label: repoName, mono: true, href: `/repos/${repoId}/pulls` },
-    { label: "Pull Requests", href: `/repos/${repoId}/pulls` },
+    { label: t("list.breadcrumb"), href: `/repos/${repoId}/pulls` },
     { label: `#${number}`, mono: true },
   ];
 
@@ -109,8 +109,8 @@ export function PrDetailView() {
       <AppShell crumb={crumb}>
         <ErrorState
           fullScreen
-          title="Couldn't load this pull request"
-          body={error instanceof ApiError ? error.message : `PR #${number} could not be loaded.`}
+          title={t("detail.loadErrorTitle")}
+          body={error instanceof ApiError ? error.message : t("detail.loadErrorBody", { number })}
           onRetry={() => refetch()}
         />
       </AppShell>

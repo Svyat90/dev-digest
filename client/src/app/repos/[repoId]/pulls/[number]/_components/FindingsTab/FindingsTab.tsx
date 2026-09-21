@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Icon, Badge, Button, SectionLabel, EmptyState } from "@devdigest/ui";
 import { RunStatus } from "./_components/RunStatus";
 import { RunHistory } from "./_components/RunHistory/RunHistory";
@@ -47,6 +48,7 @@ export function FindingsTab({
   severityFilter,
   onSeverityChange,
 }: FindingsTabProps) {
+  const t = useTranslations("prReview");
   const handleCancelAll = useCallback(() => {
     liveRunIds.forEach((id) => cancelMutation.mutate(id));
   }, [liveRunIds, cancelMutation]);
@@ -162,8 +164,8 @@ export function FindingsTab({
         reviewRunning || liveRunIds.length > 0 ? null : (
           <EmptyState
             icon="Sparkles"
-            title="No findings yet"
-            body="Run a review to generate findings. Use Run Review ▾ above (run all enabled agents or a specific one)."
+            title={t("detail.noFindingsTitle")}
+            body={t("detail.noFindingsBody")}
           />
         )
       ) : (

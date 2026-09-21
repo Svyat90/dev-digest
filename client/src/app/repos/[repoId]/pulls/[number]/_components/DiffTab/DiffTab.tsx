@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { SectionLabel, Button } from "@devdigest/ui";
 import { DiffViewer, type DiffCommentApi } from "@/components/diff-viewer";
 import { usePrComments, useCreatePrComment } from "@/lib/hooks/reviews";
@@ -16,6 +17,7 @@ interface DiffTabProps {
 }
 
 export function DiffTab({ prId, filesCount, files, canComment }: DiffTabProps) {
+  const t = useTranslations("prReview");
   const { data: comments } = usePrComments(prId);
   const create = useCreatePrComment(prId);
   // Comments start hidden so the diff is clean by default — toggle to reveal.
@@ -52,7 +54,7 @@ export function DiffTab({ prId, filesCount, files, canComment }: DiffTabProps) {
               icon={showComments ? "EyeOff" : "Eye"}
               onClick={() => setShowComments((v) => !v)}
             >
-              {showComments ? "Hide comments" : "Show comments"} ({commentCount})
+              {showComments ? t("detail.hideComments") : t("detail.showComments")} ({commentCount})
             </Button>
           ) : undefined
         }
