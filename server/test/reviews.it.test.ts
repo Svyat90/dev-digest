@@ -201,6 +201,7 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
     const trace = (await app.inject({ method: 'GET', url: `/runs/${runId}/trace` })).json();
     expect(trace.config.model).toBe('gpt-4.1');
     expect(trace.stats.grounding).toBe('1/2 passed');
+    expect(trace.stats.cost_usd).toBe(0.001); // MockLLMProvider's per-call cost
     expect(trace.log.length).toBeGreaterThan(0);
 
     // agent_runs row populated for A5 to aggregate
@@ -208,6 +209,10 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
     expect(run!.status).toBe('done');
     expect(run!.findingsCount).toBe(1);
     expect(run!.grounding).toBe('1/2 passed');
+    // Cost survives the round-trip to the column, and back out of the API.
+    expect(run!.costUsd).toBe(0.001);
+    const runs = (await app.inject({ method: 'GET', url: `/pulls/${pr.id}/runs` })).json();
+    expect(runs[0].cost_usd).toBe(0.001);
 
     await app.close();
   });
@@ -297,6 +302,17 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
     ).json();
     // seed has 2 enabled agents; we may have created more above in this PR's ws.
     expect(body.runs.length).toBeGreaterThanOrEqual(2);
+
+    // Every run of ONE runReview call shares a round. Set at creation, so no
+    // need to wait for the background reviews to land.
+    const created = await pg.handle.db
+      .select({ roundId: t.agentRuns.roundId })
+      .from(t.agentRuns)
+      .where(eq(t.agentRuns.prId, pr.id));
+    expect(created.length).toBe(body.runs.length);
+    const roundIds = new Set(created.map((r) => r.roundId));
+    expect(roundIds.size).toBe(1);
+    expect([...roundIds][0]).not.toBeNull();
     await app.close();
   });
 });

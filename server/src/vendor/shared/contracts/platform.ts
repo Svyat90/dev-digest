@@ -170,6 +170,13 @@ export const PrMeta = z.object({
   updated_at: z.string().nullish(),
   // Latest-review score (list endpoint only; null/absent until reviewed).
   score: z.number().int().nullish(),
+  // LIFETIME cost of this PR: every completed run it has ever had, summed
+  // across all review rounds (list endpoint only). It therefore GROWS with each
+  // re-review — it answers "what has this PR cost us", not "what does one
+  // review cost". Null until reviewed, or when no run's model has a known
+  // price; runs on unpriced models contribute nothing, so the sum can be
+  // partial.
+  cost_usd: z.number().nullish(),
 });
 export type PrMeta = z.infer<typeof PrMeta>;
 

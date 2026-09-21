@@ -6,7 +6,12 @@
  * + age, so it gets unit coverage independent of the route's queries.
  */
 import { describe, it, expect } from 'vitest';
-import { deriveReviewStatus, rollupSeverities, STALE_DAYS } from '../src/modules/pulls/status.js';
+import {
+  deriveReviewStatus,
+  rollupSeverities,
+  parseAggregateCost,
+  STALE_DAYS,
+} from '../src/modules/pulls/status.js';
 
 const DAY = 86_400_000;
 const now = Date.UTC(2026, 5, 11);
@@ -64,5 +69,22 @@ describe('rollupSeverities', () => {
 
   it('is all-zero for no findings', () => {
     expect(rollupSeverities([])).toEqual({ critical: 0, warning: 0, suggestion: 0 });
+  });
+});
+
+describe('parseAggregateCost', () => {
+  it('keeps an absent aggregate absent — NOT zero', () => {
+    // SUM() over rows that are all NULL yields NULL. Number(null) is 0, which
+    // would tell the user an unpriced PR was free.
+    expect(parseAggregateCost(null)).toBeNull();
+  });
+
+  it('reads the string Drizzle types sum() as', () => {
+    expect(parseAggregateCost('0.0022')).toBeCloseTo(0.0022, 9);
+  });
+
+  it('passes a number straight through, zero included', () => {
+    expect(parseAggregateCost(0.0022)).toBeCloseTo(0.0022, 9);
+    expect(parseAggregateCost(0)).toBe(0); // a free model really did cost 0
   });
 });

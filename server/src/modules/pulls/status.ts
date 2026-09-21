@@ -53,3 +53,16 @@ export function deriveReviewStatus(args: {
   if (updatedAt && now - updatedAt.getTime() > staleMs) return 'stale';
   return 'reviewed';
 }
+
+/**
+ * Coerce a SQL aggregate's value into a cost.
+ *
+ * Drizzle types `sum()` as `string | null` even over a double-precision column,
+ * and postgres.js may hand back either a string or a number — so both are
+ * accepted. NULL must survive as null: `Number(null)` is 0, which would report
+ * a PR whose every run is unpriced as free. That distinction (unknown vs free)
+ * is the one this column keeps getting wrong, so it lives in one tested place.
+ */
+export function parseAggregateCost(value: string | number | null): number | null {
+  return value == null ? null : Number(value);
+}
