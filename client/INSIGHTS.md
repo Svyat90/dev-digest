@@ -141,6 +141,18 @@ Quirks of the dependencies this package pins.
 
 An error seen twice, plus the fix that actually worked.
 
+- **2026-09-21 — Supersedes the low-confidence TS2344 entry below: stale `.next/types` is confirmed, and a rerun is NOT the fix after moving route folders.**
+  After `git mv src/app/{agents,repos,settings,page.tsx} src/app/(shell)/`,
+  `pnpm typecheck` failed with `.next/types/app/agents/page.ts: error TS2307:
+  Cannot find module '../../../../src/app/agents/page.js'` (one per moved page).
+  `tsconfig` includes `.next/types/**`, and `next typegen` only adds/overwrites —
+  it leaves the old route's file behind, so rerunning changes nothing.
+  Fix that worked: `rm -rf .next/types && pnpm exec next typegen` (generated
+  output only, gitignored; not editing `.next/**` by hand), then typecheck is clean.
+  Rule: after moving or renaming any `page.tsx`/route folder, regenerate the route
+  types this way before trusting `pnpm typecheck`.
+  `client/tsconfig.json` (`include`), `client/.next/types/`
+
 - **2026-09-21 — Moving a component folder breaks `vi.mock("../../…/lib/hooks/x")` in its test, and `from "…"` greps do not see it.**
   Relative paths inside `vi.mock(...)` resolve against the test file, so after
   nesting `RunReviewDropdown` and `FindingsPanel` two levels deeper their mocks

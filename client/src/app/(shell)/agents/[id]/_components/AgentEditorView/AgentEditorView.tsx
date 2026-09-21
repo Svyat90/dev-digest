@@ -8,8 +8,8 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Dropdown, ErrorState, Skeleton, Icon, Badge } from "@devdigest/ui";
-import { AppShell } from "@/components/app-shell";
-import { AgentCard } from "@/app/agents/_components/AgentCard";
+import { useCrumb } from "@/components/app-shell";
+import { AgentCard } from "@/app/(shell)/agents/_components/AgentCard";
 import { AgentEditor } from "../AgentEditor";
 import { useAgents, useAgent, useUpdateAgent } from "@/lib/hooks/agents";
 import { ApiError } from "@/lib/api";
@@ -29,27 +29,25 @@ export function AgentEditorView() {
   const [tabParam, setTab] = useSearchParamState("tab");
   const tab = VALID_TABS.includes(tabParam ?? "") ? tabParam! : "config";
 
-  const crumb = [
+  useCrumb([
     { label: t("list.breadcrumbLab") },
     { label: t("list.breadcrumb"), href: "/agents" },
     { label: agent?.name ?? t("editor.agentFallback") },
-  ];
+  ]);
 
   if (isError || (!isLoading && !agent)) {
     return (
-      <AppShell crumb={crumb}>
-        <ErrorState
-          fullScreen
-          title={t("editor.loadErrorTitle")}
-          body={error instanceof ApiError ? error.message : t("editor.loadErrorBody")}
-          onRetry={() => refetch()}
-        />
-      </AppShell>
+      <ErrorState
+        fullScreen
+        title={t("editor.loadErrorTitle")}
+        body={error instanceof ApiError ? error.message : t("editor.loadErrorBody")}
+        onRetry={() => refetch()}
+      />
     );
   }
 
   return (
-    <AppShell crumb={crumb}>
+    <>
       <div style={{ display: "flex", height: "calc(100vh - 52px)" }}>
         {/* left: agent list */}
         <div
@@ -117,6 +115,6 @@ export function AgentEditorView() {
           </div>
         )}
       </div>
-    </AppShell>
+    </>
   );
 }

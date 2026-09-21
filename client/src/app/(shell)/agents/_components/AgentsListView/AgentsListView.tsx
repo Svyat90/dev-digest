@@ -6,7 +6,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button, Dropdown, EmptyState, ErrorState, Skeleton, Icon } from "@devdigest/ui";
-import { AppShell } from "@/components/app-shell";
+import { useCrumb } from "@/components/app-shell";
 import { useAgents, useUpdateAgent } from "@/lib/hooks/agents";
 import { AgentCard } from "../AgentCard";
 import { CreateAgentModal } from "./_components/CreateAgentModal";
@@ -23,9 +23,10 @@ export function AgentsListView() {
   const [search, setSearch] = React.useState("");
 
   const list = filterAgents(agents ?? [], search);
+  useCrumb([{ label: t("list.breadcrumbLab") }, { label: t("list.breadcrumb") }]);
 
   return (
-    <AppShell crumb={[{ label: t("list.breadcrumbLab") }, { label: t("list.breadcrumb") }]}>
+    <>
       {creating && <CreateAgentModal onClose={() => setCreating(false)} />}
       <div style={s.page}>
         <div style={s.header}>
@@ -93,6 +94,6 @@ export function AgentsListView() {
           </div>
         )}
       </div>
-    </AppShell>
+    </>
   );
 }

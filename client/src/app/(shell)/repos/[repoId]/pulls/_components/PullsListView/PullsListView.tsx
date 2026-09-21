@@ -12,7 +12,7 @@ import {
   ErrorState,
   AutoTriggerStatus,
 } from "@devdigest/ui";
-import { AppShell } from "@/components/app-shell";
+import { useCrumb } from "@/components/app-shell";
 import { RepoNotFound } from "@/components/repo-not-found";
 import { usePulls, useRefreshRepo } from "@/lib/hooks";
 import { useSearchParamState } from "@/lib/hooks/useSearchParamState";
@@ -46,17 +46,13 @@ export function PullsListView() {
   const openCount = countOpen(pulls ?? []);
   const needsReviewCount = countNeedsReview(pulls ?? []);
 
+  useCrumb([{ label: repoName, mono: true }, { label: t("list.breadcrumb") }]);
+
   // Stale/unknown :repoId → friendly empty state instead of a 404 error.
-  if (repoNotFound) {
-    return (
-      <AppShell crumb={[{ label: repoName, mono: true }, { label: t("list.breadcrumb") }]}>
-        <RepoNotFound />
-      </AppShell>
-    );
-  }
+  if (repoNotFound) return <RepoNotFound />;
 
   return (
-    <AppShell crumb={[{ label: repoName, mono: true }, { label: t("list.breadcrumb") }]}>
+    <>
       <div style={s.pageHeader}>
         <div>
           <h1 style={s.pageTitle}>{t("list.title")}</h1>
@@ -116,6 +112,6 @@ export function PullsListView() {
           filtered.map((pr) => <PRRow key={pr.number} pr={pr} repoId={repoId} />)
         )}
       </div>
-    </AppShell>
+    </>
   );
 }

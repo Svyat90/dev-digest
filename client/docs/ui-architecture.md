@@ -31,6 +31,15 @@ Two details in `layout.tsx` are load-bearing:
   suppresses one element's own attribute mismatch; real mismatches in descendants
   are still reported.
 
+## The app shell
+
+`app/(shell)/layout.tsx` renders `ShellLayout` (`components/app-shell`) once for
+`/`, `/repos/**`, `/agents/**` and `/settings/**`; `/onboarding` is outside the
+group and has no shell. Because the shell is a layout it is **not** remounted on
+navigation. A view declares its breadcrumb with `useCrumb([...])`
+(`components/app-shell/crumb.tsx`); it is set in a layout effect and cleared on
+unmount. Do not render `<AppShell>` from a page.
+
 ## Provider stack
 
 `lib/providers.tsx`, mounted once inside the layout's `<Suspense>`:

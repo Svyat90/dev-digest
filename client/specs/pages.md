@@ -11,13 +11,17 @@ Architecture: [`../docs/ui-architecture.md`](../docs/ui-architecture.md).
 
 | Route | File | Renders | Data |
 |---|---|---|---|
-| `/` | `app/page.tsx` | redirect | `useRepos` → replaces with the first repo's PR list; no repos → onboarding CTA |
+| `/` | `app/(shell)/page.tsx` | redirect | `useRepos` → replaces with the first repo's PR list; no repos → onboarding CTA |
 | `/onboarding` | `app/onboarding/page.tsx` | add-repository form | `useAddRepo` → `POST /repos` |
-| `/repos/:repoId/pulls` | `app/repos/[repoId]/pulls/page.tsx` | PR list table | `usePulls`, `useRepoIntelStatus` |
+| `/repos/:repoId/pulls` | `app/(shell)/repos/[repoId]/pulls/page.tsx` | PR list table | `usePulls`, `useRepoIntelStatus` |
 | `/repos/:repoId/pulls/:number` | `.../pulls/[number]/page.tsx` | PR detail, three tabs | `usePulls` (number→id), `usePullDetail`, `usePrReviews`, `usePrRuns`, `usePrActiveRuns` |
-| `/agents` | `app/agents/page.tsx` | agent list + create modal | `useAgents` |
-| `/agents/:id` | `app/agents/[id]/page.tsx` | agent editor | `useAgent`, `useProviderModels`, `useUpdateAgent` |
-| `/settings/:section` | `app/settings/[section]/page.tsx` | API keys / models | `useSettings`, `useSecretsStatus`, `useTestConnection` |
+| `/agents` | `app/(shell)/agents/page.tsx` | agent list + create modal | `useAgents` |
+| `/agents/:id` | `app/(shell)/agents/[id]/page.tsx` | agent editor | `useAgent`, `useProviderModels`, `useUpdateAgent` |
+| `/settings/:section` | `app/(shell)/settings/[section]/page.tsx` | API keys / models | `useSettings`, `useSecretsStatus`, `useTestConnection` |
+
+`(shell)` is a route group (no URL segment): its `layout.tsx` mounts the app shell
+once, so the sidebar/top bar survive navigation. Views set the breadcrumb with
+`useCrumb([...])`. `/onboarding` sits outside the group and has no shell.
 
 ## Navigation rules
 
@@ -70,7 +74,7 @@ change:
    formatting inline — the cost surfaces live in three separate subtrees and
    drifting formatters is exactly how they stop matching.
 2. **The PR list's columns are data-driven.** `COLUMN_KEYS`, the `GRID` template
-   and `RIGHT_ALIGNED_COLUMNS` in `app/repos/[repoId]/pulls/constants.ts` must
+   and `RIGHT_ALIGNED_COLUMNS` in `app/(shell)/repos/[repoId]/pulls/constants.ts` must
    change together — the header and the row both render from them, so a column
    added to one and not the others silently shifts every cell.
 3. **The whole PR row is a navigation target.** Anything interactive inside a

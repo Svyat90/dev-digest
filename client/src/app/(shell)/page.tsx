@@ -5,7 +5,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useRepos } from "@/lib/hooks";
-import { AppShell } from "@/components/app-shell";
+import { useCrumb } from "@/components/app-shell";
 import { PageContainer } from "@/components/page-shell";
 import { EmptyState, Button, Skeleton } from "@devdigest/ui";
 
@@ -20,8 +20,10 @@ export default function HomePage() {
     }
   }, [repos, router]);
 
+  useCrumb([{ label: t("home.crumb") }]);
+
   return (
-    <AppShell crumb={[{ label: t("home.crumb") }]}>
+    <>
       <PageContainer title={t("home.title")} subtitle={t("home.subtitle")}>
         {isLoading ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 480 }}>
@@ -46,6 +48,6 @@ export default function HomePage() {
           </div>
         )}
       </PageContainer>
-    </AppShell>
+    </>
   );
 }
