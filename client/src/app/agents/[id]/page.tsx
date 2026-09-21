@@ -3,20 +3,20 @@
    screen_agents.jsx. */
 "use client";
 
+import { useSearchParamState } from "@/lib/hooks/useSearchParamState";
 import React from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button, Dropdown, ErrorState, Skeleton, Icon, Badge } from "@devdigest/ui";
-import { AppShell } from "../../../components/app-shell";
+import { AppShell } from "@/components/app-shell";
 import { AgentCard } from "../_components/AgentCard";
 import { AgentEditor } from "./_components/AgentEditor";
-import { useAgents, useAgent, useUpdateAgent } from "../../../lib/hooks/agents";
-import { ApiError } from "../../../lib/api";
+import { useAgents, useAgent, useUpdateAgent } from "@/lib/hooks/agents";
+import { ApiError } from "@/lib/api";
 
 const VALID_TABS = ["config"];
 
 export default function AgentEditorPage() {
   const params = useParams<{ id: string }>();
-  const search = useSearchParams();
   const router = useRouter();
   const { id } = params;
 
@@ -24,12 +24,8 @@ export default function AgentEditorPage() {
   const { data: agent, isLoading, isError, error, refetch } = useAgent(id);
   const update = useUpdateAgent();
 
-  const tab = VALID_TABS.includes(search.get("tab") ?? "") ? search.get("tab")! : "config";
-  const setTab = (t: string) => {
-    const sp = new URLSearchParams(search.toString());
-    sp.set("tab", t);
-    router.replace(`/agents/${id}?${sp.toString()}`);
-  };
+  const [tabParam, setTab] = useSearchParamState("tab");
+  const tab = VALID_TABS.includes(tabParam ?? "") ? tabParam! : "config";
 
   const crumb = [
     { label: "Skills Lab" },

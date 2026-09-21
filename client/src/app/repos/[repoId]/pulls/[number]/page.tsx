@@ -6,9 +6,9 @@
 "use client";
 
 import React from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Skeleton, ErrorState } from "@devdigest/ui";
-import { AppShell } from "../../../../../components/app-shell";
+import { AppShell } from "@/components/app-shell";
 import { RepoNotFound } from "@/components/repo-not-found";
 import { PrDetailHeader } from "./_components/PrDetailHeader";
 import { OverviewTab } from "./_components/OverviewTab";
@@ -16,18 +16,16 @@ import { FindingsTab } from "./_components/FindingsTab";
 import { DiffTab } from "./_components/DiffTab";
 import { parseSeverityParam } from "./_components/FindingsPanel/helpers";
 import RunTraceDrawer from "./_components/RunTraceDrawer";
-import { usePullDetail, usePulls } from "../../../../../lib/hooks";
-import { useQueryClient } from "@tanstack/react-query";
-import { usePrReviews, useCancelRun, usePrActiveRuns, usePrRuns, useDeleteRun } from "../../../../../lib/hooks/reviews";
-import { useActiveRepo, useRepoNotFound } from "../../../../../lib/repo-context";
-import { ApiError } from "../../../../../lib/api";
-import { githubPrUrl } from "../../../../../lib/github-urls";
+import { useSearchParamState } from "@/lib/hooks/useSearchParamState";
+import { usePullDetail, usePulls } from "@/lib/hooks";
+import { usePrReviews, useCancelRun, usePrActiveRuns, usePrRuns, useDeleteRun, useInvalidateActiveRuns, useInvalidatePrRuns } from "@/lib/hooks/reviews";
+import { useActiveRepo, useRepoNotFound } from "@/lib/repo-context";
+import { ApiError } from "@/lib/api";
+import { githubPrUrl } from "@/lib/github-urls";
 import type { FindingRecord } from "@devdigest/shared";
 
 export default function PRDetailPage() {
   const params = useParams<{ repoId: string; number: string }>();
-  const search = useSearchParams();
-  const router = useRouter();
   const { repoId, number } = params;
   const { activeRepo } = useActiveRepo();
   const repoNotFound = useRepoNotFound(repoId);
@@ -42,36 +40,25 @@ export default function PRDetailPage() {
 
   // Live run tracking is SERVER-SOURCED (agent_runs status='running'): survives
   // navigation AND reload, and self-clears via polling when runs finish.
-  const qc = useQueryClient();
   const { data: activeRuns } = usePrActiveRuns(prId);
   const { data: prRuns } = usePrRuns(prId);
   const deleteRun = useDeleteRun(prId);
   const liveRunIds = (activeRuns ?? []).map((r) => r.run_id);
   const reviewRunning = liveRunIds.length > 0;
   const cancel = useCancelRun();
-  const invalidateActiveRuns = () => {
-    if (prId) qc.invalidateQueries({ queryKey: ["pr-active-runs", prId] });
-  };
+  const invalidateActiveRuns = useInvalidateActiveRuns(prId);
   // When a run settles (done OR failed) refresh the full run history too, so a
   // just-failed run shows up in "Run history" immediately — no page reload.
-  const invalidateRunHistory = () => {
-    if (prId) qc.invalidateQueries({ queryKey: ["pr-runs", prId] });
-  };
+  const invalidateRunHistory = useInvalidatePrRuns(prId);
 
-  const tab = search.get("tab") ?? "overview";
-  const traceRunId = search.get("trace");
-  const setParam = (key: string, val: string | null) => {
-    const sp = new URLSearchParams(search.toString());
-    if (val == null) sp.delete(key);
-    else sp.set(key, val);
-    router.replace(`/repos/${repoId}/pulls/${number}${sp.toString() ? `?${sp.toString()}` : ""}`);
-  };
-  const setTab = (t: string) => setParam("tab", t);
+  const [tabParam, setTab] = useSearchParamState("tab");
+  const tab = tabParam ?? "overview";
+  const [traceRunId, setTraceRunId] = useSearchParamState("trace");
   // The severity filter lives in the URL, not in component state: it spans
   // every run's findings panel, survives back/forward, and makes "look at the
   // criticals on this PR" a link someone can send.
-  const severityFilter = parseSeverityParam(search.get("severity"));
-  const setSeverityFilter = (sev: string | null) => setParam("severity", sev);
+  const [severityParam, setSeverityFilter] = useSearchParamState("severity");
+  const severityFilter = parseSeverityParam(severityParam);
 
   // Reviews come newest-first; each is its own run (grouped into accordions).
   const runs = reviews ?? [];
@@ -154,7 +141,7 @@ export default function PRDetailPage() {
             repoFullName={repoFullName}
             headSha={pr.head_sha}
             cancelMutation={cancel}
-            onOpenTrace={(id) => setParam("trace", id)}
+            onOpenTrace={setTraceRunId}
             onDelete={(id) => {
               if (window.confirm("Delete this run from history? (its logs are removed too)"))
                 deleteRun.mutate(id);
@@ -185,7 +172,7 @@ export default function PRDetailPage() {
           prNumber={pr.number}
           findings={runs.find((r) => r.run_id === traceRunId)?.findings ?? []}
           agentName={runs.find((r) => r.run_id === traceRunId)?.agent_name ?? null}
-          onClose={() => setParam("trace", null)}
+          onClose={() => setTraceRunId(null)}
         />
       )}
     </AppShell>

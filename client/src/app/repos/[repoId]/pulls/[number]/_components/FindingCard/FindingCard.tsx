@@ -22,7 +22,7 @@ import { SEV_COLOR, SEV_COLOR_FALLBACK } from "./constants";
 // The line-range formatter is shared with the hover preview, so the card and
 // the preview can never format a range differently.
 import { lineLabel } from "@/components/findings-preview/helpers";
-import { githubBlobUrl } from "../../../../../../../lib/github-urls";
+import { githubBlobUrl } from "@/lib/github-urls";
 import { s } from "./styles";
 
 export function FindingCard({

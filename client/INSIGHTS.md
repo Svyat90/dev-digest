@@ -61,6 +61,17 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-09-21 — `messages/*.json` sits outside `src/`, so `@/` cannot import it; use `@messages/…`.**
+  Tests import the real bundle (`messages/en/prReview.json`) to fail on a missing
+  i18n key, and 20 of the 52 deep `../../../` imports were exactly that. `@/*`
+  maps to `./src/*`, so those needed their own alias: `@messages/*` →
+  `./messages/*` in `tsconfig.json` `paths` AND `vitest.config.ts`
+  `resolve.alias` (both — tsc and vite resolve separately, and only one of them
+  failing is easy to miss).
+  Rule: import message bundles as `@messages/en/<ns>.json`, never with a
+  relative `../` chain; a new alias goes in both config files.
+  `client/tsconfig.json`, `client/vitest.config.ts`
+
 - **2026-09-19 — In `FindingsTab`, `runs` are REVIEWS and `prRuns` are runs.**
   The prop named `runs` holds `ReviewRecord[]` (`/pulls/:id/reviews`, findings
   embedded); the actual `agent_runs` rows are `prRuns` (`RunSummary[]`). So
@@ -114,3 +125,14 @@ Dated summary, only when a session changed how this package is worked on.
 ## Open Questions
 
 What was left unresolved, so the next session does not re-investigate blind.
+
+- **2026-09-21 — `client/CLAUDE.md` and `TESTING.md` disagree on whether every component gets a test.**
+  `client/CLAUDE.md` says each `_components/<Name>/` folder has "its own
+  `*.test.tsx`"; `TESTING.md:8` says tests are "typological, not exhaustive". The
+  code follows TESTING.md: 37 component folders under `src/app` and
+  `src/components` have no test (for example `FindingsTab`, `PrDetailHeader`,
+  `ConfigTab`, all of `diff-viewer/*`). An agent that follows the client file
+  literally will add tests the policy does not want.
+  Rule: until one of the two docs is corrected, follow `TESTING.md` — a missing
+  test in a component folder is NOT a defect to fix.
+  `client/CLAUDE.md` ("Non-default conventions"), `TESTING.md:8`

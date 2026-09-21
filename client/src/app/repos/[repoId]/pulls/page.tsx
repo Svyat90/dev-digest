@@ -2,8 +2,9 @@
    GET /repos/:id/pulls (F1). Filters/sort live in query (?status&sort). */
 "use client";
 
+import { useSearchParamState } from "@/lib/hooks/useSearchParamState";
 import React from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   Skeleton,
@@ -28,20 +29,15 @@ export default function PullsPage() {
   const t = useTranslations("prReview");
   const params = useParams<{ repoId: string }>();
   const repoId = params.repoId;
-  const search = useSearchParams();
-  const router = useRouter();
   const { activeRepo } = useActiveRepo();
   const repoNotFound = useRepoNotFound(repoId);
   const { data: pulls, isLoading, isError, error, refetch } = usePulls(repoId);
   const refresh = useRefreshRepo();
 
   // Default to "needs review" — the most actionable filter on open.
-  const status = search.get("status") ?? "needs_review";
-  const setStatus = (k: string) => {
-    const sp = new URLSearchParams(search.toString());
-    sp.set("status", k); // always explicit so "all" sticks over the needs_review default
-    router.replace(`/repos/${repoId}/pulls?${sp.toString()}`);
-  };
+  // setStatus always writes the param explicitly, so "all" sticks over the needs_review default.
+  const [statusParam, setStatus] = useSearchParamState("status");
+  const status = statusParam ?? "needs_review";
 
   const [query, setQuery] = React.useState("");
   const [sort, setSort] = React.useState("newest");

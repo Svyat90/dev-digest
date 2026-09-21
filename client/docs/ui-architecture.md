@@ -78,7 +78,9 @@ the header conditionally rather than always.
 
 ### Cache keys
 
-One key per resource, so an invalidation in one hook reaches every consumer:
+One key per resource, so an invalidation in one hook reaches every consumer.
+Every key is built by the factory in `src/lib/hooks/keys.ts` (`keys.pulls(repoId)`,
+…) — never write a `queryKey: [...]` literal. Also cached: `["pr-comments", prId]`.
 
 | Key | Endpoint | Notes |
 |---|---|---|

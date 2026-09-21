@@ -8,7 +8,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { PrMeta } from "@devdigest/shared";
-import messages from "../../../../../../../messages/en/prReview.json";
+import messages from "@messages/en/prReview.json";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
