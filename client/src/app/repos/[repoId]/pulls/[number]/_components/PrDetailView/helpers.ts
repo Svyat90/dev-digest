@@ -1,4 +1,4 @@
-import { SEVERITY_ORDER } from "../FindingsPanel/constants";
+import { SEVERITY_ORDER } from "@/lib/severity";
 
 /**
  * Read the `?severity=` filter off the URL.

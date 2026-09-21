@@ -8,8 +8,8 @@
 import React from "react";
 import { Icon, Badge } from "@devdigest/ui";
 import type { ReviewRecord, Verdict } from "@devdigest/shared";
-import { FindingsPanel } from "../FindingsPanel";
-import { VerdictBanner } from "../VerdictBanner";
+import { FindingsPanel } from "./_components/FindingsPanel";
+import { VerdictBanner } from "./_components/VerdictBanner";
 import { useTranslations } from "next-intl";
 import { useDeleteReview } from "@/lib/hooks/reviews";
 import { useConfirm } from "@/components/confirm-dialog";

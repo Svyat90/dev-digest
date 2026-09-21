@@ -61,6 +61,18 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-09-21 — PR-detail components are nested by consumer; older entries' paths are stale (supersedes their paths, not their rules).**
+  Under `pulls/[number]/_components/`: `FindingsTab/_components/{RunStatus,RunHistory,FindingsSummary,ReviewRunAccordion}`,
+  `ReviewRunAccordion/_components/{FindingsPanel,VerdictBanner}`,
+  `FindingsPanel/_components/FindingCard`, `PrDetailHeader/_components/RunReviewDropdown`.
+  Entries of 2026-09-19 that cite `_components/FindingCard/…` or
+  `_components/FindingsSummary/styles.ts` mean these nested locations.
+  `SEVERITY_ORDER` moved out of `FindingsPanel/constants.ts` to `src/lib/severity.ts`
+  because the route's `?severity=` parsing (`PrDetailView/helpers.ts`) and the panel both
+  need it and a parent may not import a grandchild's internals.
+  Rule: a constant needed by a route helper AND a nested component goes to `src/lib/`.
+  `client/src/lib/severity.ts`
+
 - **2026-09-21 — `@devdigest/ui` `Modal` is not portaled: clicks inside it bubble to the parent that renders it.**
   `Modal` is a `position: fixed` div rendered in place, so a dialog rendered
   inside a clickable card (`AgentCard`) or accordion header
@@ -128,6 +140,17 @@ Quirks of the dependencies this package pins.
 ## Recurring Errors & Fixes
 
 An error seen twice, plus the fix that actually worked.
+
+- **2026-09-21 — Moving a component folder breaks `vi.mock("../../…/lib/hooks/x")` in its test, and `from "…"` greps do not see it.**
+  Relative paths inside `vi.mock(...)` resolve against the test file, so after
+  nesting `RunReviewDropdown` and `FindingsPanel` two levels deeper their mocks
+  pointed at nothing: typecheck passed and 5 tests failed with "No QueryClient set,
+  use QueryClientProvider to set one" (the real hook ran). A `grep 'from "\.\./'`
+  audit misses these entirely.
+  Rule: mock module paths with the alias (`vi.mock("@/lib/hooks/reviews", …)`,
+  as `docs/ui-architecture.md` already shows) and, before a move, also grep
+  `vi.mock\("\.`. The same error text means "a mock path went stale".
+  `client/src/app/repos/[repoId]/pulls/[number]/_components/FindingsTab/_components/ReviewRunAccordion/_components/FindingsPanel/FindingsPanel.test.tsx`
 
 - **2026-09-21 — `pnpm typecheck` fails with TS2344 in `.next/types/validator.ts` right after a `page.tsx` is moved.**
   Literal text: `.next/types/validator.ts(86,52): error TS2344: Type '"/repos/[repoId]/pulls"' does not satisfy the constraint 'AppRoutes'.`
