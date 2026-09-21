@@ -8,6 +8,7 @@ import { Toggle, EmptyState } from "@devdigest/ui";
 import type { FindingRecord } from "@devdigest/shared";
 import { FindingCard } from "../FindingCard";
 import { useFindingAction } from "@/lib/hooks/reviews";
+import { useKeydown } from "@/lib/hooks/useKeydown";
 import { KEY_TO_ACTION } from "./constants";
 import { visibleFindings } from "./helpers";
 import { s } from "./styles";
@@ -47,19 +48,16 @@ export function FindingsPanel({
   }
 
   // j/k navigation + a/d shortcuts on the focused finding (keyboard).
-  React.useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
+  useKeydown(
+    (e) => {
       if (e.key === "j") setFocusIdx((i) => Math.min(i + 1, shown.length - 1));
       else if (e.key === "k") setFocusIdx((i) => Math.max(i - 1, 0));
       else if (KEY_TO_ACTION[e.key] && shown[focusIdx]) {
         action.mutate({ findingId: shown[focusIdx]!.id, action: KEY_TO_ACTION[e.key]!, prId });
       }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [shown, focusIdx, action, prId]);
+    },
+    { ignoreInputs: true },
+  );
 
   return (
     <div>

@@ -8,6 +8,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { Button, Icon, IconBtn, Kbd, TextInput, FormField } from "@devdigest/ui";
 import { useAddRepo } from "@/lib/hooks";
+import { useKeydown } from "@/lib/hooks/useKeydown";
 import { ApiError } from "@/lib/api";
 
 export function AddRepoView() {
@@ -19,13 +20,9 @@ export function AddRepoView() {
   const close = React.useCallback(() => router.push("/"), [router]);
 
   // Escapable (the footer advertises Esc — make it real).
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [close]);
+  useKeydown((e) => {
+    if (e.key === "Escape") close();
+  });
 
   const submit = async () => {
     if (!repoUrl.trim()) return;
