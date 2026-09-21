@@ -40,6 +40,10 @@ navigation. A view declares its breadcrumb with `useCrumb([...])`
 (`components/app-shell/crumb.tsx`); it is set in a layout effect and cleared on
 unmount. Do not render `<AppShell>` from a page.
 
+`repos/[repoId]/layout.tsx` wraps every repo-scoped page in `RepoGuard`: an unknown
+`:repoId` renders the "no repo selected" state once, so pages do not repeat the
+check. `app/error.tsx` is the last-resort boundary for render errors.
+
 ## Provider stack
 
 `lib/providers.tsx`, mounted once inside the layout's `<Suspense>`:

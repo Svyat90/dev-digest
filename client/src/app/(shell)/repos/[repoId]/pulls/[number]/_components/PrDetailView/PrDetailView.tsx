@@ -9,7 +9,6 @@ import React from "react";
 import { useParams } from "next/navigation";
 import { Skeleton, ErrorState } from "@devdigest/ui";
 import { useCrumb } from "@/components/app-shell";
-import { RepoNotFound } from "@/components/repo-not-found";
 import { PrDetailHeader } from "../PrDetailHeader";
 import { OverviewTab } from "../OverviewTab";
 import { FindingsTab } from "../FindingsTab";
@@ -21,7 +20,7 @@ import { useConfirm } from "@/components/confirm-dialog";
 import { useSearchParamState } from "@/lib/hooks/useSearchParamState";
 import { usePullDetail, usePulls } from "@/lib/hooks";
 import { usePrReviews, useCancelRun, usePrActiveRuns, usePrRuns, useDeleteRun, useInvalidateActiveRuns, useInvalidatePrRuns } from "@/lib/hooks/reviews";
-import { useActiveRepo, useRepoNotFound } from "@/lib/repo-context";
+import { useActiveRepo } from "@/lib/repo-context";
 import { ApiError } from "@/lib/api";
 import { githubPrUrl } from "@/lib/github-urls";
 import type { FindingRecord } from "@devdigest/shared";
@@ -32,7 +31,6 @@ export function PrDetailView() {
   const params = useParams<{ repoId: string; number: string }>();
   const { repoId, number } = params;
   const { activeRepo } = useActiveRepo();
-  const repoNotFound = useRepoNotFound(repoId);
   // The route is keyed by PR number, but every PR API is keyed by the row's
   // uuid — resolve number → uuid via the (cached) pulls list before fetching.
   const { data: pulls, isLoading: pullsLoading } = usePulls(repoId);
@@ -82,9 +80,6 @@ export function PrDetailView() {
     { label: t("list.breadcrumb"), href: `/repos/${repoId}/pulls` },
     { label: `#${number}`, mono: true },
   ]);
-
-  // Stale/unknown :repoId → friendly empty state instead of a 404 error.
-  if (repoNotFound) return <RepoNotFound />;
 
   if (isLoading) {
     return (

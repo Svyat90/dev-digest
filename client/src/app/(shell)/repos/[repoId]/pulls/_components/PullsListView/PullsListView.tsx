@@ -13,10 +13,9 @@ import {
   AutoTriggerStatus,
 } from "@devdigest/ui";
 import { useCrumb } from "@/components/app-shell";
-import { RepoNotFound } from "@/components/repo-not-found";
 import { usePulls, useRefreshRepo } from "@/lib/hooks";
 import { useSearchParamState } from "@/lib/hooks/useSearchParamState";
-import { useActiveRepo, useRepoNotFound } from "@/lib/repo-context";
+import { useActiveRepo } from "@/lib/repo-context";
 import { ApiError } from "@/lib/api";
 import { COLUMN_KEYS, RIGHT_ALIGNED_COLUMNS, SKELETON_ROWS } from "../../constants";
 import { s } from "../../styles";
@@ -29,7 +28,6 @@ export function PullsListView() {
   const params = useParams<{ repoId: string }>();
   const repoId = params.repoId;
   const { activeRepo } = useActiveRepo();
-  const repoNotFound = useRepoNotFound(repoId);
   const { data: pulls, isLoading, isError, error, refetch } = usePulls(repoId);
   const refresh = useRefreshRepo();
 
@@ -47,9 +45,6 @@ export function PullsListView() {
   const needsReviewCount = countNeedsReview(pulls ?? []);
 
   useCrumb([{ label: repoName, mono: true }, { label: t("list.breadcrumb") }]);
-
-  // Stale/unknown :repoId → friendly empty state instead of a 404 error.
-  if (repoNotFound) return <RepoNotFound />;
 
   return (
     <>
