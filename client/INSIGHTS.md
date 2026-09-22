@@ -61,6 +61,41 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-09-22 — `Markdown` (`@devdigest/ui`) only styles `p`/`strong`/`code`/`a` — headings and lists render as flat, undifferentiated text.**
+  `src/vendor/ui/primitives/Markdown.tsx`'s `react-markdown` `components` map
+  overrides just those four tags. Nothing overrides `h1`-`h6`/`ul`/`ol`/`li`, and
+  Tailwind's preflight (`src/vendor/ui/styles.css:205-211`, `h1,h2,h3,h4,p {
+  margin: 0 }`, plus Tailwind's own heading/list resets) zeroes their font-size,
+  font-weight and list markers — so a skill body's `## Heading` and bullet list
+  render at body-text size with no visual hierarchy at all (looked like plain
+  wrapped paragraphs, not "a markdown viewer").
+  `Markdown.tsx` is under the do-not-touch `src/vendor/ui/**`, so the fix is NOT
+  editing it — add CSS scoped to the `.dd-md` wrapper class it already applies
+  (`className="dd-md"`, `Markdown.tsx:9`) in `client/src/app/globals.css`
+  instead. This is also the right place because it fixes every consumer at
+  once (`SkillDetail`'s `PreviewTab` AND `components/diff-viewer/CommentCard`),
+  not just the one screen you're working on.
+  Rule: when a `Markdown`-rendered block looks under-styled, check whether the
+  gap is in `Markdown.tsx`'s tag coverage first — extend via `.dd-md { ... }`
+  rules in `globals.css`, never by editing the vendored component.
+  `client/src/vendor/ui/primitives/Markdown.tsx`, `client/src/app/globals.css`
+
+- **2026-09-22 — `src/vendor/ui/nav.ts` is config, not vendored component code: it IS meant to be edited despite sitting under the do-not-touch `src/vendor/ui/**` path.**
+  Root/client `CLAUDE.md`'s do-not-touch list names `src/vendor/ui/**` wholesale,
+  but `nav.ts` (`NAV`/`SHORTCUTS`/`resolveHref`) is a plain data registry the
+  file's own comment says is finished by a later lesson ("Keyboard shortcut
+  registry. Wiring is finalized by A6."), not a rendered component. Adding a nav
+  group + a `g <key>` shortcut needed ONLY a `nav.ts` edit — `useGlobalShortcuts`
+  (`components/app-shell/hooks/useGlobalShortcuts.ts`) already resolves the
+  target generically via `NAV.flatMap((g) => g.items).find((it) => it.gKey ===
+  e.key)`, and `useShellCommands` builds the command-palette entry the same way,
+  keyed off `shell.nav.<item.key>` in `messages/en/shell.json` (already staged
+  there as a placeholder for `skills`).
+  Rule: a new nav item/shortcut is a `nav.ts` data edit only — do not add
+  per-shortcut handler code, and check `messages/en/shell.json`'s `nav.*` keys
+  before adding a new one (a placeholder is often already there).
+  `client/src/vendor/ui/nav.ts`, `client/src/components/app-shell/hooks/useGlobalShortcuts.ts`
+
 - **2026-09-21 — PR-detail components are nested by consumer; older entries' paths are stale (supersedes their paths, not their rules).**
   Under `pulls/[number]/_components/`: `FindingsTab/_components/{RunStatus,RunHistory,FindingsSummary,ReviewRunAccordion}`,
   `ReviewRunAccordion/_components/{FindingsPanel,VerdictBanner}`,
@@ -127,6 +162,19 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 ## Tool & Library Notes
 
 Quirks of the dependencies this package pins.
+
+- **2026-09-22 — jsdom's `File` has no `arrayBuffer()`; use `FileReader.readAsArrayBuffer` instead.**
+  A file-upload component that reads a chosen file's bytes via
+  `file.arrayBuffer()` (e.g. to base64-encode it for an import-preview POST)
+  works in a real browser but throws `TypeError: file.arrayBuffer is not a
+  function` the instant a vitest+jsdom test fires a file input's `change` event
+  with a `File` — jsdom's `File`/`Blob` implementation in this repo's pinned
+  version does not implement the `arrayBuffer()` method, only the legacy
+  `FileReader` API.
+  Rule: read file bytes with `new FileReader().readAsArrayBuffer(file)`
+  (wrapped in a Promise via its `onload`/`onerror`), never `file.arrayBuffer()`,
+  for any component whose test fires a real file-input change event.
+  `client/src/app/(shell)/skills/_components/SkillsView/_components/ImportSkillDrawer/helpers.ts`
 
 - **2026-09-19 — `toFixed` rounds money the wrong way; `Intl` silently drops `minimumFractionDigits`.**
   `(0.0135).toFixed(3)` is `"0.013"` (0.0135 is stored as 0.013499…), so a cost

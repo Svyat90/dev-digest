@@ -7,7 +7,14 @@ import {
   GENERAL_REVIEWER_PROMPT,
   SECURITY_REVIEWER_PROMPT,
   PERFORMANCE_REVIEWER_PROMPT,
+  TEST_QUALITY_REVIEWER_PROMPT,
 } from './seed-prompts.js';
+import {
+  BRANCH_COVERAGE_GATE_BODY,
+  CORNER_CASE_CHECKLIST_BODY,
+  MOCK_DISCIPLINE_BODY,
+  FLAKY_TEST_PATTERNS_BODY,
+} from './seed-skills.js';
 
 /** Default provider/model for the built-in reviewer agents. */
 const DEFAULT_PROVIDER = 'openrouter' as const;
@@ -19,11 +26,13 @@ const DEFAULT_MODEL = 'deepseek/deepseek-v4-flash';
  *
  * Seeds: default workspace + system user + membership, default settings,
  * demo repo (acme/payments-api), PR #482 with files/commits, a sample review
- * with a few findings, and the three built-in agents (General + Security +
- * Performance), all on the default openrouter/deepseek-v4-flash provider+model.
+ * with a few findings, and the four built-in agents (General + Security +
+ * Performance + Test Quality), all on the default openrouter/deepseek-v4-flash
+ * provider+model. Test Quality Reviewer also gets four seeded skills (linked
+ * via agent_skills) — see `seedTestQualitySkills` below.
  *
- * Course lessons populate the other tables (skills, conventions, memory, eval,
- * …) once their features are built — they start empty here.
+ * Course lessons populate the other tables (conventions, memory, eval, …) once
+ * their features are built — they start empty here.
  */
 
 export const DEFAULT_WORKSPACE_NAME = 'default';
@@ -194,7 +203,7 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
     seedReviewId = review!.id;
   }
 
-  // ---- built-in agents (the three starter presets) ----
+  // ---- built-in agents (the four starter presets) ----
   // Prompt bodies live in ./seed-prompts.ts (mirrored in docs/agent-prompts/*.md).
   const seedAgents: Array<typeof t.agents.$inferInsert> = [
     {
@@ -230,6 +239,18 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
       version: 1,
       createdBy: userId,
     },
+    {
+      workspaceId,
+      name: 'Test Quality Reviewer',
+      description:
+        'Reviews test coverage — flags happy-path-only tests, missing edge cases, and mocking that hides real bugs.',
+      provider: DEFAULT_PROVIDER,
+      model: DEFAULT_MODEL,
+      systemPrompt: TEST_QUALITY_REVIEWER_PROMPT,
+      enabled: true,
+      version: 1,
+      createdBy: userId,
+    },
   ];
   const agentIds: Record<string, string> = {};
   for (const a of seedAgents) {
@@ -245,9 +266,123 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
     }
   }
 
+  // ---- seeded skills for Test Quality Reviewer ----
+  // Independent of the `pr`-exists early-skip above: this block upserts by
+  // (workspace_id, name) / (agent_id, skill_id) on every call, so it takes
+  // effect even against an already-seeded dev DB (see server/INSIGHTS.md).
+  await seedTestQualitySkills(db, workspaceId, agentIds);
+
   await seedAgentRuns(db, workspaceId, pr!.id, agentIds, seedReviewId);
 
   return { workspaceId, userId };
+}
+
+/**
+ * Four built-in skills (rubric/convention, source 'manual') linked to Test
+ * Quality Reviewer via `agent_skills`, in this array's order.
+ *
+ * Idempotent on its OWN condition — upsert by (workspace_id, name) for skills,
+ * by the `agent_skills` primary key (agent_id, skill_id) for the link — never
+ * gated behind the PR-exists skip in `seed()`, per the seeded-review trap in
+ * `server/INSIGHTS.md` ("editing seeded rows changes NOTHING on an
+ * already-seeded dev DB" unless the addition upserts on its own key).
+ */
+async function seedTestQualitySkills(
+  db: Db,
+  workspaceId: string,
+  agentIds: Record<string, string>,
+): Promise<void> {
+  type SkillInsert = typeof t.skills.$inferInsert;
+  const seedSkills: Array<{
+    name: string;
+    description: string;
+    type: SkillInsert['type'];
+    body: string;
+  }> = [
+    {
+      name: 'branch-coverage-gate',
+      description: 'Flag any changed function with an untested conditional branch.',
+      type: 'rubric',
+      body: BRANCH_COVERAGE_GATE_BODY,
+    },
+    {
+      name: 'corner-case-checklist',
+      description:
+        'Check every new code path for null/undefined, empty collections, boundary offsets, negative numbers, and encoding edge cases.',
+      type: 'rubric',
+      body: CORNER_CASE_CHECKLIST_BODY,
+    },
+    {
+      name: 'mock-discipline',
+      description:
+        'Flag tests whose mocking of the system under test would let real breakage still pass.',
+      type: 'convention',
+      body: MOCK_DISCIPLINE_BODY,
+    },
+    {
+      name: 'flaky-test-patterns',
+      description:
+        'Flag tests whose pass/fail outcome is nondeterministic — timeouts that do not throw, unseeded randomness, real-clock or ordering dependence.',
+      type: 'convention',
+      body: FLAKY_TEST_PATTERNS_BODY,
+    },
+  ];
+
+  const skillIds: Record<string, string> = {};
+  for (const s of seedSkills) {
+    const [existing] = await db
+      .select()
+      .from(t.skills)
+      .where(and(eq(t.skills.workspaceId, workspaceId), eq(t.skills.name, s.name)));
+    if (existing) {
+      skillIds[s.name] = existing.id;
+      continue;
+    }
+    const [inserted] = await db
+      .insert(t.skills)
+      .values({
+        workspaceId,
+        name: s.name,
+        description: s.description,
+        type: s.type,
+        source: 'manual',
+        body: s.body,
+        enabled: true,
+        version: 1,
+      })
+      .returning();
+    skillIds[s.name] = inserted!.id;
+
+    // skill_versions is the append-only history; the skill's own body/version
+    // columns hold the CURRENT text — both must be written (see specs/skills.md S4).
+    await db.insert(t.skillVersions).values({
+      skillId: inserted!.id,
+      version: 1,
+      body: s.body,
+      note: 'Initial',
+    });
+  }
+
+  const testQualityAgentId = agentIds['Test Quality Reviewer'];
+  if (!testQualityAgentId) return;
+
+  for (const [order, s] of seedSkills.entries()) {
+    const skillId = skillIds[s.name];
+    if (!skillId) continue;
+    const [existingLink] = await db
+      .select()
+      .from(t.agentSkills)
+      .where(
+        and(eq(t.agentSkills.agentId, testQualityAgentId), eq(t.agentSkills.skillId, skillId)),
+      );
+    if (existingLink) continue;
+    await db.insert(t.agentSkills).values({
+      agentId: testQualityAgentId,
+      skillId,
+      order,
+      enabled: true,
+    });
+  }
 }
 
 /**

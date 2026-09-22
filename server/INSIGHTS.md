@@ -9,6 +9,18 @@ Appended by the `engineering-insights` skill: append-only, never rewritten.
 
 Approaches and solutions that held up here.
 
+- **2026-09-22 — The codebase's first `db.transaction()` now exists: `AgentsRepository.setSkills`.**
+  Supersedes the 2026-09-21 "ZERO `db.transaction()` calls" entry below — that
+  trap still applies to every OTHER delete-then-reinsert (`pulls/routes.ts:264-301`
+  is still untouched), but a working template now exists to copy: `await
+  this.db.transaction(async (tx) => { await tx.delete(...).where(...); if
+  (items.length) await tx.insert(...).values(...); })`, with every statement
+  inside using `tx`, never `this.db`. No special Drizzle setup was needed beyond
+  that — `postgres-js`'s `db.transaction` "just works" with the existing schema.
+  Rule: when converting a delete-then-reinsert to a transaction, copy this shape
+  rather than re-deriving it.
+  `server/src/modules/agents/repository.ts` (`setSkills`)
+
 - **2026-09-19 — Test fire-and-forget review behaviour by INSERTING runs, not by running one.**
   `runReview` returns before any agent finishes, so an integration test that
   drives it can only assert on what is written at CREATION time (ids,
@@ -78,6 +90,37 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-09-22 — Copying `agents/helpers.ts`'s `import type {XRow} from './repository.js'` shape into a NEW module trips `arch:check`'s `no-circular` rule.**
+  `agents/helpers.ts` ↔ `agents/repository.ts` IS circular (helpers imports
+  `AgentRow`/`AgentVersionRow` types from repository; repository imports
+  `isConfigChange` from helpers) — but it's pre-existing debt already recorded in
+  `.dependency-cruiser-known-violations.json`, so `arch:check` stays green for it.
+  The identical shape in a brand-new module (`skills/helpers.ts` importing
+  `SkillRow`/`SkillVersionRow` from `skills/repository.ts`, which imports
+  `isSkillConfigChange` from helpers) is NOT grandfathered and fails
+  `pnpm run arch:check` with `error no-circular: skills/helpers.ts →
+  skills/repository.ts → skills/helpers.ts`.
+  Rule: in a new module, declare the row shape `helpers.ts` needs as a local
+  structural interface (e.g. `SkillRowLike`) instead of importing the
+  repository's exported row type — the repository's real row satisfies it
+  structurally, so the back-edge (and the cycle) never forms.
+  `server/src/modules/skills/helpers.ts`, `server/src/modules/skills/repository.ts`
+
+- **2026-09-22 — A Drizzle `text(col, {enum:[...]})` hint is NOT a DB constraint — the column can hold values outside the listed enum.**
+  `skills.source`'s Drizzle enum still lists only `['manual','imported_url',
+  'extracted','community']` while the `SkillSource` contract
+  (`vendor/shared/contracts/knowledge.ts`) also has `imported_file` (S6 import).
+  The migration creates the column as plain `text NOT NULL` with no Postgres
+  CHECK constraint (`0000_init.sql:316-328`), so writing `'imported_file'` is
+  safe at runtime — only Drizzle's TS-inferred union objects, via a cast at the
+  write site (`values.source as typeof t.skills.$inferInsert.source`).
+  Rule: when a contract enum gains a value a `text(col,{enum:[...]})` schema
+  column's TS hint hasn't caught up to, don't wait for a migration to unblock
+  you — confirm the CREATE TABLE has no CHECK constraint, then cast with a
+  comment explaining why, rather than mis-widening the schema's enum list.
+  `server/src/db/schema/skills.ts:13-15`, `server/src/db/migrations/0000_init.sql:316-328`,
+  `server/src/modules/skills/repository.ts` (`insert`)
+
 - **2026-09-21 — Half the modules do NOT follow the documented routes → service → repository anatomy.**
   `docs/architecture.md` presents the three-file module as the norm, but only
   `agents`, `repos`, `reviews` and `repo-intel` have it. `pulls` (18
@@ -118,6 +161,26 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 ## Tool & Library Notes
 
 Quirks of the dependencies this package pins.
+
+- **2026-09-22 — `pnpm exec vitest run .it.test` is flaky in a sandboxed shell: testcontainers' Reaper handshake and its Postgres connection both time out non-deterministically.**
+  Running a single `*.it.test.ts` file (or the whole `.it.test` glob) here
+  intermittently throws `Error: Failed to connect to Reaper`
+  (`testcontainers/src/reaper/reaper.ts`) or `write CONNECT_TIMEOUT
+  localhost:<port>` (`postgres/src/connection.js`) — even against an UNRELATED,
+  previously-green test file run moments earlier. It's the sandbox's outbound
+  TCP to a freshly-published, per-run Docker port that's unreliable, not the
+  test's own code. A run that hits vitest's 120s hook timeout also leaks an
+  orphaned `pgvector/pgvector:pg16` testcontainer (`docker ps -a` shows a
+  randomly-named one alongside `devdigest-postgres`) because `afterAll` never
+  runs to call `pg.stop()`.
+  Rule: set `TESTCONTAINERS_RYUK_DISABLED=true` for the run (skips the Reaper
+  handshake entirely — `testcontainers/build/reaper/reaper.js` reads it as a
+  plain env var, not from `~/.testcontainers.properties`), `docker rm -f` any
+  container leaked by a prior timed-out attempt, and just retry on
+  `CONNECT_TIMEOUT` / `Failed to connect to Reaper` — both are transient. Don't
+  conclude an `.it.test.ts` file is broken from one failed run in this
+  environment.
+  Confidence: low
 
 - **2026-09-21 — `arch:check`'s baseline pins the pnpm store path, so a drizzle bump "creates" violations.**
   `.dependency-cruiser-known-violations.json` records targets as

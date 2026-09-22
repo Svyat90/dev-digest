@@ -19,6 +19,17 @@ import { Row, Stat } from "../atoms";
 export function TraceBody({ trace, findings }: { trace: RunTrace; findings: FindingRecord[] }) {
   const t = useTranslations("runs");
   const stats = trace.stats;
+  // `skills_used`/`skills_tokens` are nullish: a trace written before this
+  // field existed has neither key at all, not just a null value — treat
+  // "absent" and "empty" the same (render nothing extra, today's behavior).
+  const skillsUsed = trace.prompt_assembly.skills_used ?? [];
+  const skillsMeta =
+    skillsUsed.length > 0
+      ? t("trace.prompt.skillsMeta", {
+          tokens: trace.prompt_assembly.skills_tokens ?? 0,
+          names: skillsUsed.map((s) => s.name).join(", "),
+        })
+      : undefined;
   return (
     <>
       <TraceSection icon="Settings" title={t("trace.configuration")}>
@@ -74,7 +85,12 @@ export function TraceBody({ trace, findings }: { trace: RunTrace; findings: Find
       <TraceSection icon="FileText" title={t("trace.promptAssembly")} defaultOpen={false}>
         <PromptBlock label={t("trace.prompt.system")} text={trace.prompt_assembly.system} color={PROMPT_COLORS.system} />
         {trace.prompt_assembly.skills != null && (
-          <PromptBlock label={t("trace.prompt.skills")} text={trace.prompt_assembly.skills} color={PROMPT_COLORS.skills} />
+          <PromptBlock
+            label={t("trace.prompt.skills")}
+            text={trace.prompt_assembly.skills}
+            color={PROMPT_COLORS.skills}
+            meta={skillsMeta}
+          />
         )}
         {trace.prompt_assembly.memory != null && (
           <PromptBlock label={t("trace.prompt.memory")} text={trace.prompt_assembly.memory} color={PROMPT_COLORS.memory} />

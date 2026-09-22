@@ -3,6 +3,7 @@ name: pr-self-review
 description: "Local pre-PR self-review of every open change in the DevDigest repo (branch commits since main, staged, unstaged, untracked): runs fast deterministic checks (typecheck, arch:check, secrets, do-not-touch paths, Zod 4 imports, coupled files), then reviews UI files with the frontend skills (frontend-ui-architecture, react-best-practices, next-best-practices, react-testing-library) and backend files with the backend skills (onion-architecture, fastify-best-practices, drizzle-orm-patterns, postgresql-table-design), plus zod, typescript-expert and security on both, and returns a PASS or BLOCKED verdict. Any confirmed CRITICAL blocks. Use before `gh pr create`, `gh pr merge` or `git push`, and whenever the user asks to self-review, pre-review, check the branch or the diff before a PR, run PR checks locally, or asks 'is this ready for a PR' / 'can I push' — even if they never name the skill. Not for reviewing someone else's GitHub PR (use /code-review) and not a hunt for logic bugs (suggest /code-review for that)."
 metadata:
   version: 1.0.0
+disable-model-invocation: true
 ---
 
 # PR Self-Review

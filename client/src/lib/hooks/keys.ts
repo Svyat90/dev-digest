@@ -22,4 +22,10 @@ export const keys = {
   secretsStatus: () => ["secrets-status"] as const,
   repoIntelState: (repoId: Id) => ["repo-intel-state", repoId] as const,
   context: (repoId: Id) => ["context", repoId] as const,
+  skills: () => ["skills"] as const,
+  skill: (id: Id) => ["skill", id] as const,
+  skillVersions: (id: Id) => ["skill-versions", id] as const,
+  skillVersion: (id: Id, version: Id | number) => ["skill-version", id, version] as const,
+  skillStats: (id: Id) => ["skill-stats", id] as const,
+  agentSkills: (agentId: Id) => ["agent-skills", agentId] as const,
 };

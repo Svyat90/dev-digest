@@ -14,7 +14,7 @@ import { AgentEditor } from "../AgentEditor";
 import { useAgents, useAgent, useUpdateAgent } from "@/lib/hooks/agents";
 import { ApiError } from "@/lib/api";
 
-const VALID_TABS = ["config"];
+const VALID_TABS = ["config", "skills"];
 
 export function AgentEditorView() {
   const t = useTranslations("agents");
@@ -81,6 +81,7 @@ export function AgentEditorView() {
                 key={a.id}
                 ag={a}
                 active={a.id === id}
+                skillCount={a.skill_count ?? undefined}
                 onClick={() => router.push(`/agents/${a.id}?tab=${tab}`)}
                 onToggle={(enabled) => update.mutate({ id: a.id, patch: { enabled } })}
               />

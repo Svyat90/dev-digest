@@ -85,6 +85,13 @@
       "when": 1789852124240,
       "tag": "0011_quick_inertia",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790092946691,
+      "tag": "0012_rich_morlun",
+      "breakpoints": true
     }
   ]
 }
