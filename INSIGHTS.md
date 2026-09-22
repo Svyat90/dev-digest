@@ -47,6 +47,27 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
 
+- **2026-09-21 — `server` typecheck fails inside `../reviewer-core` when reviewer-core has no `node_modules`.**
+  `server/tsconfig.json` aliases `@devdigest/reviewer-core` to `../reviewer-core/src`,
+  so `tsc` compiles those sources and resolves their imports from
+  `reviewer-core/node_modules`. In a fresh worktree or clone with only
+  `server/` installed, `pnpm run typecheck` prints
+  `../reviewer-core/src/llm/structured.ts(1,19): error TS2307: Cannot find module 'zod'`
+  (plus `openai`, `openai/helpers/zod`). That reads like a broken server change, but
+  nothing in `server/` is wrong.
+  Rule: before trusting a server typecheck in a new checkout, run `npm install` in
+  `reviewer-core/` as well. `pr-self-review`'s precheck reports this case by name.
+  `server/tsconfig.json:24-25`
+
+- **2026-09-21 — The installed zod 3.25 exports `zod/v4`, so the "Zod 3, not 4" rule is not enforced by the compiler.**
+  `zod@3.25.76` (server, client, reviewer-core) exports `./v4`, `./v4-mini`,
+  `./v4/mini` and `./v4/core`. `import { z } from 'zod/v4'` resolves, so Zod 4 API
+  written that way passes typecheck. Only Zod 4 calls on the v3 `z` (`z.email()`,
+  `z.strictObject()`) fail to compile.
+  Rule: treat any `zod/v4`, `zod/mini` or `@zod/*` import as a violation. The check is
+  a grep (`pr-self-review` precheck `zod-3-only`), never a typecheck.
+  `node -p "Object.keys(require('./server/node_modules/zod/package.json').exports)"`
+
 - **2026-09-21 — The installed pnpm (12.4.2) rejects `-s`.**
   `pnpm -s arch:check` fails with `error: unexpected argument '-s' found` before
   running anything, which reads like a broken script rather than a CLI change.

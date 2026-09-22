@@ -18,6 +18,9 @@ then read code.
 - **When a task ends**, run the `engineering-insights` skill to capture what was
   learned. Append only entries that pass its quality gate; when nothing qualifies,
   write nothing and say so. Do not skip this step.
+- **Before `gh pr create`, `gh pr merge` or `git push`**, run the `pr-self-review`
+  skill, or reuse its verdict if the diff has not changed since. Never run them on
+  a BLOCKED verdict.
 
 ## Stack
 
