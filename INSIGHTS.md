@@ -47,6 +47,13 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
 
+- **2026-09-21 — The installed pnpm (12.4.2) rejects `-s`.**
+  `pnpm -s arch:check` fails with `error: unexpected argument '-s' found` before
+  running anything, which reads like a broken script rather than a CLI change.
+  Rule: invoke package scripts as `pnpm run <script>` in commands, docs and CI;
+  do not copy `pnpm -s` from older snippets.
+  `pnpm --version` → 12.4.2
+
 ## Recurring Errors & Fixes
 
 An error seen twice, plus the fix that actually worked.

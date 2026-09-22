@@ -32,6 +32,10 @@ then read code.
   (`adapters/secrets/local.ts`) is the single read chokepoint.
 - A DB-backed test must be named `*.it.test.ts`, or the unit/integration split
   silently stops covering it.
+- Layer rules (onion: routes → service → domain/ports; Drizzle only in
+  repositories) are enforced by `pnpm arch:check`. Never regenerate the
+  known-violations baseline to make a new violation pass — see the
+  `onion-architecture` skill.
 
 ## Non-obvious behavior
 

@@ -25,6 +25,17 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-09-21 — The server has ZERO `db.transaction()` calls; multi-step writes are not atomic.**
+  `GET /pulls/:id` refreshes from GitHub by deleting `pr_files`, inserting new rows,
+  deleting `pr_commits`, inserting again, then updating `pull_requests` as five
+  separate statements inside one `try`. Its `catch` assumes "offline, serve
+  persisted detail" — but if a later statement throws, the earlier delete has
+  already committed, so it serves a PR with no files or commits.
+  Rule: any write that deletes-then-reinserts or touches more than one table goes
+  in `container.db.transaction(async (tx) => …)`, and every statement in it uses `tx`.
+  `server/src/modules/pulls/routes.ts:264-301` (`grep -rn "\.transaction(" server/src` → empty)
+  Confidence: low
+
 - **2026-09-20 — Grepping `pgTable('name'` silently UNDERCOUNTS the schema.**
   The schema files mix two formattings: `pgTable('agents', {` on one line, and
   `pgTable(` with the name on the NEXT line (`pulls.ts`, `repos.ts`, and others).
@@ -67,6 +78,17 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-09-21 — Half the modules do NOT follow the documented routes → service → repository anatomy.**
+  `docs/architecture.md` presents the three-file module as the norm, but only
+  `agents`, `repos`, `reviews` and `repo-intel` have it. `pulls` (18
+  `container.db` calls), `exports` (4), `polling` (3), `settings` (3) and
+  `workspace` (1) query Drizzle straight from `routes.ts` with no service or
+  repository — `pulls/routes.ts` is the largest route file at 407 lines.
+  Rule: do NOT copy a neighbouring module's shape as "the convention" — new code
+  follows the documented anatomy, and edits to those five modules extract into a
+  service/repository instead of adding more inline queries.
+  `grep -c "container.db" server/src/modules/*/routes.ts`
+
 - **2026-09-19 — `findings` is the ONE domain table with no `workspace_id`.**
   Root `CLAUDE.md` says every domain table carries `workspace_id` and every query
   scopes by it — `findings` does not, and it has no indexes either (not even on
@@ -96,6 +118,19 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 ## Tool & Library Notes
 
 Quirks of the dependencies this package pins.
+
+- **2026-09-21 — `arch:check`'s baseline pins the pnpm store path, so a drizzle bump "creates" violations.**
+  `.dependency-cruiser-known-violations.json` records targets as
+  `node_modules/.pnpm/drizzle-orm@0.38.4_postgres@3.4.9/node_modules/drizzle-orm/index.d.ts`
+  (4 entries). Bumping drizzle-orm or postgres changes that path, so the old
+  `routes → drizzle` debt no longer matches and `pnpm run arch:check` fails on a PR
+  that touched no import.
+  Rule: after a dependency bump, run the full report
+  (`pnpm exec depcruise src --config .dependency-cruiser.cjs --output-type err`),
+  confirm every "new" violation is a renamed store path of a known one, THEN
+  `pnpm run arch:baseline`. Never baseline anything else.
+  `server/.dependency-cruiser-known-violations.json`
+  Confidence: low
 
 - **2026-09-19 — Drizzle's `count()` is NOT the same hazard as `sum()`: it maps to a number.**
   `sum()` is typed `string | null` and has to go through `parseAggregateCost`
