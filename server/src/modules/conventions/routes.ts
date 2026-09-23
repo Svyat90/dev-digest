@@ -38,7 +38,7 @@ export default async function conventionsRoutes(appBase: FastifyInstance) {
     const { workspaceId } = await getContext(app.container, req);
     const result = await service.extract(workspaceId, req.params.id);
     if (!result) throw new NotFoundError('Repo not found');
-    return { ...result.list, dropped: result.dropped };
+    return { ...result.list, dropped_count: result.dropped };
   });
 
   app.get('/repos/:id/conventions', { schema: { params: IdParams } }, async (req) => {
