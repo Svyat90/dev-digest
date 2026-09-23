@@ -24,6 +24,7 @@ export interface InsertSkill {
   body: string;
   enabled: boolean;
   note?: string;
+  evidenceFiles?: string[];
 }
 
 export interface UpdateSkill {
@@ -93,6 +94,7 @@ export class SkillsRepository {
           body: values.body,
           enabled: values.enabled,
           version: 1,
+          evidenceFiles: values.evidenceFiles ?? null,
         })
         .returning();
       await tx.insert(t.skillVersions).values({

@@ -28,6 +28,8 @@ import { ReviewRepository } from '../modules/reviews/repository.js';
 import { SkillsRepository } from '../modules/skills/repository.js';
 import type { RepoIntel } from '../modules/repo-intel/types.js';
 import { RepoIntelService } from '../modules/repo-intel/service.js';
+import { resolveFeatureModel } from '../modules/settings/feature-models.js';
+import type { FeatureModelChoice, FeatureModelId } from '@devdigest/shared';
 import { type DepGraph, DepCruiseGraph } from '../adapters/depgraph/index.js';
 import { type Tokenizer, TiktokenTokenizer } from '../adapters/tokenizer/index.js';
 
@@ -163,6 +165,16 @@ export class Container {
     if (!token) throw new ConfigError('GITHUB_TOKEN is not configured');
     this._github = new OctokitGitHubClient(token);
     return this._github;
+  }
+
+  /**
+   * A feature's configured provider+model (workspace override, else the
+   * `FEATURE_MODELS` registry default). Other modules code against this
+   * instead of importing `modules/settings/feature-models.js` directly —
+   * `arch:check`'s `no-cross-module-imports` forbids that.
+   */
+  async resolveFeatureModel(workspaceId: string, id: FeatureModelId): Promise<FeatureModelChoice> {
+    return resolveFeatureModel(this, workspaceId, id);
   }
 
   /** Resolve an LLM provider by id; constructs from the secret key, cached. */
