@@ -34,6 +34,7 @@ export function ImportSkillDrawer({ onClose }: { onClose: () => void }) {
   const create = useCreateSkill();
   const [fileName, setFileName] = React.useState<string | null>(null);
   const [form, setForm] = React.useState<PreviewForm | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof PreviewForm>(key: K, value: PreviewForm[K]) =>
     setForm((f) => (f ? { ...f, [key]: value } : f));
@@ -96,17 +97,26 @@ export function ImportSkillDrawer({ onClose }: { onClose: () => void }) {
           )
         }
       >
-        <FormField label={t("drawer.chooseFile")} hint={t("drawer.acceptHint")}>
+        <FormField label={t("drawer.fileLabel")} hint={t("drawer.acceptHint")}>
+          <div style={s.fileRow}>
+            <Button kind="secondary" size="sm" icon="Upload" onClick={() => fileInputRef.current?.click()}>
+              {t("drawer.chooseFile")}
+            </Button>
+            <span className={fileName ? "mono" : undefined} style={s.fileName}>
+              {fileName ?? t("drawer.noFileChosen")}
+            </span>
+          </div>
           <input
+            ref={fileInputRef}
             type="file"
             accept=".md,.zip"
             aria-label={t("drawer.chooseFile")}
+            style={s.hiddenInput}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) void onFile(file);
             }}
           />
-          <div style={s.fileName}>{fileName ?? t("drawer.noFileChosen")}</div>
         </FormField>
 
         {preview.isPending && <div style={s.status}>{t("drawer.reading")}</div>}

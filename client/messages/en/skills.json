@@ -53,6 +53,7 @@
     },
     "importFailed": "Import failed",
     "fileSubtitle": "Upload a Markdown or zip file — previewed here, saved only when you confirm.",
+    "fileLabel": "File",
     "chooseFile": "Choose file…",
     "noFileChosen": "No file chosen",
     "acceptHint": "Accepts .md or .zip",

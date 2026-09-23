@@ -2,7 +2,15 @@ import type { CSSProperties } from "react";
 
 export const s = {
   footer: { display: "flex", justifyContent: "flex-end", gap: 10 } satisfies CSSProperties,
-  fileName: { fontSize: 12, color: "var(--text-muted)", marginTop: 6 } satisfies CSSProperties,
+  fileRow: { display: "flex", alignItems: "center", gap: 10 } satisfies CSSProperties,
+  hiddenInput: { display: "none" } satisfies CSSProperties,
+  fileName: {
+    fontSize: 12.5,
+    color: "var(--text-muted)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  } satisfies CSSProperties,
   status: { fontSize: 13, color: "var(--text-secondary)", margin: "8px 0 16px" } satisfies CSSProperties,
   error: { fontSize: 13, color: "var(--crit)", margin: "8px 0 16px" } satisfies CSSProperties,
   trustWarning: {
