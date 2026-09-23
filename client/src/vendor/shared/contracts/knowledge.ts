@@ -212,20 +212,59 @@ export const CommunitySkill = z.object({
 });
 export type CommunitySkill = z.infer<typeof CommunitySkill>;
 
-// ---- Conventions ----
-export const ConventionCandidate = z.object({
-  id: z.string(),
-  rule: z.string(),
-  evidence_path: z.string(),
-  evidence_snippet: z.string(),
-  confidence: z.number().min(0).max(1),
-  accepted: z.boolean(),
-});
-export type ConventionCandidate = z.infer<typeof ConventionCandidate>;
-
 // ---- Agents ----
 export const Provider = z.enum(['openai', 'anthropic', 'openrouter']);
 export type Provider = z.infer<typeof Provider>;
+
+// ---- Conventions ----
+// See server/specs/conventions.md (C1-C10).
+export const ConventionStatus = z.enum(['pending', 'accepted', 'rejected']);
+export type ConventionStatus = z.infer<typeof ConventionStatus>;
+
+export const ConventionCandidate = z.object({
+  id: z.string(),
+  category: z.string().nullish(),
+  rule: z.string(),
+  evidence_path: z.string(),
+  evidence_start_line: z.number().int(),
+  evidence_end_line: z.number().int(),
+  evidence_snippet: z.string(),
+  confidence: z.number().min(0).max(1),
+  status: ConventionStatus,
+});
+export type ConventionCandidate = z.infer<typeof ConventionCandidate>;
+
+export const ConventionScan = z.object({
+  id: z.string(),
+  sha: z.string(),
+  model: z.string(),
+  provider: Provider,
+  status: z.enum(['ok', 'failed']),
+  sample_files: z.array(z.string()),
+  candidates_found: z.number().int(),
+  candidates_dropped: z.number().int(),
+  error: z.string().nullish(),
+  created_at: z.string(),
+});
+export type ConventionScan = z.infer<typeof ConventionScan>;
+
+// GET /repos/:id/conventions and the response of POST .../extract (plus `dropped`).
+export const ConventionList = z.object({
+  scan: ConventionScan.nullable(),
+  repo: z.object({ full_name: z.string() }),
+  candidates: z.array(ConventionCandidate),
+});
+export type ConventionList = z.infer<typeof ConventionList>;
+
+export const ConventionSkillPreview = z.object({
+  name: z.string(),
+  description: z.string(),
+  type: SkillType,
+  body: z.string(),
+  accepted_count: z.number().int(),
+  name_taken_by: z.string().nullish(),
+});
+export type ConventionSkillPreview = z.infer<typeof ConventionSkillPreview>;
 
 // Review execution strategy (matches @devdigest/reviewer-core's ReviewStrategy):
 //  - single-pass: send the WHOLE diff in ONE model call (default)
