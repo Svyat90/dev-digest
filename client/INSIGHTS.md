@@ -163,6 +163,27 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of the dependencies this package pins.
 
+- **2026-09-22 — `@devdigest/ui`'s exported `IconName` has "Edit", not
+  "Pencil", even though `icons.tsx` imports lucide's `Pencil` by that name
+  internally.**
+  `icons.tsx` aliases it (`Edit: Pencil` — its own comment says "prototype
+  used Edit; lucide exports Pencil/Edit; alias to keep API"), so
+  `<Button icon="Pencil">` fails `tsc` with a long union-type error that
+  doesn't obviously point at this rename; `"Edit"` is the only valid key.
+  Rule: when an icon name guessed from the lucide/prototype name fails to
+  typecheck, check `icons.tsx` for a rename before assuming the icon doesn't
+  exist in the set at all.
+  `client/src/vendor/ui/icons.tsx:146-147`
+
+- **2026-09-22 — `@devdigest/ui`'s `Skeleton` has no `lines` prop — it renders exactly one bar.**
+  It only accepts `width`/`height`/`style` (`primitives/Skeleton.tsx`);
+  passing `lines={6}` (by analogy with other design systems' skeleton
+  components) fails `tsc` as an unknown prop rather than silently no-op-ing.
+  Rule: for a multi-line loading placeholder, render
+  `Array.from({length: n})` of `<Skeleton>` yourself — there is no built-in
+  repeat.
+  `client/src/vendor/ui/primitives/Skeleton.tsx`
+
 - **2026-09-22 — jsdom's `File` has no `arrayBuffer()`; use `FileReader.readAsArrayBuffer` instead.**
   A file-upload component that reads a chosen file's bytes via
   `file.arrayBuffer()` (e.g. to base64-encode it for an import-preview POST)
