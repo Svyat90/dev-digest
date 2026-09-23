@@ -2,13 +2,29 @@ import type { CSSProperties } from "react";
 
 export const s = {
   banner: {
-    margin: "0 24px 16px",
-    padding: "10px 14px",
-    borderRadius: 8,
-    background: "var(--bg-surface)",
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    margin: "20px 24px 16px",
+    padding: "14px 16px",
+    borderRadius: 10,
+    background: "var(--accent-bg)",
     border: "1px solid var(--border)",
     fontSize: 13,
+    lineHeight: 1.5,
     color: "var(--text-secondary)",
+  } satisfies CSSProperties,
+  bannerIcon: {
+    color: "var(--accent)",
+    flexShrink: 0,
+  } satisfies CSSProperties,
+  bannerStrong: {
+    color: "var(--text-primary)",
+    fontWeight: 600,
+  } satisfies CSSProperties,
+  bannerRepo: {
+    fontFamily: "var(--font-mono)",
+    color: "var(--accent-text)",
   } satisfies CSSProperties,
   body: {
     padding: "0 24px 20px",

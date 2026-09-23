@@ -45,7 +45,7 @@
   },
   "modal": {
     "title": "Create skill from conventions",
-    "banner": "Bundles every accepted candidate into one skill for the Skills Lab.",
+    "banner": "Merged from <b>{count, plural, one {# accepted convention} other {# accepted conventions}}</b> in <code>{repo}</code>. Everything below is editable before you save.",
     "nameLabel": "Name",
     "descriptionLabel": "Description",
     "typeLabel": "Type",

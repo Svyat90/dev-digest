@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Modal, FormField, TextInput, SelectInput, Textarea, Toggle, Button } from "@devdigest/ui";
+import { Modal, FormField, TextInput, SelectInput, Textarea, Toggle, Button, Icon } from "@devdigest/ui";
 import type { SkillType } from "@devdigest/shared";
 import { useConventionsSkillPreview, useCreateConventionsSkill, useSkillTokenCount } from "@/lib/hooks";
 import { useToast } from "@/lib/toast";
@@ -26,7 +26,17 @@ const EMPTY: FormState = { name: "repo-conventions", description: "", type: "con
  * itself is not portaled, so a click inside it would otherwise bubble to
  * whatever the caller renders it under (client/INSIGHTS.md).
  */
-export function CreateSkillModal({ repoId, onClose }: { repoId: string; onClose: () => void }) {
+export function CreateSkillModal({
+  repoId,
+  repoName,
+  acceptedCount,
+  onClose,
+}: {
+  repoId: string;
+  repoName: string;
+  acceptedCount: number;
+  onClose: () => void;
+}) {
   const t = useTranslations("conventions");
   const tSkills = useTranslations("skills");
   const toast = useToast();
@@ -95,7 +105,17 @@ export function CreateSkillModal({ repoId, onClose }: { repoId: string; onClose:
           </div>
         }
       >
-        <div style={s.banner}>{t("modal.banner")}</div>
+        <div style={s.banner}>
+          <Icon.Wrench size={15} style={s.bannerIcon} />
+          <span>
+            {t.rich("modal.banner", {
+              count: acceptedCount,
+              repo: repoName,
+              b: (chunks) => <strong style={s.bannerStrong}>{chunks}</strong>,
+              code: (chunks) => <code style={s.bannerRepo}>{chunks}</code>,
+            })}
+          </span>
+        </div>
         <div style={s.body}>
           {nameTakenBy && (
             <div style={s.nameClash}>

@@ -26,7 +26,7 @@ function renderModal(onClose = vi.fn()) {
   render(
     <NextIntlClientProvider locale="en" messages={{ conventions: conventionsMessages, skills: skillsMessages }}>
       <ToastProvider>
-        <CreateSkillModal repoId="repo-1" onClose={onClose} />
+        <CreateSkillModal repoId="repo-1" repoName="acme/api" acceptedCount={2} onClose={onClose} />
       </ToastProvider>
     </NextIntlClientProvider>,
   );
@@ -46,6 +46,12 @@ function resolvePreview(data: {
 }
 
 describe("CreateSkillModal", () => {
+  it("names the accepted count and the repo in the banner", () => {
+    renderModal();
+    expect(screen.getByText("2 accepted conventions")).toBeTruthy();
+    expect(screen.getByText("acme/api")).toBeTruthy();
+  });
+
   it("previews on mount (writes nothing) and seeds the form from the response", async () => {
     renderModal();
     expect(previewMutate).toHaveBeenCalledTimes(1);

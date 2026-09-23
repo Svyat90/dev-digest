@@ -168,7 +168,14 @@ export function ConventionsView() {
         </>
       )}
 
-      {modalOpen && <CreateSkillModal repoId={repoId} onClose={() => setModalOpen(false)} />}
+      {modalOpen && (
+        <CreateSkillModal
+          repoId={repoId}
+          repoName={repoName}
+          acceptedCount={acceptedCount}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
     </>
   );
 }
