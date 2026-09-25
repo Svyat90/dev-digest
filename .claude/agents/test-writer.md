@@ -86,6 +86,15 @@ why.
    `./scripts/e2e.sh` (same restriction as `.claude/agents/implementer.md`).
    Invoke every package script as `pnpm run <script>` — the installed pnpm
    rejects the short flag older snippets use (root `INSIGHTS.md`).
+8. **Never bend a test around a broken guarantee.** Assert what the code
+   promises — its spec, invariant, doc comment or name ("caps at 16 KB",
+   "never splits a codepoint") — not what it happens to do. When the code
+   breaks that promise, do not widen a tolerance, loosen a matcher or reword
+   the test until it passes: keep the strict assertion failing and return
+   `BLOCKED` with `Defect found:` and the evidence. Whether the promise or the
+   code is wrong is the caller's decision, not yours. A tolerance is allowed
+   only when the promise itself is approximate, and the report quotes where
+   it says so.
 
 ## Skills — mandatory, loaded before any test is written
 
