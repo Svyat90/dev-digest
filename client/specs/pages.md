@@ -11,13 +11,19 @@ Architecture: [`../docs/ui-architecture.md`](../docs/ui-architecture.md).
 
 | Route | File | Renders | Data |
 |---|---|---|---|
-| `/` | `app/page.tsx` | redirect | `useRepos` → replaces with the first repo's PR list; no repos → onboarding CTA |
+| `/` | `app/(shell)/page.tsx` | redirect | `useRepos` → replaces with the first repo's PR list; no repos → onboarding CTA |
 | `/onboarding` | `app/onboarding/page.tsx` | add-repository form | `useAddRepo` → `POST /repos` |
-| `/repos/:repoId/pulls` | `app/repos/[repoId]/pulls/page.tsx` | PR list table | `usePulls`, `useRepoIntelStatus` |
+| `/repos/:repoId/pulls` | `app/(shell)/repos/[repoId]/pulls/page.tsx` | PR list table | `usePulls`, `useRepoIntelStatus` |
 | `/repos/:repoId/pulls/:number` | `.../pulls/[number]/page.tsx` | PR detail, three tabs | `usePulls` (number→id), `usePullDetail`, `usePrReviews`, `usePrRuns`, `usePrActiveRuns` |
-| `/agents` | `app/agents/page.tsx` | agent list + create modal | `useAgents` |
-| `/agents/:id` | `app/agents/[id]/page.tsx` | agent editor | `useAgent`, `useProviderModels`, `useUpdateAgent` |
-| `/settings/:section` | `app/settings/[section]/page.tsx` | API keys / models | `useSettings`, `useSecretsStatus`, `useTestConnection` |
+| `/agents` | `app/(shell)/agents/page.tsx` | agent list + create modal | `useAgents` |
+| `/agents/:id` | `app/(shell)/agents/[id]/page.tsx` | agent editor | `useAgent`, `useProviderModels`, `useUpdateAgent` |
+| `/settings/:section` | `app/(shell)/settings/[section]/page.tsx` | API keys / models | `useSettings`, `useSecretsStatus`, `useTestConnection` |
+| `/skills` (and `/skills/:id`) | client's choice — a `[id]` route or a `[[...id]]` catch-all | the skills list/detail route: master-detail; no selection renders the list only, selecting a skill opens its detail pane | `GET /skills`, `GET /skills/:id` + its sub-resources (`server/specs/skills.md`) |
+| `/skills/new` | client's choice | create-skill form | `POST /skills` (`server/specs/skills.md`) |
+
+`(shell)` is a route group (no URL segment): its `layout.tsx` mounts the app shell
+once, so the sidebar/top bar survive navigation. Views set the breadcrumb with
+`useCrumb([...])`. `/onboarding` sits outside the group and has no shell.
 
 ## Navigation rules
 
@@ -49,6 +55,8 @@ lives in the URL. Everything else is component state.
 | `?tab=` | PR detail | `overview` (default), `findings`, `diff` | active tab. `findings` is the tab labelled **Agent runs** — the internal key predates the label |
 | `?trace=<runId>` | PR detail | run uuid | opens the run trace drawer on that run |
 | `?severity=` | PR detail | `CRITICAL`, `WARNING`, `SUGGESTION` | filters every run's findings panel to one severity |
+| `?tab=` | skills list/detail | `config` (default), `preview`, `stats`, `versions` | active tab on the selected skill's detail pane; unrecognised → `config`, per the rule below |
+| `?tab=` | agent editor | existing set **plus** `skills` | the agent editor's `?tab=` values gain a `skills` tab (the agent's attached-skills panel) alongside whatever tabs it already had |
 
 Two rules about reading them:
 
@@ -70,7 +78,7 @@ change:
    formatting inline — the cost surfaces live in three separate subtrees and
    drifting formatters is exactly how they stop matching.
 2. **The PR list's columns are data-driven.** `COLUMN_KEYS`, the `GRID` template
-   and `RIGHT_ALIGNED_COLUMNS` in `app/repos/[repoId]/pulls/constants.ts` must
+   and `RIGHT_ALIGNED_COLUMNS` in `app/(shell)/repos/[repoId]/pulls/constants.ts` must
    change together — the header and the row both render from them, so a column
    added to one and not the others silently shifts every cell.
 3. **The whole PR row is a navigation target.** Anything interactive inside a
@@ -87,7 +95,14 @@ change:
 
 ## Screens deliberately absent
 
-The nav shows entries for features later lessons add (Skills, Memory, Eval,
-Multi-Agent Review, CI Runs, Agent Performance). Their i18n namespaces exist in
-`messages/en/` as placeholders. Neither the nav entries nor the namespaces are
-dead code to remove.
+Only `pulls`, `skills`, and `agents` are live entries in the nav today
+(`vendor/ui/nav.ts`'s `NAV` — its own comment notes "the visual design shows
+more Skills Lab entries, but the rest lead to pages that do not exist yet and
+are deliberately excluded"). Skills is a nav entry pointing at a route this
+lesson builds (see the route table above); Memory, Eval, Multi-Agent Review,
+CI Runs, Agent Performance and a few others do **not** have nav entries yet —
+only their i18n namespaces exist in `messages/en/` as placeholders (e.g.
+`shell.json`'s `nav` namespace already carries translation keys — `eval`,
+`memory`, `multi-agent`, `agent-performance`, `ci-runs` — for labels the `NAV`
+array does not render). Neither the existing nav entries nor the unused
+namespaces are dead code to remove.

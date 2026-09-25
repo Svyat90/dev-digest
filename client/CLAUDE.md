@@ -13,7 +13,8 @@ then read code.
 ## Non-default conventions
 
 - Pages are thin. Feature logic lives in colocated `_components/<Name>/`
-  folders, each with its own `*.test.tsx`.
+  folders. Tests are typological, not exhaustive (`../TESTING.md`): add one where
+  a behaviour is worth guarding — a folder without a `*.test.tsx` is not a defect.
 - All data goes through `src/lib/hooks/*` on top of `src/lib/api.ts`. Calling
   `fetch` directly from a component bypasses `ApiError` normalization and the
   error-UX taxonomy that branches on it.

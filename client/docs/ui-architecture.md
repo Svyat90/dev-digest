@@ -8,16 +8,15 @@ obvious from reading one file. The route → API map lives in
 
 ## The Server/Client boundary
 
-Next 15 App Router, but the server half is deliberately thin. Only three files
-are Server Components:
+Next 15 App Router, but the server half is deliberately thin. Only the root layout
+and the thin route entries are Server Components:
 
 | File | Why it stays on the server |
 |---|---|
 | `app/layout.tsx` | awaits `getLocale()` / `getMessages()` from `next-intl/server`, so the message bundle is embedded in the first HTML instead of fetched after hydration |
-| `app/agents/page.tsx` | a two-line route entry that renders a client view |
-| `app/settings/[section]/page.tsx` | same shape |
+| every `page.tsx` (`agents`, `agents/[id]`, `settings/[section]`, `repos/[repoId]/pulls`, `…/pulls/[number]`) | a route entry that only renders a client `<X>View` from `_components/`; the `"use client"` boundary sits on the view |
 
-Every other page is `"use client"`, because each one owns interaction state and
+Every view (and the pages that have not been thinned yet) is `"use client"`, because each one owns interaction state and
 TanStack queries against a separate API origin. There is no server-side data
 fetching and no server action anywhere: the Fastify engine is a different
 process on a different port, reached from the browser.
@@ -31,6 +30,19 @@ Two details in `layout.tsx` are load-bearing:
   browser extensions inject attributes onto `<body>` before React hydrates. It
   suppresses one element's own attribute mismatch; real mismatches in descendants
   are still reported.
+
+## The app shell
+
+`app/(shell)/layout.tsx` renders `ShellLayout` (`components/app-shell`) once for
+`/`, `/repos/**`, `/agents/**` and `/settings/**`; `/onboarding` is outside the
+group and has no shell. Because the shell is a layout it is **not** remounted on
+navigation. A view declares its breadcrumb with `useCrumb([...])`
+(`components/app-shell/crumb.tsx`); it is set in a layout effect and cleared on
+unmount. Do not render `<AppShell>` from a page.
+
+`repos/[repoId]/layout.tsx` wraps every repo-scoped page in `RepoGuard`: an unknown
+`:repoId` renders the "no repo selected" state once, so pages do not repeat the
+check. `app/error.tsx` is the last-resort boundary for render errors.
 
 ## Provider stack
 
@@ -78,7 +90,9 @@ the header conditionally rather than always.
 
 ### Cache keys
 
-One key per resource, so an invalidation in one hook reaches every consumer:
+One key per resource, so an invalidation in one hook reaches every consumer.
+Every key is built by the factory in `src/lib/hooks/keys.ts` (`keys.pulls(repoId)`,
+…) — never write a `queryKey: [...]` literal. Also cached: `["pr-comments", prId]`.
 
 | Key | Endpoint | Notes |
 |---|---|---|
