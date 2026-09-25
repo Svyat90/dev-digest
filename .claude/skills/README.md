@@ -21,6 +21,13 @@ Reusable AI skills that provide specialized knowledge and workflows. Canonical l
 | [engineering-insights](engineering-insights/SKILL.md) | Shared | Reads `INSIGHTS.md` before a task, appends what was learned after |
 | [pr-self-review](pr-self-review/SKILL.md) | Shared | Local pre-PR gate: typecheck, `arch:check`, secrets, then frontend/backend skills on the diff; any confirmed CRITICAL blocks the PR |
 
+## Agents
+
+Subagents (researcher, planner, implementer) are mapped in
+[`.claude/agents/README.md`](../agents/README.md). Planner, implementer and
+`pr-self-review` share one skill-to-file mapping,
+`pr-self-review/references/routing.md`.
+
 ## What Are Skills?
 
 Skills are modular packages that extend the AI agent with specialized knowledge and workflows. Unlike rules (always applied) or agents (invoked for specific tasks), skills are loaded on-demand when the agent determines they're relevant.
