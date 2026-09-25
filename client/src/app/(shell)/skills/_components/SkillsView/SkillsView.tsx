@@ -103,6 +103,9 @@ export function SkillsView({ mode }: { mode?: "new" }) {
                 active={sk.id === id}
                 onClick={() => router.push(`/skills/${sk.id}`)}
                 onToggle={(enabled) => update.mutate({ id: sk.id, patch: { enabled } })}
+                onDeleted={() => {
+                  if (sk.id === id) router.push("/skills");
+                }}
               />
             ))}
           </div>

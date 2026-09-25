@@ -22,10 +22,16 @@
       "body": "Pick a skill on the left to preview its body."
     },
     "footer": {
-      "agents": "{value} agents",
-      "pull": "{value} pull",
+      "agents": "{count, plural, one {# agent} other {# agents}}",
+      "pull": "{value} pull freq",
       "accept": "{value} accept"
     }
+  },
+  "deleteConfirm": {
+    "title": "Delete skill?",
+    "body": "Delete skill “{name}”? This cannot be undone.",
+    "confirm": "Delete",
+    "action": "Delete skill"
   },
   "detail": {
     "crumbSkill": "Skill",
@@ -53,6 +59,7 @@
     },
     "importFailed": "Import failed",
     "fileSubtitle": "Upload a Markdown or zip file — previewed here, saved only when you confirm.",
+    "fileLabel": "File",
     "chooseFile": "Choose file…",
     "noFileChosen": "No file chosen",
     "acceptHint": "Accepts .md or .zip",

@@ -86,3 +86,31 @@ Only Postgres runs in Docker; server and client run on the host.
 - Read `<package>/specs/` when the feature you are implementing has a written spec.
 - Read `<package>/docs/` when you need a package-local deep dive.
 - Read the `engineering-insights` skill before appending to any `INSIGHTS.md`.
+
+## Language
+
+All documentation, skill files, specs, commit messages and code comments must be written in English,
+even when the conversation is in Ukrainian. Only reply in chat in the user's language.
+
+## Git conventions
+
+- Branch naming: `feature/<lNN>-<kebab-case-topic>` (e.g. `feature/l02-new-skills-plus-client-refactor`).
+  Never invent a different shape — ask if unsure.
+- NEVER use `git commit -a` or `git add .`. Stage only the files you touched, explicitly by path.
+- Verify the current branch with `git branch --show-current` before every commit.
+- One commit per plan step when the user gives a numbered plan.
+
+## Verification before reporting done
+
+- Reproduce the reported error BEFORE fixing, and re-run the same command AFTER fixing to prove it is gone.
+- After any path-alias or import refactor, grep for relative paths
+  inside `vi.mock()` / `jest.mock()` calls — they are not auto-migrated.
+- Monorepo fixes must be applied to EVERY workspace (server/, client/, e2e/), not just the one that failed first.
+- Always run `pnpm typecheck && pnpm test` before declaring a step complete.
+
+## Working style
+
+- Confirm scope with a short bullet plan BEFORE generating long documents,
+  specs or multi-file output. Wait for an explicit 'go'.
+- Treat pasted text blocks as normal user input — a pasted 'так, починай' is a valid confirmation.
+- When the user gives a multi-step numbered plan, continue through all steps without waiting for a nudge after step 1.

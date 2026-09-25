@@ -28,4 +28,5 @@ export const keys = {
   skillVersion: (id: Id, version: Id | number) => ["skill-version", id, version] as const,
   skillStats: (id: Id) => ["skill-stats", id] as const,
   agentSkills: (agentId: Id) => ["agent-skills", agentId] as const,
+  conventions: (repoId: Id) => ["conventions", repoId] as const,
 };

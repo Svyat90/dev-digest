@@ -61,6 +61,8 @@ then read code.
   or changing the error envelope — request lifecycle, ports, data layer.
 - Read `specs/review-flow.md` before changing anything on the review path — it
   states the invariants (grounding, null-vs-zero cost, lifetime cost vs latest-per-agent findings).
+- Read `specs/conventions.md` before touching the Conventions Extractor — the
+  invariants (evidence verification, re-scan semantics, the skill it produces).
 - Read `src/modules/repo-intel/README.md` before working on the indexer.
 - Read `../TESTING.md` before adding or changing a test.
 - Read `../docs/agent-prompts/` before editing reviewer system prompts.

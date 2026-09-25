@@ -8,3 +8,6 @@ Linked from `server/CLAUDE.md` › *Read when*.
   change must not break, and how the PR list's derived columns are computed.
 - **[`skills.md`](skills.md)** — skills: the invariants (S1–S10), the data
   model, the API surface, and the import parsing rules.
+- **[`conventions.md`](conventions.md)** — the Conventions Extractor: the
+  invariants (C1–C10), the data model, the API surface, and how it produces
+  a skill.

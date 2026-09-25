@@ -20,6 +20,7 @@ Architecture: [`../docs/ui-architecture.md`](../docs/ui-architecture.md).
 | `/settings/:section` | `app/(shell)/settings/[section]/page.tsx` | API keys / models | `useSettings`, `useSecretsStatus`, `useTestConnection` |
 | `/skills` (and `/skills/:id`) | client's choice — a `[id]` route or a `[[...id]]` catch-all | the skills list/detail route: master-detail; no selection renders the list only, selecting a skill opens its detail pane | `GET /skills`, `GET /skills/:id` + its sub-resources (`server/specs/skills.md`) |
 | `/skills/new` | client's choice | create-skill form | `POST /skills` (`server/specs/skills.md`) |
+| `/repos/:repoId/conventions` | `app/(shell)/repos/[repoId]/conventions/page.tsx` | convention candidates for the repo, Run Scan / Re-scan, Create skill | `useConventions(repoId)`, `useExtractConventions`, `usePatchConvention`, `useCreateConventionsSkill` (`server/specs/conventions.md`) |
 
 `(shell)` is a route group (no URL segment): its `layout.tsx` mounts the app shell
 once, so the sidebar/top bar survive navigation. Views set the breadcrumb with
@@ -93,16 +94,62 @@ change:
 5. **Severity counters always count the full set**, never the filtered subset —
    otherwise clicking one counter makes the others appear to vanish.
 
+## Conventions page
+
+`useConventions(repoId)` (`GET /repos/:id/conventions`) drives the whole
+screen; there is no separate loading state per card. Header reads
+"Conventions in `<repo>`" with a subtitle: "Detected from N sample files ·
+last scan `<relative>`" once a scan exists, or the empty state's copy before
+the first one. **Run Scan** renders when there is no scan yet; **Re-scan**
+once one exists — both disabled while `useExtractConventions` is in flight,
+and both re-labelled to a spinner state ("Scanning…") rather than merely
+disabled, so a slow extraction (up to ~90s) doesn't read as a dead button.
+After a scan completes, a line reads "N candidates dropped (no evidence)"
+when `dropped > 0`.
+
+Each `ConventionCard` shows the rule, a `path:start-end` link built with
+`githubBlobUrl(full_name, scan.sha, evidence_path, evidence_start_line,
+evidence_end_line)`, the evidence snippet, a confidence bar (green ≥0.8,
+amber ≥0.6, else red), and Accept / Reject / an inline edit of the rule text
+and category. A rejected card leaves the list immediately (C5) — there is no
+undo in the UI; re-scanning does not bring it back either (C6).
+
+The toolbar shows "X of Y accepted", a **Deselect all** action (every
+`accepted` candidate back to `pending` — a client-side bulk `PATCH`, not a
+new endpoint), and **Create skill**, visible once at least one candidate is
+accepted. Create skill opens `CreateSkillModal` (name defaults to
+`repo-conventions`, editable; description, type, enabled, a body editor with
+line numbers seeded from `POST /repos/:id/conventions/skill/preview` and a
+live token count via `POST /skills/tokens`; footer "Saved as v1 · added to
+Skills Lab"). The modal renders inside a `stopPropagation` wrapper like every
+other `Modal`-based dialog in this app (`client/INSIGHTS.md`). On a name
+clash (`preview`'s `name_taken_by` is set) the modal offers the two choices
+already agreed with the user: save as a new version of that existing skill
+(`replace_skill_id`, an S4 update) or rename before creating. After a
+successful create, a toast fires with a link to `/skills/:id` and the skills
+list query is invalidated so the new skill shows up there immediately.
+
+Error / empty states: no scan yet → the empty-state card with a **Run
+extraction** CTA; the repo not cloned or not indexed yet (409) → an inline
+notice explaining a scan isn't possible until the repo finishes indexing,
+with no retry loop; an extraction failure (C10) → the previous candidates
+stay on screen with a dismissible error banner, never a blank page.
+
 ## Screens deliberately absent
 
-Only `pulls`, `skills`, and `agents` are live entries in the nav today
-(`vendor/ui/nav.ts`'s `NAV` — its own comment notes "the visual design shows
-more Skills Lab entries, but the rest lead to pages that do not exist yet and
-are deliberately excluded"). Skills is a nav entry pointing at a route this
-lesson builds (see the route table above); Memory, Eval, Multi-Agent Review,
-CI Runs, Agent Performance and a few others do **not** have nav entries yet —
-only their i18n namespaces exist in `messages/en/` as placeholders (e.g.
-`shell.json`'s `nav` namespace already carries translation keys — `eval`,
-`memory`, `multi-agent`, `agent-performance`, `ci-runs` — for labels the `NAV`
-array does not render). Neither the existing nav entries nor the unused
-namespaces are dead code to remove.
+`pulls`, `skills`, `agents`, and `conventions` are live entries in the nav
+today (`vendor/ui/nav.ts`'s `NAV` — its own comment notes "the visual design
+shows more Skills Lab entries, but the rest lead to pages that do not exist
+yet and are deliberately excluded"). Conventions is a nav entry pointing at a
+route this lesson builds (see the route table above); Memory, Eval,
+Multi-Agent Review, CI Runs, Agent Performance and a few others do **not**
+have nav entries yet — only their i18n namespaces exist in `messages/en/` as
+placeholders (e.g. `shell.json`'s `nav` namespace already carries
+translation keys — `eval`, `memory`, `multi-agent`, `agent-performance`,
+`ci-runs` — for labels the `NAV` array does not render). Neither the
+existing nav entries nor the unused namespaces are dead code to remove.
+
+`nav.ts` sits under the client's `src/vendor/ui/**` do-not-touch path, but it
+is a plain data registry, not vendored component code — adding the
+Conventions nav item is a one-line, agreed exception (`client/INSIGHTS.md`,
+2026-09-22).

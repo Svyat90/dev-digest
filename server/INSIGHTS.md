@@ -37,6 +37,46 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-09-22 — A single `pnpm db:generate` that both DROPS a column and ADDS
+  several new ones on the same table triggers an interactive "is this a
+  rename?" prompt drizzle-kit cannot resolve in a non-interactive shell.**
+  Replacing `conventions.accepted` (boolean) with a new `status` text column
+  in the same schema edit made drizzle-kit ask "Is `scan_id` created or
+  renamed from `accepted`?" — the CLI prints the TUI select and returns
+  without writing a migration; there is no flag to answer it non-interactively.
+  Rule: split the change into two `db:generate` passes — first ADD every new
+  column while leaving the old one in place (unambiguous, no prompt), run
+  `pnpm db:generate`, THEN remove the old column alone in a second pass and
+  generate again. Never try to answer the prompt; restructure the schema
+  edit instead.
+  `server/src/db/migrations/0013_shallow_sir_ram.sql`, `0014_giant_warbird.sql`
+
+- **2026-09-22 — A NEW module that needs another module's SERVICE (not just
+  its repository) trips `arch:check`'s `no-circular` the moment `container.ts`
+  is taught to construct it.**
+  Adding a `container.skills` getter (`new SkillsService(this)`) so
+  `conventions/service.ts` could reuse skill-creation logic failed with
+  `no-circular: skills/service.ts → container.ts → skills/service.ts` —
+  `SkillsService`'s constructor takes `Container`, so `container.ts`
+  constructing it is a real cycle, not a false positive. The identical shape
+  already exists for `RepoIntelService`/`container.repoIntel`, but only
+  because it is grandfathered in `.dependency-cruiser-known-violations.json`
+  — a NEW instance of the same pattern is not, and the rule forbids
+  re-baselining to make it pass.
+  Rule: don't add a container facade for another module's service. Instead
+  (a) if the other module already exposes its repository via the container
+  (e.g. `container.skillsRepo`), call the repository directly and write your
+  own small DTO-mapping helper locally — importing the other module's
+  `service.ts` OR `helpers.ts` is `no-cross-module-imports`, a separate
+  violation from the circular one; (b) for a plain cross-cutting function
+  like `resolveFeatureModel` that only needs `container.db`, retype its
+  parameter from `Container` to a minimal structural interface (`{db: Db}`)
+  so the function never imports `Container` at all — the real `Container`
+  still satisfies it structurally, and the cycle disappears at the type level.
+  `server/src/modules/settings/feature-models.ts` (`FeatureModelContainer`),
+  `server/src/modules/conventions/service.ts` (uses `container.skillsRepo` +
+  a local `toSkillDto`, not a `container.skills` facade)
+
 - **2026-09-21 — The server has ZERO `db.transaction()` calls; multi-step writes are not atomic.**
   `GET /pulls/:id` refreshes from GitHub by deleting `pr_files`, inserting new rows,
   deleting `pr_commits`, inserting again, then updating `pull_requests` as five
