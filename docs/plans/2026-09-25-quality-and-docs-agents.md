@@ -1,6 +1,6 @@
 # Quality and docs agents (test-writer, architecture-reviewer, plan-verifier, doc-writer) — Development Plan
 
-Date: 2026-09-25 · Branch: feature/l02-quality-and-docs-agents (to confirm, see Open questions Q5) · Status: draft
+Date: 2026-09-25 · Branch: feature/l02-quality-and-docs-agents (to confirm, see Open questions Q5) · Status: done
 
 ## Goal
 

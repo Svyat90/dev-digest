@@ -141,6 +141,20 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-09-25 — `truncateSampleFile`'s byte cap is NOT strict, despite its comment.**
+  The comment says "Byte-cap without splitting a multi-byte codepoint", but
+  `Buffer.from(out).subarray(0, MAX_SAMPLE_FILE_BYTES).toString('utf8')` cuts
+  mid-codepoint and decodes the tail as U+FFFD. 6000 × `日` (18000 bytes) comes
+  back as 16386 bytes, ending in `�` — 2 bytes over the 16384 cap, with a
+  character the source file never had. `capSamplesForPrompt` sums the real
+  post-cut size, so the 60 KB total stays honest; only the per-file cap and the
+  "no split" claim are wrong.
+  Rule: do not document, test or rely on C1's per-file cap as an exact bound or
+  on the "no split" claim; a strict test of either fails today. Fixing it means
+  backing off to a codepoint boundary before `toString`.
+  `server/src/modules/conventions/helpers.ts:64-67` ·
+  `node -e 'const s="日".repeat(6000);const o=Buffer.from(s).subarray(0,16384).toString();console.log(Buffer.byteLength(o),o.endsWith("�"))'` → `16386 true`
+
 - **2026-09-22 — Copying `agents/helpers.ts`'s `import type {XRow} from './repository.js'` shape into a NEW module trips `arch:check`'s `no-circular` rule.**
   `agents/helpers.ts` ↔ `agents/repository.ts` IS circular (helpers imports
   `AgentRow`/`AgentVersionRow` types from repository; repository imports
