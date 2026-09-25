@@ -23,10 +23,11 @@ Reusable AI skills that provide specialized knowledge and workflows. Canonical l
 
 ## Agents
 
-Subagents (researcher, planner, implementer) are mapped in
-[`.claude/agents/README.md`](../agents/README.md). Planner, implementer and
-`pr-self-review` share one skill-to-file mapping,
-`pr-self-review/references/routing.md`.
+Subagents (researcher, planner, implementer, test-writer,
+architecture-reviewer, plan-verifier, doc-writer) are mapped in
+[`.claude/agents/README.md`](../agents/README.md). Planner, implementer,
+test-writer, architecture-reviewer and `pr-self-review` share one
+skill-to-file mapping, `pr-self-review/references/routing.md`.
 
 ## What Are Skills?
 
