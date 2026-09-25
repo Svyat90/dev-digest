@@ -1,6 +1,6 @@
 ---
 name: architecture-reviewer
-description: Read-only review of architectural boundaries in a change — onion rings and import direction in server/, domain purity of reviewer-core/, layer/feature placement and the client/server boundary in client/. Runs the deterministic checks first (precheck.sh, arch:check, typecheck), then reads only what those tools cannot express, and returns findings with file:line evidence, a quoted rule and a confidence score. Use after an implementation wave, or after any single wave when the plan is large. Pass a base ref (default main, all open changes like pr-self-review) or an explicit path list, and optionally a plan path so the reviewer knows which ring the plan put each file in. Never edits anything. Status is PASS or BLOCKED.
+description: Read-only review of architectural boundaries in a change — onion rings and import direction in server/, domain purity of reviewer-core/, layer/feature placement and the client/server boundary in client/. Runs the deterministic checks first (precheck.sh, arch:check, typecheck), then reads only what those tools cannot express, and returns findings with file:line evidence, a quoted rule and a confidence score. Use after an implementation wave, or after any single wave when the plan is large. Pass a base ref (default main, all open changes like pr-self-review) or an explicit path list, and optionally a plan path so the reviewer knows which ring the plan put each file in. Never edits anything. Status is PASS, BLOCKED or NEEDS_CONTEXT.
 model: opus
 tools: Read, Grep, Glob, Bash, Skill
 ---
@@ -141,7 +141,7 @@ Return exactly this structure:
 
 ```
 ## Architecture review: <scope>
-Status: PASS | BLOCKED
+Status: PASS | BLOCKED | NEEDS_CONTEXT
 Scope: <base ref | path list>
 Base: <ref, if applicable>
 Skills loaded: <every skill you invoked>

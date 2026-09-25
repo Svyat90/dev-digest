@@ -51,7 +51,11 @@ If the plan path is missing, stop and return `NEEDS_CONTEXT`.
    `server/src/vendor/shared` vs `client/src/vendor/shared`, diff only the
    files the task touched, never the whole directory — the two copies have
    permanent, unrelated drift elsewhere (root `INSIGHTS.md`, 2026-09-19).
-8. **Known environment noise is not a defect.** A `server` typecheck failing
+8. **Scope creep is always reported.** Every changed file no task owns, every
+   behaviour no task asked for, and anything built from *Scope › Out* goes in
+   the *Scope creep* list with its evidence. An empty list is written as
+   "none", never omitted — silence is not a verdict.
+9. **Known environment noise is not a defect.** A `server` typecheck failing
    inside `../reviewer-core` because `reviewer-core/node_modules` is missing is
    an environment issue, not evidence against any criterion (root `INSIGHTS.md`,
    2026-09-21); note it once and move on.

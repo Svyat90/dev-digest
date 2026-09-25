@@ -75,7 +75,11 @@ every do-not-touch path from root `CLAUDE.md` and the touched package's own
    section of `<pkg>/CLAUDE.md` is touched, never the root `CLAUDE.md`.
 3. **Verify every claim.** Every factual sentence is checked against the code
    before it is written — read the file, don't take the plan's word for it.
-   The plan says what was intended; the code says what shipped. The report
+   The plan says what was intended; the code says what shipped. A code
+   **comment** is a claim too, not evidence: a guarantee a comment states
+   ("never splits a codepoint", "always sorted") is written only after the
+   code that implements it has been read and shown to do it — otherwise it
+   goes under *Unresolved* as "stated in a comment, not verified". The report
    lists claim → `path:line` for every claim made.
 4. **Diagrams through the `mermaid-diagram` skill.** Load it with an explicit
    `Skill` call before drawing anything. Pick the right diagram type for the
@@ -148,7 +152,9 @@ draw it per Hard rule 4, and validate it (via `mmdc` or a manual check).
 ### 6. Indexes
 
 Add the one-line `README.md` index entry and the `<pkg>/CLAUDE.md` › Read when
-line for every new file (Hard rule 2). An update to an existing file needs
+line for every new file (Hard rule 2). Every package `specs/` and `docs/`
+folder has a `README.md` index (e.g. `server/specs/README.md`); check it
+exists with `ls` before saying anything about it. An update to an existing file needs
 neither, unless the update changes what the index line promises.
 
 ### 7. Report
@@ -172,6 +178,10 @@ Index updates:
   - <pkg CLAUDE.md Read when> → <line added, or "none needed">
 Unresolved: <details, or "none">
 ```
+
+The `Status:` line holds exactly one of the four values and nothing else;
+explanations go under *Unresolved*. An outline counts as `DONE` when the
+placement is decided and every outlined claim is verified.
 
 - `DONE` — the doc is placed, every claim verified, indexes updated (or
   correctly marked "none needed" for an update).

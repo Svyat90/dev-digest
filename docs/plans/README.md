@@ -19,9 +19,9 @@ File name: `YYYY-MM-DD-<kebab-topic>.md`.
    - Wave 0 tasks run one at a time.
    - `[P]` tasks of a wave are launched as parallel agents in a single message.
      They never share a file (the planner guarantees it). A task's `Agent:`
-     field says which agent runs it: `implementer` (default) or `test-writer`
-     for a task whose deliverable is tests only — both are dispatched under
-     the same wave rules (one message per wave, exclusive files, one commit
+     field says which agent runs it: `implementer` (default), `test-writer`
+     for a task whose deliverable is tests only, or `doc-writer` for a docs
+     task in the final wave — all are dispatched under the same wave rules (one message per wave, exclusive files, one commit
      per task).
    - After a wave, the main session checks each report (status, skills loaded vs.
      the task's *Skills*, verification output), runs the package typecheck and
