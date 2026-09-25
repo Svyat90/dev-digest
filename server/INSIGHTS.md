@@ -37,6 +37,17 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-09-23 — Deleting a PR's runs does NOT put it back to "Needs review".**
+  The PR-list status comes from `pull_requests.last_reviewed_sha`, which a review
+  sets (`reviews/repository/pull.repo.ts:43`) and nothing clears: `DELETE /runs/:id`
+  removes the run and its findings, yet the PR stays `reviewed` while its head is
+  unchanged (`deriveReviewStatus`, `pulls/status.ts:88`). The client's default
+  `?status=needs_review` filter then hides it — PR #7 "vanished" mid demo take
+  with `GET /pulls/:id/runs` → `[]`.
+  Rule: to reach a once-reviewed PR from a script, test or demo, open the list with
+  `?status=all`; never rely on `DELETE /runs` to reset review state.
+  `server/src/modules/pulls/status.ts:88`, `server/src/modules/reviews/repository/pull.repo.ts:43`
+
 - **2026-09-22 — A single `pnpm db:generate` that both DROPS a column and ADDS
   several new ones on the same table triggers an interactive "is this a
   rename?" prompt drizzle-kit cannot resolve in a non-interactive shell.**
