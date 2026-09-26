@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Intent, type ChatMessage, type IntentSourceKind } from '@devdigest/shared';
-import { wrapUntrusted } from '@devdigest/reviewer-core';
+import { wrapUntrusted, type PromptMeasure } from '@devdigest/reviewer-core';
 
 /**
  * Intent classifier — the single structured LLM call. Schema name is
@@ -81,13 +81,111 @@ export function buildIntentMessages(
   sections: IntentPromptSection[],
   title: string,
 ): ChatMessage[] {
-  const blocks = [`## PR title\n${wrapUntrusted('pr-title', title)}`];
-  sections.forEach((s, i) => {
-    if (!s.text.trim()) return;
-    blocks.push(`## ${safeHeading(s.label)}\n${wrapUntrusted(`${s.kind}-${i}`, s.text)}`);
-  });
+  const { titleBlock, sourceBlocks } = renderBlocks(sections, title);
+  const blocks = [titleBlock, ...sourceBlocks.map((b) => b.text)];
   return [
     { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: `Derive the intent and scope of this pull request.\n\n${blocks.join('\n\n')}` },
+    { role: 'user', content: `${USER_INTRO}\n\n${blocks.join('\n\n')}` },
   ];
+}
+
+/** Fixed, server-written opening line of the user message (trusted). */
+const USER_INTRO = 'Derive the intent and scope of this pull request.';
+
+/**
+ * The rendered blocks of the user message. Shared by `buildIntentMessages` and
+ * `describeIntentPrompt`, so the sizes the log reports are the sent bytes.
+ */
+function renderBlocks(
+  sections: IntentPromptSection[],
+  title: string,
+): { titleBlock: string; sourceBlocks: { kind: IntentSourceKind; text: string }[] } {
+  const sourceBlocks: { kind: IntentSourceKind; text: string }[] = [];
+  sections.forEach((s, i) => {
+    if (!s.text.trim()) return;
+    sourceBlocks.push({
+      kind: s.kind,
+      text: `## ${safeHeading(s.label)}\n${wrapUntrusted(`${s.kind}-${i}`, s.text)}`,
+    });
+  });
+  return { titleBlock: `## PR title\n${wrapUntrusted('pr-title', title)}`, sourceBlocks };
+}
+
+/**
+ * Content-free description of one classifier prompt section, for the
+ * `prompt.assembled` log. Sizes and enums only, never the text. The name is a
+ * closed vocabulary (`IntentSourceKind` or a fixed word), never a label.
+ */
+export interface IntentPromptSectionMeta {
+  name: 'system' | 'task' | 'pr_title' | IntentSourceKind;
+  role: 'system' | 'user';
+  source: 'trusted' | 'untrusted';
+  chars: number;
+  /** Sections of this kind that were rendered; 1 for the fixed sections. */
+  items: number;
+  tokens?: number;
+  fingerprint?: string;
+  itemDetail?: { chars: number; tokens?: number; fingerprint?: string }[];
+}
+
+function measureRendered(
+  text: string,
+  measure: PromptMeasure | undefined,
+): { chars: number; tokens?: number; fingerprint?: string } {
+  const out: { chars: number; tokens?: number; fingerprint?: string } = { chars: text.length };
+  const tokens = measure?.tokens?.(text);
+  if (tokens !== undefined) out.tokens = tokens;
+  const fingerprint = measure?.fingerprint?.(text);
+  if (fingerprint !== undefined) out.fingerprint = fingerprint;
+  return out;
+}
+
+/**
+ * Describe the prompt `buildIntentMessages(sections, title)` would send:
+ * `system`, `task` (the fixed intro line), `pr_title`, then one entry per source
+ * kind present (items = how many sections of that kind). `chars` is the rendered
+ * length, headings and wrappers included.
+ */
+export function describeIntentPrompt(
+  sections: IntentPromptSection[],
+  title: string,
+  measure?: PromptMeasure,
+): IntentPromptSectionMeta[] {
+  const { titleBlock, sourceBlocks } = renderBlocks(sections, title);
+  const metas: IntentPromptSectionMeta[] = [
+    { name: 'system', role: 'system', source: 'trusted', items: 1, ...measureRendered(SYSTEM_PROMPT, measure) },
+    { name: 'task', role: 'user', source: 'trusted', items: 1, ...measureRendered(USER_INTRO, measure) },
+    { name: 'pr_title', role: 'user', source: 'untrusted', items: 1, ...measureRendered(titleBlock, measure) },
+  ];
+
+  const byKind = new Map<IntentSourceKind, string[]>();
+  for (const b of sourceBlocks) byKind.set(b.kind, [...(byKind.get(b.kind) ?? []), b.text]);
+  for (const [kind, texts] of byKind) {
+    const meta: IntentPromptSectionMeta = {
+      name: kind,
+      role: 'user',
+      source: 'untrusted',
+      items: texts.length,
+      chars: texts.reduce((n, t) => n + t.length, 0),
+    };
+    const tokenCounts = texts.map((t) => measure?.tokens?.(t));
+    if (tokenCounts.every((n): n is number => n !== undefined)) {
+      meta.tokens = tokenCounts.reduce((n, c) => n + c, 0);
+    }
+    if (measure?.fingerprint) {
+      const fingerprintOf = measure.fingerprint;
+      meta.fingerprint = fingerprintOf(texts.join('\n\n'));
+      meta.itemDetail = texts.map((t, i) => {
+        const detail: NonNullable<IntentPromptSectionMeta['itemDetail']>[number] = {
+          chars: t.length,
+          fingerprint: fingerprintOf(t),
+        };
+        const tokens = tokenCounts[i];
+        if (tokens !== undefined) detail.tokens = tokens;
+        return detail;
+      });
+    }
+    metas.push(meta);
+  }
+  return metas;
 }

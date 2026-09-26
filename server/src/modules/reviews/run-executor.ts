@@ -8,6 +8,7 @@ import type { ReviewRepository, FindingRow, PullRow, ReviewRow } from './reposit
 import { REVIEW_STRATEGY } from './constants.js';
 import { taskLine } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
+import { createPromptMeasure, logPromptAssembled } from '../../platform/prompt-log.js';
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
 export class RunCancelledError extends Error {
@@ -60,6 +61,8 @@ export class ReviewRunExecutor {
     repo: typeof schema.repos.$inferSelect,
     jobs: { agent: AgentRow; runId: string }[],
     logger?: Logger,
+    /** The review click these runs belong to (`agent_runs.round_id`); ties every prompt record together. */
+    roundId?: string | null,
   ): Promise<void> {
     // ONE logger fanned out over every queued run: shared pre-work (diff +
     // intent) is streamed into each target agent's Live Log and persisted into
@@ -125,6 +128,13 @@ export class ReviewRunExecutor {
             },
             diff,
             runLog,
+            // The classifier's prompt record goes to pino only, never through runLog (SSE).
+            logger
+              ? {
+                  logger,
+                  correlation: { round_id: roundId, run_ids: jobs.map((j) => j.runId), pr_id: pull.id },
+                }
+              : undefined,
           );
         } catch (err) {
           // Content-free, bounded reason: service errors carry reason codes only.
@@ -156,7 +166,18 @@ export class ReviewRunExecutor {
         `review: agent "${agent.name}" started (${agent.provider}/${agent.model})`,
       );
       try {
-        const outcome = await this.runOneAgent(workspaceId, pull, repo, diff, intent, agent, runId, runLog);
+        const outcome = await this.runOneAgent(
+          workspaceId,
+          pull,
+          repo,
+          diff,
+          intent,
+          agent,
+          runId,
+          runLog,
+          logger,
+          roundId,
+        );
         logger?.info(
           {
             runId,
@@ -189,8 +210,14 @@ export class ReviewRunExecutor {
     agent: AgentRow,
     runId: string,
     parentLog: RunLogger,
+    logger?: Logger,
+    roundId?: string | null,
   ): Promise<RunOutcome> {
     const start = Date.now();
+    // Content-free prompt records (`prompt.assembled`): pino only, never runLog
+    // (which publishes to the browser over SSE). `off` measures nothing at all.
+    const promptLogMode = this.container.config.promptLog;
+    const promptMeasure = createPromptMeasure(promptLogMode, this.container.tokenizer);
     // Narrow the fanned-out pre-work logger to THIS run; the shared diff/intent
     // events are already in this run's buffer, so the persisted trace below
     // (built from the buffer) includes them too.
@@ -274,6 +301,25 @@ export class ReviewRunExecutor {
         checkCancelled: () => {
           if (this.container.runBus.isCancelled(runId)) throw new RunCancelledError();
         },
+        ...(promptLogMode !== 'off' && logger
+          ? {
+              promptMeasure,
+              onPromptAssembled: (info) =>
+                logPromptAssembled(
+                  logger,
+                  {
+                    component: 'reviewer',
+                    provider: agent.provider,
+                    model: agent.model,
+                    correlation: { round_id: roundId, run_id: runId, pr_id: pull.id, agent: agent.name },
+                    review_mode: info.mode,
+                    chunk: { index: info.chunkIndex, count: info.chunkCount },
+                    sections: info.sections,
+                  },
+                  promptLogMode,
+                ),
+            }
+          : {}),
       });
       const { tokensIn, tokensOut, costUsd, grounding } = outcome;
 

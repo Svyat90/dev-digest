@@ -36,7 +36,12 @@ import {
   type BudgetSection,
   type OutlineFile,
 } from './helpers.js';
-import { buildIntentMessages, IntentClassification } from './prompt.js';
+import { buildIntentMessages, describeIntentPrompt, IntentClassification } from './prompt.js';
+import {
+  createPromptMeasure,
+  logPromptAssembled,
+  type PromptLogMode,
+} from '../../platform/prompt-log.js';
 
 /**
  * Narrow dependency set of the intent use cases. Declared structurally, with
@@ -53,6 +58,23 @@ export interface IntentDeps {
   llm: (provider: Provider) => Promise<LLMProvider>;
   resolveFeatureModel: (workspaceId: string, id: FeatureModelId) => Promise<FeatureModelChoice>;
   tokenizer: { count(text: string): number };
+  /** Effective PROMPT_LOG mode: `off` skips the `prompt.assembled` record and its measuring. */
+  promptLogMode: PromptLogMode;
+}
+
+/**
+ * Where the classifier's content-free `prompt.assembled` record goes, and the
+ * ids that tie it to a review click or a request. Optional on every use case:
+ * without it nothing is logged.
+ */
+export interface IntentPromptLogContext {
+  logger: { info(obj: unknown, msg?: string): void };
+  correlation: {
+    pr_id: string;
+    round_id?: string | null;
+    run_ids?: string[];
+    request_id?: string;
+  };
 }
 
 /** The slice of a PR the derivation needs (no DB row type, so callers need not share one). */
@@ -148,6 +170,7 @@ export class IntentService {
     pr: IntentPrInput,
     diff: UnifiedDiff | undefined,
     log?: IntentLog,
+    promptLog?: IntentPromptLogContext,
   ): Promise<PrIntentRecord> {
     const stored = await this.deps.repo.get(workspaceId, pr.id);
     if (stored && stored.headSha === pr.headSha) {
@@ -157,11 +180,16 @@ export class IntentService {
     const outline = diff
       ? outlineFromDiff(diff)
       : await this.outlineFromStoredPatches(workspaceId, pr.id);
-    return this.derive(workspaceId, pr, outline, log);
+    return this.derive(workspaceId, pr, outline, log, promptLog);
   }
 
   /** POST recompute — always derive (the head SHA cache is bypassed). */
-  async recompute(workspaceId: string, prId: string, log?: IntentLog): Promise<PrIntentRecord> {
+  async recompute(
+    workspaceId: string,
+    prId: string,
+    log?: IntentLog,
+    promptLog?: IntentPromptLogContext,
+  ): Promise<PrIntentRecord> {
     const pull = await this.deps.repo.getPull(workspaceId, prId);
     if (!pull) throw new NotFoundError('Pull request not found');
     const repoRow = await this.deps.repo.getRepo(workspaceId, pull.repoId);
@@ -182,10 +210,42 @@ export class IntentService {
       { id: pull.id, title: pull.title, body: pull.body, headSha: pull.headSha, base: pull.base, repo },
       outline,
       log,
+      promptLog,
     );
   }
 
   // ------------------------------------------------------------------ internals
+
+  /**
+   * Emit the content-free `prompt.assembled` record for the classifier prompt.
+   * Best-effort like every enrichment step: measuring or logging can never fail
+   * the derivation.
+   */
+  private logPrompt(
+    promptLog: IntentPromptLogContext | undefined,
+    sections: Parameters<typeof describeIntentPrompt>[0],
+    title: string,
+    provider: string,
+    model: string,
+  ): void {
+    const mode = this.deps.promptLogMode;
+    if (!promptLog || mode === 'off') return;
+    try {
+      logPromptAssembled(
+        promptLog.logger,
+        {
+          component: 'intent_classifier',
+          provider,
+          model,
+          correlation: promptLog.correlation,
+          sections: describeIntentPrompt(sections, title, createPromptMeasure(mode, this.deps.tokenizer)),
+        },
+        mode,
+      );
+    } catch {
+      /* never fail a derivation over a log line */
+    }
+  }
 
   private async outlineFromStoredPatches(workspaceId: string, prId: string): Promise<OutlineFile[]> {
     // `pr_files` has no workspace column: prove the PR belongs to the workspace first.
@@ -305,6 +365,7 @@ export class IntentService {
     pr: IntentPrInput,
     outline: OutlineFile[],
     log?: IntentLog,
+    promptLog?: IntentPromptLogContext,
   ): Promise<PrIntentRecord> {
     const { deps } = this;
     const items = await this.collectSources(pr, outline);
@@ -324,12 +385,12 @@ export class IntentService {
         : { kind: i.kind, ref: i.ref, status: 'unavailable', chars: 0 };
     });
 
-    const messages = buildIntentMessages(
-      fitted.map((s) => ({ label: s.label, kind: s.kind, text: s.text })),
-      pr.title,
-    );
+    const promptSections = fitted.map((s) => ({ label: s.label, kind: s.kind, text: s.text }));
+    const messages = buildIntentMessages(promptSections, pr.title);
 
     const { provider, model } = await deps.resolveFeatureModel(workspaceId, 'review_intent');
+    // Before the call, so a classification that later fails is still on record.
+    this.logPrompt(promptLog, promptSections, pr.title, provider, model);
     let result: StructuredResult<IntentClassification>;
     try {
       const llm = await deps.llm(provider);
@@ -372,15 +433,11 @@ export class IntentService {
     const row = await deps.repo.get(workspaceId, pr.id);
     if (!row) throw new AppError('intent_not_persisted', 'Intent was not persisted', 500);
 
-    const sectionChars: Record<string, number> = {};
-    for (const s of fitted) sectionChars[s.label] = s.text.length;
     log?.info('Intent derived', {
       provider,
       model: result.model,
-      sectionChars,
       files: outline.length,
       hunkHeaders: outline.reduce((n, f) => n + f.hunkHeaders.length, 0),
-      tokenEstimate: messages.reduce((n, m) => n + deps.tokenizer.count(m.content), 0),
       tokensIn: result.tokensIn,
       tokensOut: result.tokensOut,
       sources: items.map((i, idx) => ({ ...sources[idx]!, ...(i.reason ? { reason: i.reason } : {}) })),

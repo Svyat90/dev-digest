@@ -7,7 +7,12 @@ import type {
   UnifiedDiff,
 } from '@devdigest/shared';
 import { Review as ReviewSchema } from '@devdigest/shared';
-import { assemblePrompt, type PromptIntent } from '../prompt.js';
+import {
+  assemblePrompt,
+  type PromptIntent,
+  type PromptMeasure,
+  type PromptSectionMeta,
+} from '../prompt.js';
 import { groundFindings, groundingSummary } from '../grounding.js';
 import { reduceReviews, scoreFromFindings, sliceDiff } from './reduce.js';
 
@@ -39,6 +44,18 @@ export interface ReviewEvent {
   kind: RunEventKind;
   msg: string;
   data?: unknown;
+}
+
+/**
+ * Content-free description of one prompt the engine is about to send: which
+ * strategy, which chunk, and the sizes of each section. It carries no prompt text.
+ */
+export interface PromptAssembledInfo {
+  mode: ReviewMode;
+  /** 0-based index of this chunk (always 0 in single-pass). */
+  chunkIndex: number;
+  chunkCount: number;
+  sections: PromptSectionMeta[];
 }
 
 export interface ReviewInput {
@@ -95,6 +112,19 @@ export interface ReviewInput {
    * type, e.g. the server's RunCancelledError); the engine stays agnostic.
    */
   checkCancelled?: () => void;
+  /**
+   * Injected token counter / fingerprinter for the per-chunk prompt metadata.
+   * Omit it and the metadata carries sizes only. The engine never loads a
+   * tokenizer or reads env itself.
+   */
+  promptMeasure?: PromptMeasure;
+  /**
+   * Called once per prompt actually SENT (each chunk), just before its LLM call,
+   * so a call that later fails is still reported. Content-free by type: the
+   * payload holds section names, sources and sizes, never prompt text. The
+   * trace-only whole-diff assembly does not fire it.
+   */
+  onPromptAssembled?: (info: PromptAssembledInfo) => void;
 }
 
 export interface ReviewOutcome {
@@ -165,7 +195,7 @@ export async function reviewPullRequest(input: ReviewInput): Promise<ReviewOutco
   let costUsd: number | null = 0;
   const raws: string[] = [];
 
-  for (const chunk of chunks) {
+  for (const [chunkIndex, chunk] of chunks.entries()) {
     // Cancellation checkpoint — stop before the next (expensive) LLM call.
     input.checkCancelled?.();
     // 'map:' prefix only for the map-reduce path (one call per file). In
@@ -175,8 +205,14 @@ export async function reviewPullRequest(input: ReviewInput): Promise<ReviewOutco
       mode === 'map-reduce' ? `map: reviewing ${chunk.label}` : `Reviewing ${chunk.label} in one pass`,
       { file: chunk.label },
     );
-    const a = assemblePrompt({ ...promptParts, diff: chunk.diffText });
+    const a = assemblePrompt({ ...promptParts, diff: chunk.diffText }, input.promptMeasure);
     if (mode === 'single-pass') assembly = a.assembly;
+    input.onPromptAssembled?.({
+      mode,
+      chunkIndex,
+      chunkCount: chunks.length,
+      sections: a.sections,
+    });
     const res = await input.llm.completeStructured<Review>({
       model: input.model,
       schema: ReviewSchema,

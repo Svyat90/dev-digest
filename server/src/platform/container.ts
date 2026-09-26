@@ -173,6 +173,7 @@ export class Container {
       llm: (p) => this.llm(p),
       resolveFeatureModel: (ws, id) => this.resolveFeatureModel(ws, id),
       tokenizer: this.tokenizer,
+      promptLogMode: this.config.promptLog,
     });
     return this._intent;
   }

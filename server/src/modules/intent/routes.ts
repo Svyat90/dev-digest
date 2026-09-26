@@ -32,7 +32,11 @@ export default async function intentRoutes(appBase: FastifyInstance) {
     { schema: { params: IdParams }, config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
     async (req) => {
       const { workspaceId } = await getContext(container, req);
-      return container.intent.recompute(workspaceId, req.params.id, logOf(req));
+      // The prompt.assembled record goes to the request logger with the ids that tie it to this call.
+      return container.intent.recompute(workspaceId, req.params.id, logOf(req), {
+        logger: req.log,
+        correlation: { request_id: req.id, pr_id: req.params.id },
+      });
     },
   );
 }
