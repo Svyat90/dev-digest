@@ -63,6 +63,8 @@ then read code.
   states the invariants (grounding, null-vs-zero cost, lifetime cost vs latest-per-agent findings).
 - Read `specs/conventions.md` before touching the Conventions Extractor — the
   invariants (evidence verification, re-scan semantics, the skill it produces).
+- Read `specs/intent.md` before touching the intent module, `WebFetchClient` or
+  the reviewer `## PR intent` slot — sources, budget, confidence, SSRF policy.
 - Read `src/modules/repo-intel/README.md` before working on the indexer.
 - Read `../TESTING.md` before adding or changing a test.
 - Read `../docs/agent-prompts/` before editing reviewer system prompts.
