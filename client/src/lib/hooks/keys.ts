@@ -30,4 +30,5 @@ export const keys = {
   agentSkills: (agentId: Id) => ["agent-skills", agentId] as const,
   conventions: (repoId: Id) => ["conventions", repoId] as const,
   intent: (prId: Id) => ["intent", prId] as const,
+  smartDiff: (prId: Id) => ["smart-diff", prId] as const,
 };
