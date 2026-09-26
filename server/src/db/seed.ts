@@ -142,10 +142,10 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
       {
         prId: pr!.id,
         path: 'src/middleware/ratelimit.test.ts',
-        additions: 22,
+        additions: 8,
         deletions: 0,
         patch:
-          '@@ -0,0 +1,22 @@\n+import { describe, it, expect } from \'vitest\';\n+import { rateLimit } from \'./ratelimit\';\n+\n+describe(\'rateLimit\', () => {\n+  it(\'allows requests under the bucket size\', () => {\n+    expect(rateLimit({ tokens: 5 })).toBe(true);\n+  });\n+});',
+          '@@ -0,0 +1,8 @@\n+import { describe, it, expect } from \'vitest\';\n+import { rateLimit } from \'./ratelimit\';\n+\n+describe(\'rateLimit\', () => {\n+  it(\'allows requests under the bucket size\', () => {\n+    expect(rateLimit({ tokens: 5 })).toBe(true);\n+  });\n+});',
       },
       {
         prId: pr!.id,
@@ -153,23 +153,23 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
         additions: 2,
         deletions: 0,
         patch:
-          '@@ -3,3 +3,5 @@\n DATABASE_URL=postgres://localhost:5432/devdigest\n REDIS_URL=redis://localhost:6379\n+RATE_LIMIT_WINDOW_MS=60000\n+RATE_LIMIT_MAX_REQUESTS=100',
+          '@@ -3,2 +3,4 @@\n DATABASE_URL=postgres://localhost:5432/devdigest\n REDIS_URL=redis://localhost:6379\n+RATE_LIMIT_WINDOW_MS=60000\n+RATE_LIMIT_MAX_REQUESTS=100',
       },
       {
         prId: pr!.id,
         path: 'docs/rate-limiting.md',
-        additions: 14,
+        additions: 6,
         deletions: 0,
         patch:
-          '@@ -0,0 +1,14 @@\n+# Rate limiting\n+\n+Public API endpoints are limited with a token-bucket algorithm.\n+\n+Configure the window and the request cap via `RATE_LIMIT_WINDOW_MS` and\n+`RATE_LIMIT_MAX_REQUESTS`.',
+          '@@ -0,0 +1,6 @@\n+# Rate limiting\n+\n+Public API endpoints are limited with a token-bucket algorithm.\n+\n+Configure the window and the request cap via `RATE_LIMIT_WINDOW_MS` and\n+`RATE_LIMIT_MAX_REQUESTS`.',
       },
       {
         prId: pr!.id,
         path: 'pnpm-lock.yaml',
-        additions: 6,
+        additions: 4,
         deletions: 0,
         patch:
-          "@@ -120,6 +120,12 @@\n   dependencies:\n     '@fastify/rate-limit':\n       specifier: ^9.1.0\n       version: 9.1.0\n+\n+  ioredis:\n+    specifier: ^5.4.1\n+    version: 5.4.1",
+          "@@ -120,4 +120,8 @@\n   dependencies:\n     '@fastify/rate-limit':\n       specifier: ^9.1.0\n       version: 9.1.0\n+\n+  ioredis:\n+    specifier: ^5.4.1\n+    version: 5.4.1",
       },
     ]);
 
