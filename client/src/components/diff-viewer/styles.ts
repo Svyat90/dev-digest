@@ -64,6 +64,16 @@ export const s = {
     color: "var(--text-primary)",
     paddingRight: 12,
   } satisfies CSSProperties,
+  /** Fixed-colour dot next to a file path: "this file has open findings".
+   *  Deliberately carries no number — that lives in the group counter. */
+  findingDot: {
+    display: "inline-block",
+    width: 7,
+    height: 7,
+    borderRadius: "50%",
+    background: "var(--crit)",
+    flexShrink: 0,
+  } satisfies CSSProperties,
 } as const;
 
 /** Chevron rotates 90deg when the file card is open. */
@@ -87,6 +97,33 @@ export function lineSignFor(kind: Line["kind"]): CSSProperties {
     width: 14,
     textAlign: "center",
     color: kind === "add" ? "var(--code-add-text)" : kind === "del" ? "var(--code-del-text)" : "var(--text-muted)",
+    flexShrink: 0,
+  };
+}
+
+/** Left severity bar for a line with an open finding — all-longhand so a
+ *  re-render that drops the colour (severity goes away) never mixes a
+ *  `border` shorthand with a longhand override (client INSIGHTS). `color` is
+ *  `null` when the line has no open finding: the properties stay present,
+ *  just invisible, so the object shape never changes across renders. */
+export function lineBar(color: string | null): CSSProperties {
+  return {
+    borderLeftWidth: color ? 3 : 0,
+    borderLeftStyle: "solid",
+    borderLeftColor: color ?? "transparent",
+  };
+}
+
+/** Right-aligned worded severity label next to the line (never colour alone,
+ *  per the `<SeverityBadge compact>` INSIGHTS entry). */
+export function lineLabel(color: string): CSSProperties {
+  return {
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+    color,
+    paddingRight: 12,
     flexShrink: 0,
   };
 }
