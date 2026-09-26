@@ -37,6 +37,21 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-09-26 — A new enrichment step in `executeRuns` silently makes REAL network and LLM calls in `reviews.it.test.ts`, and blows its 10s budget.**
+  `appWith` builds the app with the real `LocalSecretsProvider`, so on a machine
+  with `~/.devdigest/secrets.json` any container-resolved client that a run now
+  touches is the real one. Wiring `container.intent` into the executor made the
+  seeded PR body ("Closes #471") trigger a real GitHub issue fetch plus a real
+  OpenRouter `completeStructured` call: the "Deriving intent" step took ~17s, past
+  `waitForPrRuns`'s 10s default, and 2-3 of 208 tests failed (map-reduce +
+  grounding, dual-provider, accept/dismiss) with `reviews` empty. Typecheck and
+  `arch:check` stayed green, and the failures moved between runs (2, then 3).
+  Rule: when a step is added to `executeRuns`, extend `appWith` in the same change
+  with an override for every client it can reach (`llm.<provider>`, `github`,
+  `webFetch`, or `intent` itself); an unmocked one is a timeout in the test and
+  spent tokens on a developer machine.
+  `server/test/reviews.it.test.ts` (`appWith`), `server/test/helpers/runs.ts:19-31`
+
 - **2026-09-23 — Deleting a PR's runs does NOT put it back to "Needs review".**
   The PR-list status comes from `pull_requests.last_reviewed_sha`, which a review
   sets (`reviews/repository/pull.repo.ts:43`) and nothing clears: `DELETE /runs/:id`
@@ -294,3 +309,12 @@ Dated summary, only when a session changed how this package is worked on.
 ## Open Questions
 
 What was left unresolved, so the next session does not re-investigate blind.
+
+- **2026-09-26 — `undici` 8 declares `engines.node >=22.19.0`, above the repo's ">=22".**
+  `pnpm add undici` for `HttpWebFetchClient` resolved 8.11.2, whose lockfile entry
+  requires Node 22.19+; root `CLAUDE.md` promises only ">=22" and `server/package.json`
+  has no `engines`. It ran on the local Node 26.9 only, so nothing here proves it
+  works on Node 22.0-22.18. Unresolved: raise the documented floor, or pin `undici`
+  to `^7`.
+  Rule: until decided, do not assume the web-fetch adapter loads on an older Node 22.
+  `server/pnpm-lock.yaml` (`undici@8.11.2` › `engines`), `server/src/adapters/http/web-fetch.ts`
