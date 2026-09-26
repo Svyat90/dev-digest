@@ -6,6 +6,7 @@ import type {
   CodeIndex,
   Embedder,
   LLMProvider,
+  WebFetchClient,
 } from '@devdigest/shared';
 import type { AppConfig } from './config.js';
 import type { Db } from '../db/client.js';
@@ -19,6 +20,7 @@ import { RipgrepCodeIndex } from '../adapters/codeindex/ripgrep.js';
 import { OpenAIProvider } from '../adapters/llm/openai.js';
 import { AnthropicProvider } from '../adapters/llm/anthropic.js';
 import { OpenAIEmbedder } from '../adapters/embedder/openai.js';
+import { HttpWebFetchClient } from '../adapters/http/web-fetch.js';
 import { OpenRouterProvider } from '@devdigest/reviewer-core';
 import { estimateCost } from '../adapters/llm/pricing.js';
 import { PriceBook } from './price-book.js';
@@ -26,6 +28,8 @@ import { ConfigError } from './errors.js';
 import { AgentsRepository } from '../modules/agents/repository.js';
 import { ReviewRepository } from '../modules/reviews/repository.js';
 import { SkillsRepository } from '../modules/skills/repository.js';
+import { IntentRepository } from '../modules/intent/repository.js';
+import { IntentService } from '../modules/intent/service.js';
 import type { RepoIntel } from '../modules/repo-intel/types.js';
 import { RepoIntelService } from '../modules/repo-intel/service.js';
 import { resolveFeatureModel } from '../modules/settings/feature-models.js';
@@ -40,6 +44,9 @@ import { type Tokenizer, TiktokenTokenizer } from '../adapters/tokenizer/index.j
  * Tests construct a container with `overrides` to inject mock adapters; the
  * Services depend on these interfaces, not the concrete classes.
  */
+/** The intent use cases callers reach through the container (overridable in tests). */
+export type IntentUseCases = Pick<IntentService, 'get' | 'getOrDerive' | 'recompute'>;
+
 export interface ContainerOverrides {
   secrets?: SecretsProvider;
   auth?: AuthProvider;
@@ -54,6 +61,10 @@ export interface ContainerOverrides {
   /** repo-intel T3 adapters — only the indexer pipeline reads these. */
   depgraph?: DepGraph;
   tokenizer?: Tokenizer;
+  /** SSRF-guarded fetcher of linked text documents (intent layer). */
+  webFetch?: WebFetchClient;
+  /** Intent layer use cases — tests inject a double. */
+  intent?: IntentUseCases;
 }
 
 export class Container {
@@ -80,6 +91,8 @@ export class Container {
   private _depgraph?: DepGraph;
   private _tokenizer?: Tokenizer;
   private _priceBook?: PriceBook;
+  private _webFetch?: WebFetchClient;
+  private _intent?: IntentUseCases;
 
   constructor(config: AppConfig, db: Db, private overrides: ContainerOverrides = {}) {
     this.config = config;
@@ -137,6 +150,32 @@ export class Container {
     if (this.overrides.tokenizer) return this.overrides.tokenizer;
     this._tokenizer ??= new TiktokenTokenizer();
     return this._tokenizer;
+  }
+
+  /** Public-text fetcher for the intent layer (https only, private ranges blocked). */
+  get webFetch(): WebFetchClient {
+    if (this.overrides.webFetch) return this.overrides.webFetch;
+    this._webFetch ??= new HttpWebFetchClient();
+    return this._webFetch;
+  }
+
+  /**
+   * Intent layer. `IntentService` takes a narrow structural `IntentDeps` (not the
+   * Container), so building it here adds no `container.ts` <-> service cycle.
+   */
+  get intent(): IntentUseCases {
+    if (this.overrides.intent) return this.overrides.intent;
+    this._intent ??= new IntentService({
+      repo: new IntentRepository(this.db),
+      git: this.git,
+      github: () => this.github(),
+      webFetch: this.webFetch,
+      llm: (p) => this.llm(p),
+      resolveFeatureModel: (ws, id) => this.resolveFeatureModel(ws, id),
+      tokenizer: this.tokenizer,
+      promptLogMode: this.config.promptLog,
+    });
+    return this._intent;
   }
 
   /**

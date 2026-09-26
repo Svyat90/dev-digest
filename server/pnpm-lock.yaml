@@ -56,6 +56,9 @@ importers:
       graphology-metrics:
         specifier: ^2.4.0
         version: 2.4.0(graphology-types@0.24.8)
+      ipaddr.js:
+        specifier: ^2.5.0
+        version: 2.5.0
       js-tiktoken:
         specifier: ^1.0.21
         version: 1.0.21
@@ -74,6 +77,9 @@ importers:
       simple-git:
         specifier: ^3.27.0
         version: 3.36.0(supports-color@7.2.0)
+      undici:
+        specifier: ^8.11.2
+        version: 8.11.2
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -1908,6 +1914,10 @@ packages:
     resolution: {integrity: sha512-9VGk3HGanVE6JoZXHiCpnGy5X0jYDnN4EA4lntFPj+1vIWlFhIylq2CrrCOJH9EAhc5CYhq18F2Av2tgoAPsYQ==}
     engines: {node: '>= 10'}
 
+  ipaddr.js@2.5.0:
+    resolution: {integrity: sha512-aq+t5NAc+cS6rZQQVWC2x98CPqGtKKTMDd4Gaodv0wShnItdKg/51djkGJ1hqH+Oy0ivDftCbSLCQob8zso01w==}
+    engines: {node: '>= 10'}
+
   is-core-module@2.16.2:
     resolution: {integrity: sha512-evOr8xfXKxE6qSR0hSXL2r3sd7ALj8+7jQEUvPYcm5sgZFdJ+AYzT6yNmJenvIYQBgIGwfwz08sL8zoL7yq2BA==}
     engines: {node: '>= 0.4'}
@@ -2480,6 +2490,10 @@ packages:
   undici@5.29.0:
     resolution: {integrity: sha512-raqeBD6NQK4SkWhQzeYKd1KmIG6dllBOTt55Rmkt4HtI9mwdWtJljnrXjAFUBLTSN67HWrOIZ3EPF4kjUw80Bg==}
     engines: {node: '>=14.0'}
+
+  undici@8.11.2:
+    resolution: {integrity: sha512-u4UB2/IrKdU6lFxumHmmo1a3fCQO5tzQllRorfoRS63txhrB7xTpSn1PftwC4qEHkOaqP95fCWW4lJzwErwzhQ==}
+    engines: {node: '>=22.19.0'}
 
   universal-github-app-jwt@2.2.2:
     resolution: {integrity: sha512-dcmbeSrOdTnsjGjUfAlqNDJrhxXizjAz94ija9Qw8YkZ1uu0d+GoZzyH+Jb9tIIqvGsadUfwg+22k5aDqqwzbw==}
@@ -4173,6 +4187,8 @@ snapshots:
 
   ipaddr.js@2.4.0: {}
 
+  ipaddr.js@2.5.0: {}
+
   is-core-module@2.16.2:
     dependencies:
       hasown: 2.0.4
@@ -4807,6 +4823,8 @@ snapshots:
   undici@5.29.0:
     dependencies:
       '@fastify/busboy': 2.1.1
+
+  undici@8.11.2: {}
 
   universal-github-app-jwt@2.2.2: {}
 

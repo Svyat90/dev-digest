@@ -113,6 +113,14 @@ sequenceDiagram
 5. **Orphans are reaped at boot, not lazily.** See
    [`../docs/architecture.md`](../docs/architecture.md); the assumption is one API
    instance per database.
+6. **Every prompt sent produces one content-free `prompt.assembled` record, on
+   stdout only.** Reviewer chunks and the intent classifier each log section
+   names, trust source, sizes, provider/model and ids (`round_id`, `run_id` /
+   `run_ids`, `request_id`) — never a secret, diff line or spec/skill body. It goes
+   to the pino logger, never through `RunLogger` (which publishes to the browser),
+   and building or emitting it never fails a run. `PROMPT_LOG=off|summary|verbose`
+   controls it; `verbose` needs `NODE_ENV=development`. The run trace is unchanged:
+   `run_traces.prompt_assembly` still stores the full assembly.
 
 ## Derived reads
 

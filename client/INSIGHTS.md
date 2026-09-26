@@ -61,6 +61,15 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-09-23 — Visiting `/repos/:id` does NOT make that repo the active one elsewhere.**
+  `RepoProvider` reads the repo from the URL path first, but only `setRepoId` (the
+  sidebar switcher) writes `localStorage["dd-repo"]`. So `/skills`, `/agents` and
+  `/settings/*` in a fresh browser profile show the FIRST repo from the API
+  (`acme/payments-api` in the seed) even right after a `/repos/<other>/…` page.
+  Rule: in e2e/demo scripts that visit off-path pages, set
+  `localStorage.setItem('dd-repo', <id>)` first; do not count on a prior `/repos/:id` visit.
+  `client/src/lib/repo-context.tsx` (`setRepoId`, `repoId = fromPath ?? stored ?? list[0]`)
+
 - **2026-09-22 — `Markdown` (`@devdigest/ui`) only styles `p`/`strong`/`code`/`a` — headings and lists render as flat, undifferentiated text.**
   `src/vendor/ui/primitives/Markdown.tsx`'s `react-markdown` `components` map
   overrides just those four tags. Nothing overrides `h1`-`h6`/`ul`/`ol`/`li`, and
@@ -251,6 +260,17 @@ Dated summary, only when a session changed how this package is worked on.
 ## Open Questions
 
 What was left unresolved, so the next session does not re-investigate blind.
+
+- **2026-09-23 — The agent editor's "Run on a PR…" opens the FIRST repo's PRs, not the active repo's.**
+  The button is `router.push("/")`, and `/` always `router.replace`s to
+  `/repos/${repos[0].id}/pulls` (as `client/specs/pages.md` rule 1 describes), ignoring
+  `localStorage["dd-repo"]`. With `Svyat90/dev-digest` active it lands on
+  `acme/payments-api`. Unresolved: either `/` should honour the active repo, or the
+  button should push `/repos/<activeRepoId>/pulls`.
+  Rule: until fixed, reach a repo's PRs through the sidebar "Pull Requests" link, which
+  follows the active repo.
+  `client/src/app/(shell)/agents/[id]/_components/AgentEditorView/AgentEditorView.tsx:108`,
+  `client/src/app/(shell)/page.tsx:19`
 
 - **2026-09-21 — CLOSED: the `client/CLAUDE.md` vs `TESTING.md` test-policy conflict (entry of 2026-09-21 below).**
   `client/CLAUDE.md` now says tests are typological (`../TESTING.md`) and that a

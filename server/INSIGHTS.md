@@ -37,6 +37,32 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-09-26 — A new enrichment step in `executeRuns` silently makes REAL network and LLM calls in `reviews.it.test.ts`, and blows its 10s budget.**
+  `appWith` builds the app with the real `LocalSecretsProvider`, so on a machine
+  with `~/.devdigest/secrets.json` any container-resolved client that a run now
+  touches is the real one. Wiring `container.intent` into the executor made the
+  seeded PR body ("Closes #471") trigger a real GitHub issue fetch plus a real
+  OpenRouter `completeStructured` call: the "Deriving intent" step took ~17s, past
+  `waitForPrRuns`'s 10s default, and 2-3 of 208 tests failed (map-reduce +
+  grounding, dual-provider, accept/dismiss) with `reviews` empty. Typecheck and
+  `arch:check` stayed green, and the failures moved between runs (2, then 3).
+  Rule: when a step is added to `executeRuns`, extend `appWith` in the same change
+  with an override for every client it can reach (`llm.<provider>`, `github`,
+  `webFetch`, or `intent` itself); an unmocked one is a timeout in the test and
+  spent tokens on a developer machine.
+  `server/test/reviews.it.test.ts` (`appWith`), `server/test/helpers/runs.ts:19-31`
+
+- **2026-09-23 — Deleting a PR's runs does NOT put it back to "Needs review".**
+  The PR-list status comes from `pull_requests.last_reviewed_sha`, which a review
+  sets (`reviews/repository/pull.repo.ts:43`) and nothing clears: `DELETE /runs/:id`
+  removes the run and its findings, yet the PR stays `reviewed` while its head is
+  unchanged (`deriveReviewStatus`, `pulls/status.ts:88`). The client's default
+  `?status=needs_review` filter then hides it — PR #7 "vanished" mid demo take
+  with `GET /pulls/:id/runs` → `[]`.
+  Rule: to reach a once-reviewed PR from a script, test or demo, open the list with
+  `?status=all`; never rely on `DELETE /runs` to reset review state.
+  `server/src/modules/pulls/status.ts:88`, `server/src/modules/reviews/repository/pull.repo.ts:43`
+
 - **2026-09-22 — A single `pnpm db:generate` that both DROPS a column and ADDS
   several new ones on the same table triggers an interactive "is this a
   rename?" prompt drizzle-kit cannot resolve in a non-interactive shell.**
@@ -129,6 +155,20 @@ valuable one.
 ## Codebase Patterns
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
+
+- **2026-09-25 — `truncateSampleFile`'s byte cap is NOT strict, despite its comment.**
+  The comment says "Byte-cap without splitting a multi-byte codepoint", but
+  `Buffer.from(out).subarray(0, MAX_SAMPLE_FILE_BYTES).toString('utf8')` cuts
+  mid-codepoint and decodes the tail as U+FFFD. 6000 × `日` (18000 bytes) comes
+  back as 16386 bytes, ending in `�` — 2 bytes over the 16384 cap, with a
+  character the source file never had. `capSamplesForPrompt` sums the real
+  post-cut size, so the 60 KB total stays honest; only the per-file cap and the
+  "no split" claim are wrong.
+  Rule: do not document, test or rely on C1's per-file cap as an exact bound or
+  on the "no split" claim; a strict test of either fails today. Fixing it means
+  backing off to a codepoint boundary before `toString`.
+  `server/src/modules/conventions/helpers.ts:64-67` ·
+  `node -e 'const s="日".repeat(6000);const o=Buffer.from(s).subarray(0,16384).toString();console.log(Buffer.byteLength(o),o.endsWith("�"))'` → `16386 true`
 
 - **2026-09-22 — Copying `agents/helpers.ts`'s `import type {XRow} from './repository.js'` shape into a NEW module trips `arch:check`'s `no-circular` rule.**
   `agents/helpers.ts` ↔ `agents/repository.ts` IS circular (helpers imports
@@ -269,3 +309,12 @@ Dated summary, only when a session changed how this package is worked on.
 ## Open Questions
 
 What was left unresolved, so the next session does not re-investigate blind.
+
+- **2026-09-26 — `undici` 8 declares `engines.node >=22.19.0`, above the repo's ">=22".**
+  `pnpm add undici` for `HttpWebFetchClient` resolved 8.11.2, whose lockfile entry
+  requires Node 22.19+; root `CLAUDE.md` promises only ">=22" and `server/package.json`
+  has no `engines`. It ran on the local Node 26.9 only, so nothing here proves it
+  works on Node 22.0-22.18. Unresolved: raise the documented floor, or pin `undici`
+  to `^7`.
+  Rule: until decided, do not assume the web-fetch adapter loads on an older Node 22.
+  `server/pnpm-lock.yaml` (`undici@8.11.2` › `engines`), `server/src/adapters/http/web-fetch.ts`

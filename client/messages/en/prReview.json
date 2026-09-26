@@ -141,6 +141,36 @@
       "diff": "Files changed"
     },
     "description": "Description",
+    "intent": {
+      "title": "Intent",
+      "errorTitle": "Couldn’t load the intent",
+      "errorBody": "The PR intent could not be loaded or computed. Try again.",
+      "empty": "Intent not derived yet",
+      "compute": "Compute",
+      "recompute": "Recompute",
+      "inScope": "In scope",
+      "outOfScope": "Out of scope",
+      "confidence": "Confidence: {level}",
+      "level": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "stale": "PR updated — intent stale",
+      "sources": "Sources",
+      "sourceKind": {
+        "description": "Description",
+        "issue": "Issue",
+        "repo_doc": "Repo doc",
+        "web": "Web page",
+        "diff_outline": "Diff outline"
+      },
+      "sourceStatus": {
+        "unavailable": "unavailable",
+        "truncated": "truncated"
+      },
+      "missingContext": "Missing context"
+    },
     "hideComments": "Hide comments",
     "showComments": "Show comments",
     "noFindingsTitle": "No findings yet",
