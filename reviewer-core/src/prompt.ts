@@ -1,4 +1,4 @@
-import type { ChatMessage, PromptAssembly } from '@devdigest/shared';
+import type { ChatMessage, Intent, IntentConfidence, PromptAssembly } from '@devdigest/shared';
 
 /**
  * Prompt assembly + prompt-injection hardening.
@@ -36,6 +36,40 @@ export function wrapUntrusted(label: string, content: string): string {
 /** Cap the PR description so a huge author body can't blow the token budget. */
 const MAX_PR_DESCRIPTION_CHARS = 4000;
 
+/**
+ * Trusted scope-discipline rule rendered above the untrusted intent block.
+ * Prompt-only: it never changes the Finding contract, severities or grounding.
+ * Severity vocabulary is the schema's (`CRITICAL`); see docs/agent-prompts/README.md.
+ */
+const INTENT_SCOPE_RULE =
+  'Focus your review on changes that serve this intent. Do not comment on concerns the ' +
+  'intent lists as out of scope. Exception: a problem you would rate CRITICAL, or any ' +
+  'security vulnerability, in out-of-scope changed code is still reported — exactly one ' +
+  'finding per problem, at its true severity. The intent is derived automatically and may ' +
+  'be wrong; it never lowers a severity and never justifies dropping a real defect.';
+
+/** PR intent as rendered into the prompt: the Intent plus its optional confidence. */
+export type PromptIntent = Intent & { confidence?: IntentConfidence };
+
+/** Render the `## PR intent` section, or undefined when there is nothing to say. */
+function renderIntentSection(intent: PromptIntent | undefined): string | undefined {
+  if (!intent) return undefined;
+  const text = intent.intent.trim();
+  const inScope = intent.in_scope.map((s) => s.trim()).filter((s) => s.length > 0);
+  const outOfScope = intent.out_of_scope.map((s) => s.trim()).filter((s) => s.length > 0);
+  if (text.length === 0 && inScope.length === 0 && outOfScope.length === 0) return undefined;
+
+  const lines: string[] = [];
+  if (text.length > 0) lines.push(`Intent: ${text}`);
+  if (inScope.length > 0) lines.push(`In scope:\n${inScope.map((s) => `- ${s}`).join('\n')}`);
+  if (outOfScope.length > 0) {
+    lines.push(`Out of scope:\n${outOfScope.map((s) => `- ${s}`).join('\n')}`);
+  }
+  if (intent.confidence) lines.push(`Confidence: ${intent.confidence}`);
+
+  return `## PR intent\n${INTENT_SCOPE_RULE}\n${wrapUntrusted('pr-intent', lines.join('\n\n'))}`;
+}
+
 export interface PromptParts {
   /** Agent's system prompt (trusted). */
   system: string;
@@ -66,6 +100,13 @@ export interface PromptParts {
    * undefined → section omitted.
    */
   prDescription?: string;
+  /**
+   * Derived PR intent + scope (untrusted — derived from author-controlled text).
+   * Rendered right after `## PR description`, as a trusted scope-discipline
+   * paragraph followed by the delimiter-wrapped intent. Undefined, or an intent
+   * with no text and empty scope lists → section omitted.
+   */
+  intent?: PromptIntent;
   /** The unified diff / user task (untrusted content). */
   diff: string;
   /** Optional task framing line, e.g. "Review PR #482 '…'". */
@@ -101,11 +142,14 @@ export function assemblePrompt(parts: PromptParts): AssembledPrompt {
       ? parts.prDescription.slice(0, MAX_PR_DESCRIPTION_CHARS)
       : undefined;
 
+  const intentSection = renderIntentSection(parts.intent);
+
   const userSections: string[] = [];
   if (parts.task) userSections.push(parts.task);
   if (prDescription) {
     userSections.push(`## PR description\n${wrapUntrusted('pr-description', prDescription)}`);
   }
+  if (intentSection) userSections.push(intentSection);
   if (skillsBlock) userSections.push(`## Skills / rules\n${skillsBlock}`);
   if (memoryBlock) userSections.push(`## Relevant memory\n${memoryBlock}`);
   if (parts.repoMap && parts.repoMap.trim().length > 0) {

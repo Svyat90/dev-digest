@@ -64,3 +64,67 @@ describe('assemblePrompt — ## PR description', () => {
     expect((assembly.pr_description as string).length).toBe(4000);
   });
 });
+
+describe('assemblePrompt — ## PR intent (scope-discipline slot)', () => {
+  const intent = {
+    intent: 'Add rate limiting to the public API',
+    in_scope: ['Rate limiter middleware', 'Config for limits'],
+    out_of_scope: ['Auth token refresh'],
+    confidence: 'high' as const,
+  };
+
+  it('renders after ## PR description and before the diff, payload untrusted-wrapped, scope rule naming CRITICAL and security', () => {
+    const { messages } = assemblePrompt({
+      system: 'sys',
+      diff: 'DIFF',
+      prDescription: 'Adds rate limiting to the public /api endpoints.',
+      skills: ['SKILL-BODY'],
+      intent,
+    });
+    const user = messages[1]!.content;
+
+    expect(user).toContain('## PR intent');
+    expect(user).toContain('<untrusted source="pr-intent">');
+    expect(user).toContain('Add rate limiting to the public API');
+    expect(user).toContain('- Rate limiter middleware');
+    expect(user).toContain('- Auth token refresh');
+    expect(user).toContain('Confidence: high');
+
+    const iDesc = user.indexOf('## PR description');
+    const iIntent = user.indexOf('## PR intent');
+    const iSkills = user.indexOf('## Skills / rules');
+    const iDiff = user.indexOf('## Diff to review');
+    expect(iDesc).toBeGreaterThanOrEqual(0);
+    expect(iDesc).toBeLessThan(iIntent);
+    expect(iIntent).toBeLessThan(iSkills);
+    expect(iSkills).toBeLessThan(iDiff);
+
+    // The scope-discipline paragraph is TRUSTED prose, rendered before (outside)
+    // the <untrusted source="pr-intent"> block that carries the derived text.
+    const rulePos = user.indexOf('Focus your review on changes that serve this intent');
+    const untrustedPos = user.indexOf('<untrusted source="pr-intent">');
+    expect(rulePos).toBeGreaterThanOrEqual(0);
+    expect(rulePos).toBeLessThan(untrustedPos);
+    expect(user).toMatch(/CRITICAL/);
+    expect(user).toMatch(/security vulnerability/i);
+  });
+
+  it('gives a byte-identical user message for an undefined intent and an empty intent (omit-when-empty)', () => {
+    const base = { system: 'sys', diff: 'DIFF' };
+    const noIntentField = userOf(base);
+    const withUndefinedIntent = userOf({ ...base, intent: undefined });
+    const withEmptyIntent = userOf({
+      ...base,
+      intent: { intent: '', in_scope: [], out_of_scope: [] },
+    });
+
+    expect(withUndefinedIntent).toBe(noIntentField);
+    expect(withEmptyIntent).toBe(noIntentField);
+    expect(noIntentField).not.toContain('## PR intent');
+  });
+
+  it('leaves the system message (injection guard) byte-identical with and without intent', () => {
+    const base = { system: 'sys', diff: 'DIFF' };
+    expect(systemOf({ ...base, intent })).toBe(systemOf(base));
+  });
+});
