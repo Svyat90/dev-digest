@@ -25,6 +25,8 @@ Walk-through: [`../docs/pipeline.md`](../docs/pipeline.md).
 | `sessionId` | | forwarded on every call so all chunks of one review group into one provider session |
 | `onEvent` | | progress sink; the server bridges it to SSE |
 | `checkCancelled` | | called before each chunk call; **throws** to abort |
+| `promptMeasure` | | injected `{ tokens?, fingerprint? }` used to size each prompt section; without it the section metadata carries chars only |
+| `onPromptAssembled` | | called once per prompt actually **sent** (each chunk), just before its model call; payload is section metadata only, never prompt text |
 
 **Every optional slot is omit-when-empty.** Passing `undefined` or an empty value
 must produce a prompt byte-identical to not passing it. This is what lets later
@@ -40,6 +42,14 @@ reason**), `assembly` and `chunks` for the run trace, `tokensIn` / `tokensOut`,
 
 `costUsd` is `number | null`. `null` means the provider reported no usable price
 — it must never be coerced to `0`, which would claim the call was free.
+
+`assemblePrompt(parts, measure?)` also returns `sections`: one content-free entry
+per rendered section (`name`, `role`, `source` trusted/untrusted, `chars`,
+`items`, plus `tokens` / `fingerprint` / `itemDetail` when measured). Invariant:
+the system entry's `chars` equals the system message length, and the user entries'
+`chars` plus 2 per `"\n\n"` join equal the user message length. An unused slot
+produces no entry, and `messages` are byte-identical with or without a `measure`.
+`task` is `untrusted`: the server's task line embeds the PR title and author.
 
 ## Mode selection
 
@@ -121,6 +131,8 @@ These are contract, not style:
 
 - No database, GitHub, filesystem, network or `process.env` access. The only side
   effect is `llm`.
+- Measurement is injected too: token counting and fingerprinting arrive through
+  `promptMeasure`, so the engine loads no tokenizer and imports no `node:crypto`.
 - Tests stub `LLMProvider`; the suite has no key and makes no network calls.
 - `INJECTION_GUARD` is treated as a contract. No keyword or denylist scanning of
   untrusted text is added alongside it.
