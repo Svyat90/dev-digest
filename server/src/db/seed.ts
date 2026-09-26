@@ -130,11 +130,47 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
       .returning();
 
     // pr_files (subset)
+    // The first four rows are the original core-only set (unchanged). The four
+    // that follow add one file per non-core Smart Diff role (tests, wiring,
+    // docs, boilerplate) so a fresh DB exercises all five role groups without
+    // a review run — filesCount: 9 stays, this is still a subset.
     await db.insert(t.prFiles).values([
       { prId: pr!.id, path: 'src/middleware/ratelimit.ts', additions: 84, deletions: 0 },
       { prId: pr!.id, path: 'src/api/public/webhooks.ts', additions: 31, deletions: 6 },
       { prId: pr!.id, path: 'src/config.ts', additions: 4, deletions: 0 },
       { prId: pr!.id, path: 'src/api/users.ts', additions: 7, deletions: 2 },
+      {
+        prId: pr!.id,
+        path: 'src/middleware/ratelimit.test.ts',
+        additions: 22,
+        deletions: 0,
+        patch:
+          '@@ -0,0 +1,22 @@\n+import { describe, it, expect } from \'vitest\';\n+import { rateLimit } from \'./ratelimit\';\n+\n+describe(\'rateLimit\', () => {\n+  it(\'allows requests under the bucket size\', () => {\n+    expect(rateLimit({ tokens: 5 })).toBe(true);\n+  });\n+});',
+      },
+      {
+        prId: pr!.id,
+        path: '.env.example',
+        additions: 2,
+        deletions: 0,
+        patch:
+          '@@ -3,3 +3,5 @@\n DATABASE_URL=postgres://localhost:5432/devdigest\n REDIS_URL=redis://localhost:6379\n+RATE_LIMIT_WINDOW_MS=60000\n+RATE_LIMIT_MAX_REQUESTS=100',
+      },
+      {
+        prId: pr!.id,
+        path: 'docs/rate-limiting.md',
+        additions: 14,
+        deletions: 0,
+        patch:
+          '@@ -0,0 +1,14 @@\n+# Rate limiting\n+\n+Public API endpoints are limited with a token-bucket algorithm.\n+\n+Configure the window and the request cap via `RATE_LIMIT_WINDOW_MS` and\n+`RATE_LIMIT_MAX_REQUESTS`.',
+      },
+      {
+        prId: pr!.id,
+        path: 'pnpm-lock.yaml',
+        additions: 6,
+        deletions: 0,
+        patch:
+          "@@ -120,6 +120,12 @@\n   dependencies:\n     '@fastify/rate-limit':\n       specifier: ^9.1.0\n       version: 9.1.0\n+\n+  ioredis:\n+    specifier: ^5.4.1\n+    version: 5.4.1",
+      },
     ]);
 
     // pr_commits
