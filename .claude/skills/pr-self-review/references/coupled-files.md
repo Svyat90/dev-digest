@@ -22,7 +22,7 @@ Remove a pair when the duplication is gone.
 
 ## Pairs
 
-- `server/src/modules/pulls/status.ts` `pickLatestReviewIds` <-> `client/src/components/findings-preview/helpers.ts` `latestReviewPerAgent` — both define "which reviews the PR-list FINDINGS column counts"; one side alone makes the chips and the hover card disagree (root INSIGHTS.md, 2026-09-20)
+- `server/src/domain/reviews/latest-review.ts` `pickLatestReviewIds` <-> `client/src/components/findings-preview/helpers.ts` `latestReviewPerAgent` — both define "which reviews the PR-list FINDINGS column counts"; one side alone makes the chips and the hover card disagree (root INSIGHTS.md, 2026-09-20)
 - `server/src/modules/reviews/repository.ts` `completeAgentRun` <-> `server/src/modules/reviews/repository/run.repo.ts` `completeAgentRun` — the value type is declared on the facade and on the repo; extending one gives TS2353 at the call site (server/INSIGHTS.md, 2026-09-19)
 
 ## Handled by the script, not listed here

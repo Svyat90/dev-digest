@@ -37,7 +37,8 @@ export function countBySeverity(findings: FindingRecord[]): FindingsBySeverity {
  * Older reviews by the same agent are dropped, so re-running one agent replaces
  * its contribution instead of stacking on it. Reviews with no `agent_id` (seeded
  * or pre-`run_id`) form a single bucket: the newest of them wins. Mirrors the
- * server's `pickLatestReviewIds`; keep the two in step.
+ * server's `pickLatestReviewIds` (`server/src/domain/reviews/latest-review.ts`);
+ * keep the two in step.
  */
 export function latestReviewPerAgent(reviews: ReviewRecord[]): ReviewRecord[] {
   const newestFirst = [...reviews].sort(

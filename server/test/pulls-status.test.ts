@@ -6,12 +6,12 @@
  * + age, so it gets unit coverage independent of the route's queries.
  */
 import { describe, it, expect } from 'vitest';
+import { pickLatestReviewIds } from '../src/domain/reviews/latest-review.js';
 import {
   deriveReviewStatus,
   emptySeverityCounts,
   foldSeverityCounts,
   parseAggregateCost,
-  pickLatestReviewIds,
   STALE_DAYS,
 } from '../src/modules/pulls/status.js';
 
