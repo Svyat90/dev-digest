@@ -16,6 +16,7 @@ import {
   Settings,
   Repo,
   PrDetail,
+  PrIntentRecord,
 } from '@devdigest/shared';
 
 /**
@@ -192,6 +193,33 @@ describe('AI contracts parse fixtures', () => {
       log: [],
     });
     expect(trace.stats.cost_usd).toBe(0.06);
+  });
+
+  it('PrIntentRecord (persisted intent + provenance) parses, and rejects an out-of-enum confidence', () => {
+    const full = {
+      intent: 'Add a caching layer in front of the pricing API.',
+      in_scope: ['cache invalidation', 'redis client wiring'],
+      out_of_scope: ['auth changes'],
+      pr_id: 'pr1',
+      confidence: 'high',
+      sources: [
+        { kind: 'description', ref: 'PR body', status: 'ok', chars: 120 },
+        { kind: 'issue', ref: '#42', status: 'ok', chars: 340 },
+        { kind: 'web', ref: 'https://example.com/docs', status: 'unavailable', chars: 0 },
+      ],
+      missing_context: ['no linked spec doc'],
+      head_sha: 'abc123',
+      provider: 'openrouter',
+      model: 'deepseek/deepseek-v4-flash',
+      tokens_in: 1200,
+      tokens_out: 80,
+      updated_at: '2026-09-25T10:00:00.000Z',
+    };
+    expect(() => PrIntentRecord.parse(full)).not.toThrow();
+
+    // 'certain' is not in the IntentConfidence enum (high | medium | low) —
+    // confidence is deterministic from resolved sources, never self-reported.
+    expect(() => PrIntentRecord.parse({ ...full, confidence: 'certain' })).toThrow();
   });
 
   it('RunSummary distinguishes an unpriced run from a free one', () => {
