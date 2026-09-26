@@ -128,3 +128,76 @@ describe('assemblePrompt — ## PR intent (scope-discipline slot)', () => {
     expect(systemOf({ ...base, intent })).toBe(systemOf(base));
   });
 });
+
+describe('assemblePrompt — sections metadata (content-free prompt log)', () => {
+  const allSlots = {
+    system: 'AGENT-SYS',
+    task: 'Review PR #482 "Add rate limiting" by marisa.koch',
+    prDescription: 'Adds rate limiting to the public /api endpoints.',
+    intent: {
+      intent: 'Add rate limiting',
+      in_scope: ['Limiter middleware'],
+      out_of_scope: ['Auth refresh'],
+    },
+    skills: ['SKILL-ONE body', 'SKILL-TWO body'],
+    memory: ['remember this', 'and this', 'and that'],
+    repoMap: 'src/config.ts: export const config',
+    specs: ['SPEC chunk A', 'SPEC chunk B'],
+    callers: 'src/server.ts:12 calls config()',
+    diff: 'diff --git a/x b/x\n+added line',
+  };
+
+  it('lists every filled slot in rendered order, with task/pr_intent untrusted and only system/skills/memory trusted', () => {
+    const { sections } = assemblePrompt(allSlots);
+
+    expect(sections.map((s) => s.name)).toEqual([
+      'system',
+      'task',
+      'pr_description',
+      'pr_intent',
+      'skills',
+      'memory',
+      'repo_map',
+      'specs',
+      'callers',
+      'diff',
+    ]);
+    const trusted = sections.filter((s) => s.source === 'trusted').map((s) => s.name);
+    expect(trusted).toEqual(['system', 'skills', 'memory']);
+    expect(sections.find((s) => s.name === 'task')!.source).toBe('untrusted');
+    expect(sections.map((s) => s.role)).toEqual(['system', ...Array(9).fill('user')]);
+    // List sections count their entries; every other section counts as one.
+    expect(sections.find((s) => s.name === 'skills')!.items).toBe(2);
+    expect(sections.find((s) => s.name === 'memory')!.items).toBe(3);
+    expect(sections.find((s) => s.name === 'specs')!.items).toBe(2);
+    expect(sections.find((s) => s.name === 'diff')!.items).toBe(1);
+  });
+
+  it('chars invariant: system chars equal the system message; user chars plus the "\\n\\n" joins equal the user message', () => {
+    const { messages, sections } = assemblePrompt(allSlots);
+    const system = sections.find((s) => s.name === 'system')!;
+    const user = sections.filter((s) => s.role === 'user');
+
+    expect(system.chars).toBe(messages[0]!.content.length);
+    const userChars = user.reduce((n, s) => n + s.chars, 0);
+    expect(userChars + 2 * (user.length - 1)).toBe(messages[1]!.content.length);
+  });
+
+  it('with only a diff, no optional section appears (omit-when-empty)', () => {
+    const { sections } = assemblePrompt({ system: 'sys', diff: 'DIFF' });
+    expect(sections.map((s) => s.name)).toEqual(['system', 'diff']);
+  });
+
+  it('an injected measure adds tokens and fingerprints without changing a single prompt byte', () => {
+    const measured = assemblePrompt(allSlots, {
+      tokens: (t) => t.length,
+      fingerprint: () => 'deadbeef',
+    });
+
+    expect(measured.messages).toEqual(assemblePrompt(allSlots).messages);
+    const skills = measured.sections.find((s) => s.name === 'skills')!;
+    expect(skills.itemDetail).toHaveLength(allSlots.skills.length);
+    expect(skills.tokens).toBe(skills.chars);
+    expect(skills.fingerprint).toBe('deadbeef');
+  });
+});

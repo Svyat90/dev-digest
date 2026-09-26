@@ -15,6 +15,7 @@ import * as t from '../src/db/schema.js';
 import { eq } from 'drizzle-orm';
 import type { Review } from '@devdigest/shared';
 import type { IntentUseCases } from '../src/platform/container.js';
+import { ReviewService } from '../src/modules/reviews/service.js';
 
 const hasDocker = await dockerAvailable();
 const d = hasDocker ? describe : describe.skip;
@@ -448,6 +449,70 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
     // dedicated `<untrusted source="pr-intent">` wrapper, not loose in the prompt.
     expect(userMessage?.content).toContain('<untrusted source="pr-intent">');
     expect(userMessage?.content).toContain(INTENT_FIXTURE.intent);
+
+    await app.close();
+  });
+
+  it('prompt.assembled: one content-free record for the reviewer chunk and one for the intent classifier, sharing the DB round_id', async () => {
+    const app = await appWith(REVIEW_FIXTURE);
+    // Precondition, not the subject: PROMPT_LOG comes from the ambient env via config().
+    expect(app.container.config.promptLog).not.toBe('off');
+    const { pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
+    const agent = (
+      await app.inject({
+        method: 'POST',
+        url: '/agents',
+        payload: { name: 'PromptLog', provider: 'openai', model: 'gpt-4.1', system_prompt: 's' },
+      })
+    ).json();
+
+    // The recorded log objects ARE the observable output of this feature.
+    const infos: unknown[] = [];
+    const noop = () => undefined;
+    const spyLogger = { info: (obj: unknown) => void infos.push(obj), warn: noop, error: noop, debug: noop };
+
+    const svc = new ReviewService(app.container);
+    const targets = await svc.resolveTargets(workspaceId, { agentId: agent.id });
+    const { runs } = await svc.runReview(workspaceId, pr.id, targets, spyLogger);
+    const runId = runs[0]!.run_id;
+
+    const rows = await waitForPrRuns(pg.handle.db, pr.id, { expected: 1 });
+    expect(rows.every((r) => ['done', 'failed', 'cancelled'].includes(r.status ?? ''))).toBe(true);
+    expect(rows[0]!.status).toBe('done');
+
+    type Rec = {
+      event?: string;
+      component?: string;
+      model?: string;
+      correlation?: { run_id?: string; run_ids?: string[]; round_id?: string };
+    };
+    const prompts = (infos as Rec[]).filter((o) => o && o.event === 'prompt.assembled');
+    const reviewer = prompts.filter((p) => p.component === 'reviewer');
+    const intent = prompts.filter((p) => p.component === 'intent_classifier');
+    expect(reviewer).toHaveLength(1);
+    expect(reviewer[0]!.correlation?.run_id).toBe(runId);
+    expect(reviewer[0]!.model).toBe('gpt-4.1');
+    expect(intent).toHaveLength(1);
+    expect(intent[0]!.correlation?.run_ids).toContain(runId);
+
+    const [row] = await pg.handle.db
+      .select({ roundId: t.agentRuns.roundId })
+      .from(t.agentRuns)
+      .where(eq(t.agentRuns.id, runId));
+    expect(row!.roundId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    expect(reviewer[0]!.correlation?.round_id).toBe(row!.roundId);
+    expect(intent[0]!.correlation?.round_id).toBe(row!.roundId);
+
+    // Content-free: no diff line (raw or JSON-escaped) and not the seeded PR body.
+    const diffLines = DIFF.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+    for (const p of prompts) {
+      const json = JSON.stringify(p);
+      expect(json).not.toContain('Add rate limiting. Closes #471.');
+      for (const line of diffLines) {
+        expect(json).not.toContain(line);
+        expect(json).not.toContain(JSON.stringify(line).slice(1, -1));
+      }
+    }
 
     await app.close();
   });
