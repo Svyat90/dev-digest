@@ -19,7 +19,16 @@ import { useTranslations } from "next-intl";
 import { useConfirm } from "@/components/confirm-dialog";
 import { useSearchParamState } from "@/lib/hooks/useSearchParamState";
 import { usePullDetail, usePulls } from "@/lib/hooks";
-import { usePrReviews, useCancelRun, usePrActiveRuns, usePrRuns, useDeleteRun, useInvalidateActiveRuns, useInvalidatePrRuns } from "@/lib/hooks/reviews";
+import {
+  usePrReviews,
+  useCancelRun,
+  usePrActiveRuns,
+  usePrRuns,
+  useDeleteRun,
+  useInvalidateActiveRuns,
+  useInvalidatePrRuns,
+  useInvalidateReviewResults,
+} from "@/lib/hooks/reviews";
 import { useActiveRepo } from "@/lib/repo-context";
 import { ApiError } from "@/lib/api";
 import { githubPrUrl } from "@/lib/github-urls";
@@ -38,7 +47,8 @@ export function PrDetailView() {
   const { data: pr, isLoading: detailLoading, isError, error, refetch } = usePullDetail(prId);
 
   const isLoading = pullsLoading || (prId != null && detailLoading);
-  const { data: reviews, refetch: refetchReviews } = usePrReviews(prId);
+  const { data: reviews } = usePrReviews(prId);
+  const invalidateReviewResults = useInvalidateReviewResults(prId);
 
   // Live run tracking is SERVER-SOURCED (agent_runs status='running'): survives
   // navigation AND reload, and self-clears via polling when runs finish.
@@ -47,6 +57,14 @@ export function PrDetailView() {
   const deleteRun = useDeleteRun(prId);
   const liveRunIds = (activeRuns ?? []).map((r) => r.run_id);
   const reviewRunning = liveRunIds.length > 0;
+  // Sync with server-sourced run state: a run that ends while Files changed is
+  // open must still refresh smart-diff, even though FindingsTab (which owns
+  // `onRunDone`) may be unmounted at that moment.
+  const wasReviewRunningRef = React.useRef(reviewRunning);
+  React.useEffect(() => {
+    if (wasReviewRunningRef.current && !reviewRunning) invalidateReviewResults();
+    wasReviewRunningRef.current = reviewRunning;
+  }, [reviewRunning]);
   const cancel = useCancelRun();
   const invalidateActiveRuns = useInvalidateActiveRuns(prId);
   // When a run settles (done OR failed) refresh the full run history too, so a
@@ -144,7 +162,7 @@ export function PrDetailView() {
             onRunDone={() => {
               invalidateActiveRuns();
               invalidateRunHistory();
-              refetchReviews();
+              invalidateReviewResults();
             }}
             severityFilter={severityFilter}
             onSeverityChange={setSeverityFilter}
@@ -154,9 +172,10 @@ export function PrDetailView() {
         {tab === "diff" && (
           <DiffTab
             prId={prId}
-            filesCount={pr.files_count}
             files={pr.files}
             canComment={pr.status === "open"}
+            repoFullName={repoFullName}
+            headSha={pr.head_sha}
           />
         )}
       </div>
