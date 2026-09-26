@@ -60,13 +60,40 @@
   },
   "smartDiff": {
     "coreLabel": "Core",
+    "testsLabel": "Tests",
     "wiringLabel": "Wiring",
+    "docsLabel": "Docs",
     "boilerplateLabel": "Boilerplate",
     "largeTitle": "This PR is large ({lines} changed lines)",
     "largeBody": "Consider splitting it into smaller, focused PRs for easier review:",
     "filesCount": "{count} files",
     "findingLines": "{count} finding-lines",
-    "groupedByRole": "Smart Diff · grouped by role"
+    "groupedByRole": "Smart Diff · grouped by role",
+    "roleDescription": {
+      "core": "The substance of the change — review closely",
+      "tests": "Proves the core works — check what is asserted",
+      "wiring": "Hooks the core into the app",
+      "docs": "Explains the change — read for intent",
+      "boilerplate": "Generated / mechanical — skim"
+    },
+    "headerLabel": "Reviewer-ordered diff",
+    "headerStats": "{files} files · +{additions} −{deletions}",
+    "orderSmart": "Smart order",
+    "orderOriginal": "Original order",
+    "orderToggleLabel": "Diff order",
+    "groupFindings": "{count, plural, one {# file with findings} other {# files with findings}}",
+    "expandGroup": "Expand {role} group",
+    "collapseGroup": "Collapse {role} group",
+    "fileHasFindings": "This file has review findings",
+    "reviewNotRunYet": "Review not run yet",
+    "showFindingsAndComments": "Show comments & findings",
+    "hideFindingsAndComments": "Hide comments & findings",
+    "offPatchTitle": "{count, plural, one {# finding} other {# findings}} outside the changed lines",
+    "severityLine": {
+      "CRITICAL": "blocker",
+      "WARNING": "warning",
+      "SUGGESTION": "suggestion"
+    }
   },
   "list": {
     "breadcrumb": "Pull Requests",
