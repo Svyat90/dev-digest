@@ -1,5 +1,5 @@
 import type { Container } from '../../platform/container.js';
-import type { Provider, Review, RunTrace, SkillUsed, UnifiedDiff } from '@devdigest/shared';
+import type { PrIntentRecord, Provider, Review, RunTrace, SkillUsed, UnifiedDiff } from '@devdigest/shared';
 import { reviewPullRequest, countBlockers } from '@devdigest/reviewer-core';
 import { RunLogger } from '../../platform/run-logger.js';
 import * as schema from '../../db/schema.js';
@@ -38,7 +38,8 @@ export type RunOutcome = {
  * Owns the background execution of queued agent runs (extracted from
  * ReviewService; behaviour unchanged). Loads the diff + intent once, then
  * map-reduces each agent, streaming events over the runBus and persisting each
- * review. Per-agent failures are isolated.
+ * review. Per-agent failures are isolated. Intent derivation is best-effort:
+ * if it fails, every agent reviews without an intent section.
  */
 export class ReviewRunExecutor {
   constructor(
@@ -50,7 +51,8 @@ export class ReviewRunExecutor {
   /**
    * Background execution of the queued agent runs (NOT awaited by the route).
    * Loads the diff + intent once, then map-reduces each agent, streaming events
-   * over the runBus and persisting each review. Per-agent failures are isolated.
+   * over the runBus and persisting each review. Per-agent failures are isolated;
+   * an intent failure never fails a run (agents review without it).
    */
   async executeRuns(
     workspaceId: string,
@@ -104,6 +106,49 @@ export class ReviewRunExecutor {
     }
     runLog.info(`Diff ready — ${diff.files.length} changed file(s); starting ${jobs.length} agent run(s)`);
 
+    // Intent is best-effort enrichment: it never fails a run. The inner catch
+    // keeps `step` from emitting an SSE `error` event (the UI toasts those); the
+    // failure is surfaced as an info line + a server warn instead.
+    const intent = await runLog.step(
+      'Deriving intent',
+      async (): Promise<PrIntentRecord | null> => {
+        try {
+          return await this.container.intent.getOrDerive(
+            workspaceId,
+            {
+              id: pull.id,
+              title: pull.title,
+              body: pull.body,
+              headSha: pull.headSha,
+              base: pull.base,
+              repo: { owner: repo.owner, name: repo.name },
+            },
+            diff,
+            runLog,
+          );
+        } catch (err) {
+          // Content-free, bounded reason: service errors carry reason codes only.
+          const reason = (err instanceof Error ? err.message : 'unknown error').slice(0, 200);
+          runLog.info(`Intent unavailable — reviewing without it: ${reason}`);
+          logger?.warn({ prId: pull.id, err: reason }, 'review: intent unavailable — reviewing without it');
+          return null;
+        }
+      },
+      { kind: 'tool' },
+    );
+    if (intent) {
+      const byStatus: Record<string, number> = {};
+      for (const s of intent.sources) byStatus[s.status] = (byStatus[s.status] ?? 0) + 1;
+      const sourceCounts = Object.entries(byStatus)
+        .map(([status, n]) => `${status}=${n}`)
+        .join(' ');
+      runLog.info(
+        `Intent ready — confidence=${intent.confidence}; sources: ${sourceCounts || 'none'}; ` +
+          `${intent.provider ?? '?'}/${intent.model ?? '?'}; ` +
+          `tokens ${intent.tokens_in ?? '?'} in / ${intent.tokens_out ?? '?'} out`,
+      );
+    }
+
     for (const { agent, runId } of jobs) {
       const agentStart = Date.now();
       logger?.info(
@@ -111,7 +156,7 @@ export class ReviewRunExecutor {
         `review: agent "${agent.name}" started (${agent.provider}/${agent.model})`,
       );
       try {
-        const outcome = await this.runOneAgent(workspaceId, pull, repo, diff, agent, runId, runLog);
+        const outcome = await this.runOneAgent(workspaceId, pull, repo, diff, intent, agent, runId, runLog);
         logger?.info(
           {
             runId,
@@ -140,6 +185,7 @@ export class ReviewRunExecutor {
     pull: PullRow,
     repo: typeof schema.repos.$inferSelect,
     diff: UnifiedDiff,
+    intent: PrIntentRecord | null,
     agent: AgentRow,
     runId: string,
     parentLog: RunLogger,
@@ -210,6 +256,18 @@ export class ReviewRunExecutor {
         // PR author's description/body — untrusted; assemblePrompt wraps +
         // truncates it. Omitted when the PR has no body.
         ...(pull.body ? { prDescription: pull.body } : {}),
+        // Derived PR intent + scope (untrusted; reviewer-core wraps it and never
+        // lets it lower severity). Omitted when derivation failed or came back empty.
+        ...(intent && intent.intent.trim()
+          ? {
+              intent: {
+                intent: intent.intent,
+                in_scope: intent.in_scope,
+                out_of_scope: intent.out_of_scope,
+                confidence: intent.confidence,
+              },
+            }
+          : {}),
         task,
         sessionId: `${repo.owner}/${repo.name}#${pull.number}:${agent.name}`,
         onEvent: (e) => runLog.event(e.kind, e.msg, e.data),
