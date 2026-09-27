@@ -925,3 +925,5 @@ No lockfile or `package.json` changes on this branch (T019's are off-branch). No
 ## Resolved questions
 - Default of the single show/hide toggle: confirmed by the user — show findings and comments by default when the PR has open findings; keep today's hidden default otherwise (as T013 specifies).
 - Branch name for the T019 test PR: confirmed by the user — `feature/l03-smart-diff-test-pr`.
+- Header file count (after review): confirmed by the user — the diff header keeps `files.length`, and the seed PR #482 row is aligned with its file rows (`filesCount: 8`, `additions: 146`, `deletions: 8`) so the tab count and the header agree. This supersedes T005 step 2's "`filesCount: 9` stays".
+- Show/hide control (after review): confirmed by the user — keep the single "Show/Hide comments & findings" toggle without a count; the old "Show comments (N)" button is not restored.

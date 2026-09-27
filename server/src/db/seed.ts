@@ -121,19 +121,20 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
         branch: 'feat/rate-limit-public',
         base: 'main',
         headSha: 'a1b2c3d4e5f6',
-        additions: 247,
-        deletions: 38,
-        filesCount: 9,
+        additions: 146,
+        deletions: 8,
+        filesCount: 8,
         status: 'needs_review',
         body: 'Add rate limiting to public API endpoints to prevent abuse from unauthenticated clients.',
       })
       .returning();
 
-    // pr_files (subset)
+    // pr_files
     // The first four rows are the original core-only set (unchanged). The four
     // that follow add one file per non-core Smart Diff role (tests, wiring,
     // docs, boilerplate) so a fresh DB exercises all five role groups without
-    // a review run — filesCount: 9 stays, this is still a subset.
+    // a review run. The PR row's additions/deletions/filesCount are the sums of
+    // these rows, so the tab count and the diff header agree.
     await db.insert(t.prFiles).values([
       { prId: pr!.id, path: 'src/middleware/ratelimit.ts', additions: 84, deletions: 0 },
       { prId: pr!.id, path: 'src/api/public/webhooks.ts', additions: 31, deletions: 6 },
