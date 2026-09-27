@@ -17,7 +17,16 @@ Every flow assumes a **freshly seeded database**:
   04 and 05 follow that redirect and land on the wrong repo otherwise.
 - PR **#482** "Add rate limiting to public API endpoints" is the only pull
   request, with one seeded review (`request changes`, score 61) carrying three
-  findings: one `CRITICAL`, one `WARNING`, one `SUGGESTION`.
+  findings: one `CRITICAL`, one `WARNING`, one `SUGGESTION` — all three anchored
+  on core files (`src/config.ts`, `src/api/users.ts`, `src/middleware/ratelimit.ts`).
+- PR #482 has eight seeded `pr_files` rows: four original core files, plus one
+  file per non-core Smart Diff role added for flow `08-smart-diff` —
+  `src/middleware/ratelimit.test.ts` (tests), `.env.example` (wiring),
+  `docs/rate-limiting.md` (docs) and `pnpm-lock.yaml` (boilerplate) — so a
+  fresh database exercises all five role groups before any review runs.
+  Changing a seeded path or its role-defining shape (e.g. renaming
+  `pnpm-lock.yaml`) is a contract with `08-smart-diff` and with
+  `server/specs/smart-diff.md`'s classification table.
 - The seeded review is linked to one of the seeded `agent_runs`, so the run
   timeline can show that run's findings.
 - The three built-in agents exist.
@@ -40,6 +49,7 @@ same commit.
 | `05-pr-diff` | diff viewer | the Files changed tab renders the seeded file in the diff viewer |
 | `06-onboarding` | add repo | `/onboarding` renders the add-repository form (**no submit** — nothing here clones a repo) |
 | `07-settings` | settings | `/settings/api-keys` and `/settings/models` render their sections |
+| `08-smart-diff` | Smart Diff | the Files changed tab's Smart-order header renders, and all five role groups render with their labels and the core role description; Docs and Boilerplate start collapsed by default, and expanding Boilerplate reveals the seeded `pnpm-lock.yaml`; the Smart/Original segmented toggle switches to the flat GitHub-order diff and back. Group **order** is asserted only in `client/.../DiffTab/DiffTab.test.tsx` — this runner can prove presence, never absence (see "Deliberately not covered" below). No model call; grouping is the deterministic `classifyFile` path classifier (`server/specs/smart-diff.md`) |
 
 Together these cover the main path a first-time user walks — boot, find a PR,
 read its review, look at the diff — plus the two configuration screens that make

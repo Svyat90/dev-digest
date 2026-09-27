@@ -65,6 +65,9 @@ then read code.
   invariants (evidence verification, re-scan semantics, the skill it produces).
 - Read `specs/intent.md` before touching the intent module, `WebFetchClient` or
   the reviewer `## PR intent` slot — sources, budget, confidence, SSRF policy.
+- Read `specs/smart-diff.md` before touching the Smart Diff module or the
+  Files-changed role grouping — the classification precedence, the contested
+  cases, and the `finding_lines` rule.
 - Read `src/modules/repo-intel/README.md` before working on the indexer.
 - Read `../TESTING.md` before adding or changing a test.
 - Read `../docs/agent-prompts/` before editing reviewer system prompts.

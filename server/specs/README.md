@@ -14,3 +14,7 @@ Linked from `server/CLAUDE.md` › *Read when*.
 - **[`intent.md`](intent.md)** — the Intent Layer: the invariants (I1–I11),
   the web-fetch SSRF policy, the data model, the API surface, and how intent
   reaches the reviewer prompt.
+- **[`smart-diff.md`](smart-diff.md)** — Smart Diff: the invariants
+  (SD1–SD11), the role classification precedence and its contested cases,
+  the `finding_lines` rule, and how the client derives its groups, dot and
+  counters from the same data.
