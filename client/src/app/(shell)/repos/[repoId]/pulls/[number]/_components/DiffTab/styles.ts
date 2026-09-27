@@ -24,7 +24,13 @@ export const s = {
   roleGroup: { display: "flex", flexDirection: "column", gap: 8 } satisfies CSSProperties,
   roleHeader: {
     position: "sticky",
-    top: 0,
+    // Sticks right below PrDetailHeader, which is ALSO sticky at `top: 0`
+    // and would otherwise cover this header at the same y. `--pr-header-h`
+    // is that header's measured (not hard-coded) height, published on the
+    // PrDetailView root by `PrDetailHeader/useHeaderHeightVar.ts`; the
+    // `0px` fallback keeps this header at the viewport top when rendered
+    // without that ancestor (e.g. DiffTab.test.tsx).
+    top: "var(--pr-header-h, 0px)",
     zIndex: 2,
     background: "var(--bg-elevated)",
     border: "1px solid var(--border)",

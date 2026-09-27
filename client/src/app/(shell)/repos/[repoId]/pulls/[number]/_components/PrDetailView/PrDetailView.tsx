@@ -39,6 +39,11 @@ export function PrDetailView() {
   const { confirm, dialog } = useConfirm();
   const params = useParams<{ repoId: string; number: string }>();
   const { repoId, number } = params;
+  // Shared ancestor that PrDetailHeader publishes `--pr-header-h` onto (its
+  // rendered height, which varies with title wrap), so the Smart Diff
+  // role-group header can stick right below it instead of a hard-coded
+  // offset that would sit behind it.
+  const viewRootRef = React.useRef<HTMLDivElement>(null);
   const { activeRepo } = useActiveRepo();
   // The route is keyed by PR number, but every PR API is keyed by the row's
   // uuid — resolve number → uuid via the (cached) pulls list before fetching.
@@ -121,13 +126,14 @@ export function PrDetailView() {
   }
 
   return (
-    <>
+    <div ref={viewRootRef}>
       <PrDetailHeader
         pr={pr}
         prId={prId}
         tab={tab}
         findingsCount={findingsCount}
         githubUrl={repoFullName ? githubPrUrl(repoFullName, pr.number) : null}
+        heightVarTarget={viewRootRef}
         onSetTab={setTab}
         onRunStart={() => setTab("findings")}
         onRunsStarted={() => invalidateActiveRuns()}
@@ -190,6 +196,6 @@ export function PrDetailView() {
         />
       )}
       {dialog}
-    </>
+    </div>
   );
 }
