@@ -47,6 +47,15 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
 
+- **2026-09-26 — `./scripts/e2e.sh` leaves `client/next-env.d.ts` and `client/tsconfig.json` modified.**
+  The hermetic stack runs `next dev` with the `.next-e2e` distDir, and Next rewrites
+  both files on boot: `next-env.d.ts` references `./.next-e2e/types/routes.d.ts`, and
+  `tsconfig.json` is re-serialized (arrays expanded, `.next-e2e/types/**/*.ts` added to
+  `include`). Seen on every run in this session; `git status` shows ` M` for both.
+  Rule: after an e2e run, `git restore client/next-env.d.ts client/tsconfig.json`
+  before staging anything, and never commit either change.
+  `scripts/e2e.sh`
+
 - **2026-09-26 — `typecheck` in `server/` and `reviewer-core/` never type-checks `test/`, so "typecheck is green" says nothing about test files.**
   Both `tsconfig.json` files have `"include": ["src/**/*.ts"]`. Root `CLAUDE.md`
   asks for `pnpm typecheck && pnpm test` before "done", which reads as covering

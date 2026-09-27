@@ -61,6 +61,17 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-09-26 — Anything `position: sticky` inside a PR-detail tab hides behind the sticky PR header unless it offsets by `--pr-header-h`.**
+  The shell's `<main>` is the scroll container, and `PrDetailHeader`'s root is
+  `position: sticky; top: 0; z-index: 5`, ~144px tall and taller when the title wraps.
+  Smart Diff group headers with `top: 0` stuck at the same y and were fully covered
+  (verified in the browser: header top 52px, hidden). `PrDetailHeader` now measures
+  itself (ResizeObserver) and sets `--pr-header-h` on the `PrDetailView` root div.
+  Rule: a sticky element in PR-detail tab content uses `top: var(--pr-header-h, 0px)`
+  and a z-index below 5; never a hard-coded offset.
+  `client/src/app/(shell)/repos/[repoId]/pulls/[number]/_components/PrDetailHeader/useHeaderHeightVar.ts`,
+  `…/_components/DiffTab/styles.ts`
+
 - **2026-09-23 — Visiting `/repos/:id` does NOT make that repo the active one elsewhere.**
   `RepoProvider` reads the repo from the URL path first, but only `setRepoId` (the
   sidebar switcher) writes `localStorage["dd-repo"]`. So `/skills`, `/agents` and
@@ -171,6 +182,24 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 ## Tool & Library Notes
 
 Quirks of the dependencies this package pins.
+
+- **2026-09-26 — `@testing-library/user-event` is NOT installed; component tests use `fireEvent`.**
+  `client/package.json` has only `@testing-library/react` and `@testing-library/jest-dom`,
+  and every `*.test.tsx` uses `fireEvent`. The `react-testing-library` skill defaults
+  to `userEvent`, so an import of it fails to resolve under vitest.
+  Rule: use `fireEvent` from `@testing-library/react`; adding user-event is a
+  dependency change to agree with the user first.
+  `client/package.json`, `client/src/components/diff-viewer/FileCard/FileCard.test.tsx`
+
+- **2026-09-26 — A test that renders diff-viewer must give `NextIntlClientProvider` BOTH `shell` and `prReview`.**
+  Since Smart Diff, `FileCard` and `CodeLine` call `useTranslations("prReview")` as
+  well as `useTranslations("shell")`. `src/test/smoke.test.tsx` passes only
+  `messages={{ shell: shellMessages }}`; it stays green but prints
+  `IntlError: MISSING_MESSAGE: Could not resolve 'prReview' in messages for locale 'en'`
+  on every run, which hides real i18n errors in the noise.
+  Rule: when rendering `DiffViewer`/`FileCard`/`CodeLine`, load both bundles via
+  `@messages/en/shell.json` and `@messages/en/prReview.json`.
+  `client/src/components/diff-viewer/FileCard/FileCard.tsx`, `client/src/test/smoke.test.tsx`
 
 - **2026-09-22 — `@devdigest/ui`'s exported `IconName` has "Edit", not
   "Pencil", even though `icons.tsx` imports lucide's `Pencil` by that name
