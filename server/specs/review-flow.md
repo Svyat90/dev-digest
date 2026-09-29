@@ -16,6 +16,7 @@ All of `modules/reviews/routes.ts`:
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/pulls/:id/review` | start a review; body `{ agentId? , all? }`, empty body allowed |
+| GET | `/runs/:id` | one run's status and outcome (`RunSummary` + `pr_id`), workspace-scoped; 404 when absent |
 | GET | `/runs/:id/events` | SSE stream of run events (replay buffer, then live) |
 | GET | `/runs/:id/trace` | the single run-trace document |
 | GET | `/pulls/:id/runs` | full run history, any status |

@@ -1,6 +1,6 @@
 # DevDigest — agent map
 
-Local-first AI pull-request review. Four independent packages, no workspace:
+Local-first AI pull-request review. Five independent packages, no workspace:
 each has its own package.json and lockfile. Cross-package code is shared
 through tsconfig path aliases, never through npm publish.
 
@@ -41,6 +41,7 @@ then read code.
 # client         pnpm dev · test · typecheck
 # reviewer-core  npm test · npm run typecheck   (build == typecheck; emits no JS)
 # e2e            npm test                       (needs API + web already running)
+# mcp            npm run build · npm test · npm run typecheck   (build emits mcp/dist, which is not committed)
 
 # server, unit vs integration:
 pnpm exec vitest run --exclude '**/*.it.test.ts'
@@ -55,6 +56,9 @@ pnpm exec vitest run .it.test
 | `client/`        | Next.js studio                                   | 3000 | pnpm |
 | `reviewer-core/` | Review engine: diff -> prompt -> LLM -> findings | —    | npm  |
 | `e2e/`           | Deterministic browser e2e                        | —    | npm  |
+| `mcp/`           | MCP server over the REST API (stdio)             | —    | npm  |
+
+`mcp/dist/` is built by `cd mcp && npm run build`; it is git-ignored, not committed.
 
 Only Postgres runs in Docker; server and client run on the host.
 
