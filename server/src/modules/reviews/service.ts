@@ -71,6 +71,13 @@ export class ReviewService {
     return this.repo.listRunsForPull(workspaceId, prId);
   }
 
+  /** One run's status and outcome; 404 when absent or in another workspace. */
+  async getRun(workspaceId: string, runId: string) {
+    const run = await this.repo.getRun(workspaceId, runId);
+    if (!run) throw new NotFoundError('Run not found');
+    return run;
+  }
+
   /** Delete one run from the history (+ its trace). */
   async deleteRun(workspaceId: string, runId: string): Promise<boolean> {
     return this.repo.deleteAgentRun(workspaceId, runId);

@@ -48,7 +48,25 @@ export async function listRunsForPull(
     .leftJoin(t.agents, eq(t.agents.id, t.agentRuns.agentId))
     .where(and(eq(t.agentRuns.workspaceId, workspaceId), eq(t.agentRuns.prId, prId)))
     .orderBy(desc(t.agentRuns.ranAt));
-  return rows.map(({ run, agentName }) => ({
+  return rows.map(({ run, agentName }) => toRunSummary(run, agentName));
+}
+
+/** One run by id, scoped to the workspace; `pr_id` lets a caller find its findings. */
+export async function getRunForWorkspace(
+  db: Db,
+  workspaceId: string,
+  runId: string,
+): Promise<(RunSummary & { pr_id: string | null }) | undefined> {
+  const [row] = await db
+    .select({ run: t.agentRuns, agentName: t.agents.name })
+    .from(t.agentRuns)
+    .leftJoin(t.agents, eq(t.agents.id, t.agentRuns.agentId))
+    .where(and(eq(t.agentRuns.id, runId), eq(t.agentRuns.workspaceId, workspaceId)));
+  return row ? { ...toRunSummary(row.run, row.agentName), pr_id: row.run.prId } : undefined;
+}
+
+function toRunSummary(run: typeof t.agentRuns.$inferSelect, agentName: string | null): RunSummary {
+  return {
     run_id: run.id,
     agent_id: run.agentId,
     agent_name: agentName ?? null,
@@ -65,7 +83,7 @@ export async function listRunsForPull(
     ran_at: run.ranAt ? run.ranAt.toISOString() : null,
     score: run.score,
     blockers: run.blockers,
-  }));
+  };
 }
 
 /**

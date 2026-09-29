@@ -10,6 +10,7 @@ import { ReviewService } from './service.js';
 /**
  * reviews module.
  *   POST   /pulls/:id/review  {agentId} | {all:true}  → run review(s); returns runs
+ *   GET    /runs/:id                                   → one run's status + outcome (RunSummary + pr_id)
  *   GET    /runs/:id/events                            → SSE stream of RunEvent (replay-first)
  *   GET    /runs/:id/trace                             → the single-document RunTrace
  *   GET    /pulls/:id/reviews                          → persisted reviews + findings for a PR
@@ -101,6 +102,12 @@ export default async function reviewsRoutes(appBase: FastifyInstance) {
   app.get('/pulls/:id/runs', { schema: { params: IdParams } }, async (req) => {
     const { workspaceId } = await getContext(container, req);
     return service.listRuns(workspaceId, req.params.id);
+  });
+
+  // ---- One run's status and outcome (polled by API clients) ---------------
+  app.get('/runs/:id', { schema: { params: IdParams } }, async (req) => {
+    const { workspaceId } = await getContext(container, req);
+    return service.getRun(workspaceId, req.params.id);
   });
 
   // ---- Delete one run from the history (+ its trace) ----------------------

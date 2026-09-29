@@ -82,6 +82,11 @@ export class ReviewRepository {
     return runRepo.listRunsForPull(this.db, workspaceId, prId);
   }
 
+  /** One run by id (+ its PR id), scoped to the workspace. */
+  getRun(workspaceId: string, runId: string): ReturnType<typeof runRepo.getRunForWorkspace> {
+    return runRepo.getRunForWorkspace(this.db, workspaceId, runId);
+  }
+
   /** Delete one agent run (+ its trace via FK cascade). Workspace-scoped. */
   deleteAgentRun(workspaceId: string, runId: string): Promise<boolean> {
     return runRepo.deleteAgentRun(this.db, workspaceId, runId);
