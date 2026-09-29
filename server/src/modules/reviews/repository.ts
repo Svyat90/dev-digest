@@ -83,7 +83,7 @@ export class ReviewRepository {
   }
 
   /** One run by id (+ its PR id), scoped to the workspace. */
-  getRun(workspaceId: string, runId: string): ReturnType<typeof runRepo.getRunForWorkspace> {
+  getRun(workspaceId: string, runId: string): Promise<runRepo.RunState | undefined> {
     return runRepo.getRunForWorkspace(this.db, workspaceId, runId);
   }
 

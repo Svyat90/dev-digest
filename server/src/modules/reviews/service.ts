@@ -3,6 +3,7 @@ import type { FindingActionKind, RunEventKind, RunTrace } from '@devdigest/share
 import { AppError, NotFoundError } from '../../platform/errors.js';
 import type { AgentRow } from '../../db/rows.js';
 import { ReviewRepository } from './repository.js';
+import type { RunState } from './repository/run.repo.js';
 import { type ReviewDto, type ReviewDtoFinding } from './helpers.js';
 import { ReviewRunExecutor, type Logger } from './run-executor.js';
 import { actOnFinding as actOnFindingImpl } from './findings.js';
@@ -72,7 +73,7 @@ export class ReviewService {
   }
 
   /** One run's status and outcome; 404 when absent or in another workspace. */
-  async getRun(workspaceId: string, runId: string) {
+  async getRun(workspaceId: string, runId: string): Promise<RunState> {
     const run = await this.repo.getRun(workspaceId, runId);
     if (!run) throw new NotFoundError('Run not found');
     return run;

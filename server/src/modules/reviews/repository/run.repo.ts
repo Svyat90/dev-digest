@@ -52,11 +52,14 @@ export async function listRunsForPull(
 }
 
 /** One run by id, scoped to the workspace; `pr_id` lets a caller find its findings. */
+/** One run as `GET /runs/:id` returns it (mcp/src/api/schemas.ts projects it). */
+export type RunState = RunSummary & { pr_id: string | null };
+
 export async function getRunForWorkspace(
   db: Db,
   workspaceId: string,
   runId: string,
-): Promise<(RunSummary & { pr_id: string | null }) | undefined> {
+): Promise<RunState | undefined> {
   const [row] = await db
     .select({ run: t.agentRuns, agentName: t.agents.name })
     .from(t.agentRuns)

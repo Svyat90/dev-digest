@@ -39,7 +39,11 @@ export class RepoRepository {
           eq(t.repos.workspaceId, workspaceId),
           sql`lower(${t.repos.fullName}) = lower(${fullName})`,
         ),
-      );
+      )
+      // The unique index is case-sensitive, so `Acme/X` and `acme/x` can coexist:
+      // prefer the exact spelling, then the oldest import, so the pick is stable.
+      .orderBy(sql`${t.repos.fullName} = ${fullName} desc`, t.repos.createdAt)
+      .limit(1);
     return row;
   }
 

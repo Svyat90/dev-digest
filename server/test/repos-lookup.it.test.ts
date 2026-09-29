@@ -82,6 +82,21 @@ d('GET /repos/lookup (Testcontainers pg)', () => {
     });
   });
 
+  it('prefers the exact spelling when two repos differ only in case', async () => {
+    // Inserted first, so an unordered pick of the oldest row would return it.
+    await pg.handle.db
+      .insert(t.repos)
+      .values({ workspaceId, owner: 'Acme', name: 'Twin', fullName: 'Acme/Twin' });
+    const [lower] = await pg.handle.db
+      .insert(t.repos)
+      .values({ workspaceId, owner: 'acme', name: 'twin', fullName: 'acme/twin' })
+      .returning();
+
+    const res = await get('full_name=acme/twin');
+    expect(res.statusCode).toBe(200);
+    expect(res.json().repo).toEqual({ id: lower!.id, full_name: 'acme/twin' });
+  });
+
   it('returns pull: null when pr_number is omitted', async () => {
     const res = await get('full_name=acme/lookup-x');
     expect(res.statusCode).toBe(200);

@@ -24,6 +24,9 @@ Remove a pair when the duplication is gone.
 
 - `server/src/domain/reviews/latest-review.ts` `pickLatestReviewIds` <-> `client/src/components/findings-preview/helpers.ts` `latestReviewPerAgent` — both define "which reviews the PR-list FINDINGS column counts"; one side alone makes the chips and the hover card disagree (root INSIGHTS.md, 2026-09-20)
 - `server/src/modules/reviews/repository.ts` `completeAgentRun` <-> `server/src/modules/reviews/repository/run.repo.ts` `completeAgentRun` — the value type is declared on the facade and on the repo; extending one gives TS2353 at the call site (server/INSIGHTS.md, 2026-09-19)
+- `server/src/modules/repos/service.ts` `LookupResult` <-> `mcp/src/api/schemas.ts` `LookupResult` — mcp re-declares the `GET /repos/lookup` body by hand; a rename on one side passes both typechecks and fails every mcp tool call with `api_shape_mismatch` (pr-self-review, 2026-09-29)
+- `server/src/modules/reviews/repository/run.repo.ts` `RunState` <-> `mcp/src/api/schemas.ts` `RunState` — same for the `GET /runs/:id` body (`RunSummary` + `pr_id`) (pr-self-review, 2026-09-29)
+- `server/src/modules/reviews/repository/run.repo.ts` `activeRunsForPull` <-> `mcp/src/api/schemas.ts` `ActiveRun` — same for `GET /pulls/:id/runs/active`; mcp reads `ran_at` to skip stale runs (pr-self-review, 2026-09-29)
 
 ## Handled by the script, not listed here
 
