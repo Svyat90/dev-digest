@@ -242,7 +242,7 @@ Shared fields (`tools/common.ts`, Zod 3, `import { z } from "zod"`):
 ```ts
 export const repoField = z
   .string()
-  .regex(/^[\w.-]+\/[\w.-]+$/, 'repo must be "owner/name", e.g. "acme/payments-api"')
+  .regex(/^(?!\.+\/)[\w.-]+\/(?!\.+$)[\w.-]+$/, 'repo must be "owner/name", e.g. "acme/payments-api"')
   .describe('GitHub repository as "owner/name", e.g. "acme/payments-api"');
 export const prNumberField = z.number().int().positive().describe('Pull request number, e.g. 482');
 export const agentField = z
@@ -352,7 +352,7 @@ without snippets, capped at 50 with `truncated`. With no scan it returns
   TypeScript return types live with the service/repository. `server/CLAUDE.md`
   also lists `src/vendor/shared/**` under do-not-touch, which settles it.
 - New server shapes:
-  - `GET /repos/lookup` query: `z.object({ full_name: z.string().regex(/^[\w.-]+\/[\w.-]+$/), pr_number: z.coerce.number().int().positive().optional() })`.
+  - `GET /repos/lookup` query: `z.object({ full_name: z.string().regex(/^(?!\.+\/)[\w.-]+\/(?!\.+$)[\w.-]+$/), pr_number: z.coerce.number().int().positive().optional() })`.
     Response: `{ repo: { id: string; full_name: string }, pull: { id: string; number: number } | null }`.
   - `GET /runs/:id` params: `IdParams`. Response: `RunSummary & { pr_id: string | null }`.
 - mcp projections (`mcp/src/api/schemas.ts`), each commented with its canonical source:
@@ -404,13 +404,13 @@ Standard mcp gates (referenced as **mcp-gates** in the tasks):
 ```sh
 cd mcp && npm run typecheck && npm test
 cd mcp && npm ls zod                                   # exactly one zod@3.25.x
-rg -n "console\.(log|info|debug)|process\.stdout" mcp/src      # expect no output
-rg -n "zod/v4|zod/mini|@zod/|@modelcontextprotocol/(server|client)" mcp/src mcp/test mcp/package.json   # expect no output
-rg -n "server/src|reviewer-core|@devdigest/" mcp/src           # expect no output
+grep -rnE "console\.(log|info|debug)|process\.stdout" mcp/src      # expect no output
+grep -rnE "zod/v4|zod/mini|@zod/|@modelcontextprotocol/(server|client)" mcp/src mcp/test mcp/package.json   # expect no output
+grep -rnE "server/src|reviewer-core|@devdigest/" mcp/src           # expect no output
 # layer rule inside mcp (onion-architecture §3), each expects no output:
-rg -n "@modelcontextprotocol|/api/client" mcp/src/domain         # domain is pure
-rg -n "@modelcontextprotocol" mcp/src/api                         # api knows HTTP, not MCP
-rg -n "process\.env" mcp/src --glob '!index.ts' --glob '!config.ts'   # env read only at the edge
+grep -rnE "@modelcontextprotocol|/api/client" mcp/src/domain         # domain is pure
+grep -rnE "@modelcontextprotocol" mcp/src/api                         # api knows HTTP, not MCP
+grep -rnE "process\.env" mcp/src --exclude=index.ts --exclude=config.ts   # env read only at the edge
 ```
 
 Standard server gates (**server-gates**):
@@ -694,8 +694,8 @@ live API.
 - Steps: write exactly the items above, English only, no restated content that already lives in another doc (link instead).
 - Acceptance criteria: every path and command in the docs exists and runs. `mcp/INSIGHTS.md` has the seven headings in order.
 - Verify:
-  - `rg -n "Four independent packages" CLAUDE.md` → no output
-  - `for h in "What Works" "What Doesn't Work" "Codebase Patterns" "Tool & Library Notes" "Recurring Errors & Fixes" "Session Notes" "Open Questions"; do rg -q "## $h" mcp/INSIGHTS.md || echo "missing $h"; done` → no output
+  - `grep -rnE "Four independent packages" CLAUDE.md` → no output
+  - `for h in "What Works" "What Doesn't Work" "Codebase Patterns" "Tool & Library Notes" "Recurring Errors & Fixes" "Session Notes" "Open Questions"; do grep -q "## $h" mcp/INSIGHTS.md || echo "missing $h"; done` → no output
 - Constraints: root CLAUDE.md › Language (English). Docs are owned by this task only.
 
 ## Ownership check
