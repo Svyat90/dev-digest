@@ -406,7 +406,7 @@ cd mcp && npm run typecheck && npm test
 cd mcp && npm ls zod                                   # exactly one zod@3.25.x
 grep -rnE "console\.(log|info|debug)|process\.stdout" mcp/src      # expect no output
 grep -rnE "zod/v4|zod/mini|@zod/|@modelcontextprotocol/(server|client)" mcp/src mcp/test mcp/package.json   # expect no output
-grep -rnE "server/src|reviewer-core|@devdigest/" mcp/src           # expect no output
+grep -rnE "from ['\"].*(server/src|reviewer-core|@devdigest/)" mcp/src   # imports only; `// canonical:` comments are expected
 # layer rule inside mcp (onion-architecture §3), each expects no output:
 grep -rnE "@modelcontextprotocol|/api/client" mcp/src/domain         # domain is pure
 grep -rnE "@modelcontextprotocol" mcp/src/api                         # api knows HTTP, not MCP
