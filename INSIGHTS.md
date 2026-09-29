@@ -47,6 +47,13 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
 
+- **2026-09-29 — `rg` (ripgrep) is not installed on the dev machine; gate commands written with it fail.**
+  The MCP plan's verification gates used `rg -n …`; every implementer had to
+  rewrite them by hand, and a gate that errors is easy to misread as "no output".
+  Rule: write grep-based gates in plans, skills and docs as `grep -rnE`
+  (`--exclude=<file>` instead of `--glob '!<file>'`); do not assume `rg` exists.
+  `command -v rg` → no output · `docs/plans/2026-09-29-mcp-server.md` (mcp-gates)
+
 - **2026-09-29 — The MCP TypeScript SDK v2 cannot be used here: it hard-depends on Zod 4.**
   `@modelcontextprotocol/server` 2.x (the v2 package name) lists `zod: ^4.2.0` as a
   regular dependency, and its migration guide states Zod 3 is no longer supported —

@@ -37,6 +37,26 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-09-29 — A `status: 'running'` run inserted before `buildApp()` comes back as `failed`.**
+  `buildApp` calls `reapStaleRunningRuns` on boot, which marks EVERY `agent_runs`
+  row still `running` as `failed` (no workspace or age filter). An integration test
+  that seeds a running run in `beforeAll` and only then builds the app therefore
+  asserts on a failed run. `docs/architecture.md` documents the reaping, not this
+  consequence for tests.
+  Rule: in a `*.it.test.ts`, insert any `running` run AFTER `buildApp()` has
+  resolved, and never share a seeded running row with a later `buildApp()` call.
+  `server/src/modules/reviews/repository/run.repo.ts:123`, `server/test/runs-get.it.test.ts:93-97`
+
+- **2026-09-29 — `^[\w.-]+\/[\w.-]+$` is NOT a path-traversal guard for `owner/name`.**
+  It accepts `../x` and `x/..`, because `.` is in the class. `GET /repos/lookup`
+  with that regex answered `full_name=../x` with 404 instead of the 422 its test
+  expected. Dot-only segments need an explicit negative lookahead; names such as
+  `.github` must still pass.
+  Rule: validate a GitHub `owner/name` with
+  `/^(?!\.+\/)[\w.-]+\/(?!\.+$)[\w.-]+$/`, the one used by the route and by
+  `mcp/src/tools/common.ts` (`repoField`); never re-derive the short form.
+  `server/src/modules/repos/routes.ts:12`, `server/test/repos-lookup.it.test.ts`
+
 - **2026-09-26 — A new enrichment step in `executeRuns` silently makes REAL network and LLM calls in `reviews.it.test.ts`, and blows its 10s budget.**
   `appWith` builds the app with the real `LocalSecretsProvider`, so on a machine
   with `~/.devdigest/secrets.json` any container-resolved client that a run now
