@@ -1,4 +1,4 @@
-import { truncate } from '../api/errors.js';
+import { truncate } from './text.js';
 import type { FindingLite, ReviewLite, RunState } from '../api/schemas.js';
 import { deriveVerdict, type Verdict } from './verdict.js';
 

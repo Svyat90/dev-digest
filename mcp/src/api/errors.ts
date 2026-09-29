@@ -1,12 +1,12 @@
+import { truncate } from '../domain/text.js';
+
+export { truncate };
+
 export interface ToolError {
   error: string;
   message: string;
   next: string;
   detail?: string;
-}
-
-export function truncate(s: string, n: number): string {
-  return s.length <= n ? s : `${s.slice(0, Math.max(0, n - 1))}…`;
 }
 
 const DETAIL_MAX = 300;
