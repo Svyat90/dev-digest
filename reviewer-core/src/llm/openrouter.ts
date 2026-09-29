@@ -24,6 +24,9 @@ import { toJsonSchema, parseWithRepair } from './structured.js';
 
 const NOT_SUPPORTED = 'OpenRouterProvider only implements completeStructured';
 
+/** A healthy single-pass review of a ~77k-token diff takes about a minute. */
+const DEFAULT_DEADLINE_MS = 5 * 60_000;
+
 export interface OpenRouterProviderOptions {
   /** OpenAI-compatible base URL (default: OpenRouter). */
   baseURL?: string;
@@ -31,6 +34,14 @@ export interface OpenRouterProviderOptions {
   id?: 'openai' | 'openrouter';
   /** Per-request timeout (ms) — the SDK retries on timeout/5xx/429 with backoff. */
   timeoutMs?: number;
+  /**
+   * Hard deadline (ms) for one completion call, body read included. The SDK's
+   * `timeoutMs` stops at response headers, and OpenRouter sends those at once on
+   * non-streaming calls, then keep-alive padding while the upstream generates —
+   * so a stalled upstream would otherwise hang the call forever. The deadline
+   * spans the SDK's own retries of that call, and hitting it is not retried.
+   */
+  deadlineMs?: number;
   maxRetries?: number;
   /** Injected cost estimator; returns USD or null when the model is unknown. */
   estimateCost?: (model: string, tokensIn: number, tokensOut: number) => number | null;
@@ -41,11 +52,13 @@ export class OpenRouterProvider implements LLMProvider {
   private client: OpenAI;
   private baseURL: string;
   private apiKey: string;
+  private deadlineMs: number;
   private estimateCost?: OpenRouterProviderOptions['estimateCost'];
 
   constructor(apiKey: string, opts: OpenRouterProviderOptions = {}) {
     this.id = opts.id ?? 'openrouter';
     this.apiKey = apiKey;
+    this.deadlineMs = opts.deadlineMs ?? DEFAULT_DEADLINE_MS;
     this.baseURL = opts.baseURL ?? 'https://openrouter.ai/api/v1';
     this.estimateCost = opts.estimateCost;
     this.client = new OpenAI({
@@ -66,7 +79,7 @@ export class OpenRouterProvider implements LLMProvider {
     let lastRaw = '';
 
     for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
-      const res = await this.client.chat.completions.create({
+      const res = await this.createWithDeadline(req.schemaName, {
         model: req.model,
         messages,
         temperature: req.temperature ?? 0,
@@ -113,6 +126,22 @@ export class OpenRouterProvider implements LLMProvider {
       messages.push({ role: 'user', content: parsed.repromptMessage });
     }
     throw new Error(`OpenRouter structured output failed schema validation for ${req.schemaName}`);
+  }
+
+  /** One completion call under `deadlineMs`, which also covers reading the body. */
+  private async createWithDeadline(
+    schemaName: string,
+    body: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming,
+  ): Promise<OpenAI.Chat.ChatCompletion> {
+    const deadline = AbortSignal.timeout(this.deadlineMs);
+    try {
+      return await this.client.chat.completions.create(body, { signal: deadline });
+    } catch (err) {
+      if (!deadline.aborted) throw err;
+      throw new Error(`OpenRouter call for ${schemaName} exceeded the ${this.deadlineMs}ms deadline`, {
+        cause: err,
+      });
+    }
   }
 
   /**

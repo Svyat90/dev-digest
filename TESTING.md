@@ -52,6 +52,8 @@ Docker is unavailable.
 
 **reviewer-core** — the pure engine: `toReview` selection, prompt construction,
 and a `run` with a stubbed model → grounded findings. No DB / GitHub / FS.
+`OpenRouterProvider` is tested against a loopback (`127.0.0.1`) HTTP stand-in
+with a fake key, because the transport behaviour is what it guards.
 
 **e2e web** — see `e2e/README.md`. Deterministic agent-browser flows over the
 main journeys (boot → PR list → PR detail; agents) against a real seeded stack.

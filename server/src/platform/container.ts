@@ -240,6 +240,7 @@ export class Container {
       const key = await this.secrets.get('OPENROUTER_API_KEY');
       if (!key) throw new ConfigError('OPENROUTER_API_KEY is not configured');
       return new OpenRouterProvider(key, {
+        ...(this.config.llmDeadlineMs ? { deadlineMs: this.config.llmDeadlineMs } : {}),
         estimateCost: (model, tokensIn, tokensOut) =>
           this.priceBook.estimate(model, tokensIn, tokensOut),
       });
