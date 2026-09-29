@@ -1,6 +1,6 @@
 import type { Container } from '../../platform/container.js';
 import { type Repo } from '@devdigest/shared';
-import { NotFoundError } from '../../platform/errors.js';
+import { AppError, NotFoundError } from '../../platform/errors.js';
 import { RepoRepository } from './repository.js';
 import { parseRepoUrl, withGitHubToken, toRepoDto } from './helpers.js';
 import {
@@ -21,6 +21,12 @@ import {
  * No HTTP and no raw SQL live here — persistence goes through RepoRepository,
  * pure transforms through helpers.ts, literals through constants.ts.
  */
+
+/** Result of `lookup`: ids the caller needs to address a repo / PR. */
+export interface LookupResult {
+  repo: { id: string; full_name: string };
+  pull: { id: string; number: number } | null;
+}
 
 /** Payload enqueued for (and consumed by) the `clone` job. */
 export interface CloneJobPayload {
@@ -108,6 +114,20 @@ export class RepoService {
   async list(workspaceId: string): Promise<Repo[]> {
     const rows = await this.repo.list(workspaceId);
     return rows.map(toRepoDto);
+  }
+
+  /** Resolve `owner/name` (+ optional PR number) to ids. Read-only; 404 when not imported. */
+  async lookup(workspaceId: string, fullName: string, prNumber?: number): Promise<LookupResult> {
+    const repo = await this.repo.findByFullNameCi(workspaceId, fullName);
+    if (!repo) throw new AppError('repo_not_found', `Repo ${fullName} is not imported`, 404);
+    const repoDto = { id: repo.id, full_name: repo.fullName };
+    if (prNumber === undefined) return { repo: repoDto, pull: null };
+
+    const pull = await this.repo.findPullByNumber(workspaceId, repo.id, prNumber);
+    if (!pull) {
+      throw new AppError('pr_not_found', `PR #${prNumber} of ${fullName} is not imported`, 404);
+    }
+    return { repo: repoDto, pull };
   }
 
   /** Re-fetch the clone for an existing repo (enqueues a fresh `clone` job). */
