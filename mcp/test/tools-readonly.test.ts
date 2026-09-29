@@ -75,9 +75,9 @@ describe('read-only tools', () => {
     });
     const res = await h.client.callTool({ name: 'get_conventions', arguments: { repo: 'x/y' } });
     expect(res.isError).toBe(true);
-    const err = JSON.parse(text(res)) as { error: string; message: string; next: string };
+    const err = JSON.parse(text(res)) as { error: string; message: string; next: string; detail?: string };
     expect(err.error).toBe('repo_not_found');
-    expect(err.message).toContain('acme/a, acme/b');
+    expect(err.detail).toContain('acme/a, acme/b');
     expect(err.next).not.toBe('');
   });
 

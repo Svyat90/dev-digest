@@ -14,6 +14,16 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-09-29 — A test `Clock` with a fixed `now()` and a no-op `sleep` crashes the vitest worker with OOM, not a timeout.**
+  `waitForRun` measures elapsed time only through `clock.now()`, so a clock that
+  never advances never reaches the deadline, and a resolving `sleep` makes the
+  poll loop spin synchronously. vitest printed `Error: Worker exited unexpectedly`
+  with a `node::OOMErrorHandler` stack. It named no test and never hit the test timeout.
+  Rule: in a test that can reach `waitForRun`, use `virtualClock(start)` from
+  `test/helpers/harness.ts` (its `sleep` advances time); hand-roll a `Clock` only
+  when its `sleep` blocks, like the cancellation test.
+  `mcp/src/domain/wait.ts` (`waitForRun`), `mcp/test/helpers/harness.ts` (`virtualClock`)
+
 ## Codebase Patterns
 
 Conventions and structural decisions a newcomer would otherwise re-derive.

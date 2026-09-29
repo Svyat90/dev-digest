@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ProgressNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { registerRunAgentOnPr } from '../src/tools/run-agent-on-pr.js';
 import type { Clock } from '../src/tools/common.js';
-import { connect, type RouteHandler } from './helpers/harness.js';
+import { connect, virtualClock, type RouteHandler } from './helpers/harness.js';
 
 type Harness = Awaited<ReturnType<typeof connect>>;
 let h: Harness | undefined;
@@ -13,8 +13,10 @@ afterEach(async () => {
 
 const AGENT = { id: 'ag1', name: 'Security Reviewer', description: 'd', model: 'm', enabled: true };
 const PR = { id: 'pr1', number: 482 };
+const RUN = '22222222-2222-4222-8222-222222222222';
+const OLD = '2026-01-01T00:00:00.000Z'; // far past STALE_RUN_MS on a real clock
 const run = (status: string, extra: Record<string, unknown> = {}) => ({
-  run_id: 'run1',
+  run_id: RUN,
   pr_id: 'pr1',
   agent_id: 'ag1',
   agent_name: 'Security Reviewer',
@@ -28,7 +30,7 @@ const run = (status: string, extra: Record<string, unknown> = {}) => ({
 });
 const review = {
   id: 'rv1',
-  run_id: 'run1',
+  run_id: RUN,
   summary: 'sum',
   score: 55,
   findings: [
@@ -52,7 +54,7 @@ function baseRoutes(getRun: RouteHandler, extra: Record<string, RouteHandler> = 
     'GET /pulls/:id/runs/active': () => [],
     'POST /pulls/:id/review': () => ({
       pr_id: 'pr1',
-      runs: [{ run_id: 'run1', agent_id: 'ag1', agent_name: 'Security Reviewer' }],
+      runs: [{ run_id: RUN, agent_id: 'ag1', agent_name: 'Security Reviewer' }],
       reviews: [],
     }),
     'GET /runs/:id': getRun,
@@ -72,7 +74,7 @@ describe('run_agent_on_pr', () => {
     const res = await h.client.callTool({ name: 'run_agent_on_pr', arguments: args });
     expect(res.isError).toBeFalsy();
     const body = JSON.parse(text(res));
-    expect(body).toMatchObject({ status: 'done', verdict: 'request_changes', reused: false, run_id: 'run1' });
+    expect(body).toMatchObject({ status: 'done', verdict: 'request_changes', reused: false, run_id: RUN });
     expect(body.findings).toHaveLength(1);
     const post = h.calls.filter((c) => c.method === 'POST');
     expect(post).toHaveLength(1);
@@ -87,7 +89,7 @@ describe('run_agent_on_pr', () => {
     const res = await h.client.callTool({ name: 'run_agent_on_pr', arguments: args });
     expect(res.isError).toBeFalsy();
     const body = JSON.parse(text(res));
-    expect(body).toMatchObject({ status: 'running', run_id: 'run1' });
+    expect(body).toMatchObject({ status: 'running', run_id: RUN });
     expect(body.next).toContain('get_findings');
   });
 
@@ -135,11 +137,11 @@ describe('run_agent_on_pr', () => {
     });
     const rejected = expect(pending).rejects.toBeDefined();
     await started;
-    const getsBefore = h.calls.filter((c) => c.path === '/runs/run1').length;
+    const getsBefore = h.calls.filter((c) => c.path === `/runs/${RUN}`).length;
     ac.abort();
     await rejected;
     await new Promise((r) => setTimeout(r, 20));
-    expect(h.calls.filter((c) => c.path === '/runs/run1')).toHaveLength(getsBefore);
+    expect(h.calls.filter((c) => c.path === `/runs/${RUN}`)).toHaveLength(getsBefore);
     expect(h.calls.at(-1)?.signal?.aborted).toBe(true);
   });
 
@@ -163,10 +165,46 @@ describe('run_agent_on_pr', () => {
     expect(body.next).not.toContain('IGNORE');
   });
 
+  it('does not join a stale active run and says how to clear it', async () => {
+    h = await connect(registerRunAgentOnPr, {
+      routes: baseRoutes(() => run('running'), {
+        'GET /pulls/:id/runs/active': () => [{ run_id: RUN, agent_id: 'ag1', agent_name: 'x', ran_at: OLD }],
+      }),
+      clock: virtualClock(Date.parse('2026-01-01T01:00:00.000Z')),
+    });
+    const res = await h.client.callTool({ name: 'run_agent_on_pr', arguments: args });
+    expect(res.isError).toBe(true);
+    const body = JSON.parse(text(res));
+    expect(body.error).toBe('stale_run');
+    expect(body.next).toContain(`Cancel run ${RUN}`);
+    expect(posts()).toBe(0);
+    expect(h.calls.some((c) => c.path.startsWith('/runs/'))).toBe(false);
+  });
+
+  it('reports stale_run when the deadline passes on a run that is by then stale', async () => {
+    h = await connect(registerRunAgentOnPr, {
+      routes: baseRoutes(() => run('running', { ran_at: OLD })),
+      clock: virtualClock(Date.parse('2026-01-01T01:00:00.000Z')),
+      config: { runTimeoutMs: 12000 },
+    });
+    const res = await h.client.callTool({ name: 'run_agent_on_pr', arguments: args });
+    expect(JSON.parse(text(res)).error).toBe('stale_run');
+  });
+
+  it('starts one run for parallel calls on the same PR and agent', async () => {
+    h = await connect(registerRunAgentOnPr, { routes: baseRoutes(() => run('done')) });
+    const [a, b] = await Promise.all([
+      h.client.callTool({ name: 'run_agent_on_pr', arguments: args }),
+      h.client.callTool({ name: 'run_agent_on_pr', arguments: args }),
+    ]);
+    expect(posts()).toBe(1);
+    expect([JSON.parse(text(a)).reused, JSON.parse(text(b)).reused].sort()).toEqual([false, true]);
+  });
+
   it('reuses an active run of the same agent without a POST', async () => {
     h = await connect(registerRunAgentOnPr, {
       routes: baseRoutes(() => run('done'), {
-        'GET /pulls/:id/runs/active': () => [{ run_id: 'run1', agent_id: 'ag1', agent_name: 'x', ran_at: null }],
+        'GET /pulls/:id/runs/active': () => [{ run_id: RUN, agent_id: 'ag1', agent_name: 'x', ran_at: null }],
       }),
     });
     const res = await h.client.callTool({ name: 'run_agent_on_pr', arguments: args });

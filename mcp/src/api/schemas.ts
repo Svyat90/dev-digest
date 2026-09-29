@@ -27,9 +27,10 @@ export const LookupResult = z.object({
 });
 export type LookupResult = z.infer<typeof LookupResult>;
 
-// canonical: server/src/vendor/shared/contracts/trace.ts RunSummary (+ pr_id from GET /runs/:id)
+// canonical: server/src/modules/reviews/repository/run.repo.ts RunState (GET /runs/:id)
+// run_id is checked as a uuid because tools interpolate it into `next`.
 export const RunState = z.object({
-  run_id: z.string(),
+  run_id: z.string().uuid(),
   pr_id: z.string().nullable().optional(),
   agent_id: z.string().nullable(),
   agent_name: z.string().nullable(),
@@ -45,7 +46,7 @@ export const RunStateList = z.array(RunState);
 
 // canonical: server/src/modules/reviews/repository/run.repo.ts activeRunsForPull
 export const ActiveRun = z.object({
-  run_id: z.string(),
+  run_id: z.string().uuid(),
   agent_id: z.string().nullable(),
   agent_name: z.string().nullable(),
   ran_at: z.string().nullable(),
@@ -56,7 +57,7 @@ export const ActiveRunList = z.array(ActiveRun);
 // canonical: server/src/vendor/shared/contracts/review-api.ts ReviewRunResponse
 export const ReviewRunResponseLite = z.object({
   pr_id: z.string(),
-  runs: z.array(z.object({ run_id: z.string(), agent_id: z.string(), agent_name: z.string() })),
+  runs: z.array(z.object({ run_id: z.string().uuid(), agent_id: z.string(), agent_name: z.string() })),
 });
 export type ReviewRunResponseLite = z.infer<typeof ReviewRunResponseLite>;
 

@@ -52,7 +52,8 @@ Every tool takes flat arguments. `repo` is `"owner/name"`. Errors come back as
 
 `run_agent_on_pr` details:
 
-- It reuses an active run of the same agent on the same PR instead of starting a second one (`reused: true`).
+- It reuses an active run of the same agent on the same PR instead of starting a second one (`reused: true`). Parallel calls for the same PR and agent share one start.
+- It does not join a run that has been `running` for over 30 minutes: the API marks orphaned runs failed only on boot, so such a run is likely stuck. It fails with `stale_run`, whose `next` says to cancel the run in the studio or restart the API. `get_findings` reports a run like that the same way.
 - It waits up to `DEVDIGEST_RUN_TIMEOUT_MS`. When the client sent a progress token it sends a progress notification at most every 10 s.
 - At the deadline it returns `status: "running"` with a `run_id`; call `get_findings` with that id later.
 
@@ -86,8 +87,11 @@ Findings are sorted by severity, then file, then line.
 Example error:
 
 ```json
-{ "error": "repo_not_found", "message": "Repo acme/x is not imported. Imported: acme/payments-api.", "next": "Add it in the DevDigest studio (Add repository), or use one of the imported repos." }
+{ "error": "repo_not_found", "message": "Repo acme/x is not imported.", "next": "Add it in the DevDigest studio (Add repository), or use one of the imported repos.", "detail": "Imported: acme/payments-api" }
 ```
+
+Text that comes from the API (error codes and messages, repo names, run errors)
+appears only in `detail`, never in `message` or `next`.
 
 ## Environment
 

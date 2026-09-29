@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { registerGetFindings } from '../src/tools/get-findings.js';
-import { apiError, connect, json } from './helpers/harness.js';
+import { apiError, connect, json, virtualClock } from './helpers/harness.js';
 
 type Harness = Awaited<ReturnType<typeof connect>>;
 let h: Harness | undefined;
@@ -64,6 +64,49 @@ describe('get_findings', () => {
     const res = await h.client.callTool({ name: 'get_findings', arguments: { repo: 'acme/api', pr_number: 7 } });
     expect(res.isError).toBeFalsy();
     expect(JSON.parse(text(res))).toMatchObject({ status: 'running', run_id: RUN });
+  });
+
+  it('returns no_runs for a PR that was never reviewed', async () => {
+    h = await connect(registerGetFindings, { routes: { ...routes(), 'GET /pulls/:id/runs': () => [] } });
+    const res = await h.client.callTool({ name: 'get_findings', arguments: { repo: 'acme/api', pr_number: 7 } });
+    expect(res.isError).toBe(true);
+    expect(JSON.parse(text(res))).toMatchObject({ error: 'no_runs', next: 'Call run_agent_on_pr to start one.' });
+  });
+
+  it('with agent, picks the newest run of that agent, not the newest run overall', async () => {
+    const OTHER = '33333333-3333-4333-8333-333333333333';
+    h = await connect(registerGetFindings, {
+      routes: {
+        ...routes(),
+        'GET /agents': () => [
+          { id: 'ag-1', name: 'Security Reviewer', description: 'd', model: 'm', enabled: true },
+          { id: 'ag-2', name: 'General Reviewer', description: 'd', model: 'm', enabled: true },
+        ],
+        // Newest first, as the API returns them.
+        'GET /pulls/:id/runs': () => [
+          run({ run_id: OTHER, agent_id: 'ag-2', agent_name: 'General Reviewer', status: 'running' }),
+          run(),
+        ],
+      },
+    });
+    const res = await h.client.callTool({
+      name: 'get_findings',
+      arguments: { repo: 'acme/api', pr_number: 7, agent: 'Security Reviewer' },
+    });
+    expect(res.isError).toBeFalsy();
+    expect(JSON.parse(text(res))).toMatchObject({ status: 'done', run_id: RUN });
+  });
+
+  it('reports a long-running run as stale_run with a way out', async () => {
+    h = await connect(registerGetFindings, {
+      routes: routes({ status: 'running', ran_at: '2026-01-01T00:00:00.000Z' }),
+      clock: virtualClock(Date.parse('2026-01-01T01:00:00.000Z')),
+    });
+    const res = await h.client.callTool({ name: 'get_findings', arguments: { repo: 'acme/api', pr_number: 7 } });
+    expect(res.isError).toBe(true);
+    const err = JSON.parse(text(res));
+    expect(err.error).toBe('stale_run');
+    expect(err.next).toContain(`Cancel run ${RUN}`);
   });
 
   it('rejects missing or mixed arguments with invalid_arguments', async () => {

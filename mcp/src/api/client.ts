@@ -127,7 +127,12 @@ export class DevDigestApi {
     let payload: unknown;
     try {
       payload = await res.json();
-    } catch {
+    } catch (err) {
+      // The timeout also covers reading the body: report it as one, not as a shape error.
+      if (opts.signal?.aborted) throw err;
+      if (timeoutSignal.aborted) {
+        throw new ApiError('timeout', 'response body timed out', opts.path, undefined, undefined, this.httpTimeoutMs);
+      }
       if (res.ok) throw new ApiError('shape', 'response is not JSON', opts.path);
       payload = undefined;
     }

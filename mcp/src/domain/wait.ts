@@ -61,3 +61,10 @@ export async function waitForRun(args: {
     }
   }
 }
+
+/** True when a run started (`ran_at`) more than `staleAfterMs` before `nowMs`; unknown start → false. */
+export function isStaleRun(ranAt: string | null, nowMs: number, staleAfterMs: number): boolean {
+  if (!ranAt) return false;
+  const start = Date.parse(ranAt);
+  return !Number.isNaN(start) && nowMs - start > staleAfterMs;
+}

@@ -2,8 +2,18 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { ToolFailure, toToolError, truncate } from '../api/errors.js';
 import type { RunState } from '../api/schemas.js';
+import { STALE_RUN_MS } from '../config.js';
 import { buildDonePayload } from '../domain/findings.js';
-import { agentField, fail, ok, prNumberField, repoField, type ToolDeps } from './common.js';
+import { isStaleRun } from '../domain/wait.js';
+import {
+  agentField,
+  fail,
+  ok,
+  prNumberField,
+  repoField,
+  staleRunError,
+  type ToolDeps,
+} from './common.js';
 import { resolveAgent, resolveRepoAndPull } from './resolve.js';
 
 const DETAIL_MAX = 300;
@@ -28,9 +38,9 @@ export function registerGetFindings(server: McpServer, deps: ToolDeps): void {
     async ({ run_id, repo, pr_number, agent, limit, cursor }, extra) => {
       const signal = extra.signal;
       try {
-        const byRepo = repo !== undefined && pr_number !== undefined;
-        const valid = run_id !== undefined ? repo === undefined && pr_number === undefined && agent === undefined : byRepo;
-        if (!valid) {
+        const mixed = run_id !== undefined && (repo !== undefined || pr_number !== undefined || agent !== undefined);
+        const byRepo = repo !== undefined && pr_number !== undefined ? { repo, pr_number } : undefined;
+        if (mixed || (run_id === undefined && !byRepo)) {
           return fail({
             error: 'invalid_arguments',
             message: 'Pass either run_id, or repo together with pr_number (agent is optional there).',
@@ -40,7 +50,8 @@ export function registerGetFindings(server: McpServer, deps: ToolDeps): void {
 
         let run: RunState;
         let prId: string;
-        if (run_id !== undefined) {
+        if (!byRepo) {
+          if (run_id === undefined) throw new Error('unreachable: arguments validated above');
           run = await deps.api.getRun(run_id, signal);
           if (!run.pr_id) {
             return fail({
@@ -51,7 +62,7 @@ export function registerGetFindings(server: McpServer, deps: ToolDeps): void {
           }
           prId = run.pr_id;
         } else {
-          const found = await resolveRepoAndPull(deps.api, repo!, pr_number, signal);
+          const found = await resolveRepoAndPull(deps.api, byRepo.repo, byRepo.pr_number, signal);
           if (!found.pull) {
             throw new ToolFailure({
               error: 'pr_not_found',
@@ -82,6 +93,7 @@ export function registerGetFindings(server: McpServer, deps: ToolDeps): void {
           });
         }
         if (run.status !== 'done') {
+          if (isStaleRun(run.ran_at, deps.clock.now(), STALE_RUN_MS)) return fail(staleRunError(run.run_id));
           return ok({
             status: 'running',
             run_id: run.run_id,

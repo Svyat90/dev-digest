@@ -1,14 +1,57 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { toToolError, truncate } from '../api/errors.js';
+import { ToolFailure, toToolError, truncate } from '../api/errors.js';
+import { STALE_RUN_MS } from '../config.js';
 import { buildDonePayload } from '../domain/findings.js';
-import { waitForRun } from '../domain/wait.js';
-import { agentField, fail, ok, prNumberField, repoField, type ToolDeps } from './common.js';
+import { isStaleRun, waitForRun } from '../domain/wait.js';
+import {
+  agentField,
+  fail,
+  ok,
+  prNumberField,
+  repoField,
+  staleRunError,
+  type ToolDeps,
+} from './common.js';
 import { resolveAgent, resolveRepoAndPull } from './resolve.js';
 
 const PAGE_LIMIT = 20;
 const DETAIL_MAX = 300;
 
+interface StartedRun {
+  runId: string;
+  reused: boolean;
+}
+
+/**
+ * Reuse a running run of the agent, or start one. A run past STALE_RUN_MS is not
+ * joined: it is reported as stale_run so the caller is told how to clear it.
+ */
+async function reuseOrStart(deps: ToolDeps, prId: string, agentId: string): Promise<StartedRun> {
+  // No caller signal here: the promise is shared with concurrent callers (see below).
+  const active = (await deps.api.activeRuns(prId)).find((r) => r.agent_id === agentId);
+  if (active) {
+    if (isStaleRun(active.ran_at, deps.clock.now(), STALE_RUN_MS)) {
+      throw new ToolFailure(staleRunError(active.run_id));
+    }
+    return { runId: active.run_id, reused: true };
+  }
+  const started = await deps.api.startReview(prId, agentId);
+  const first = started.runs[0];
+  if (!first) {
+    throw new ToolFailure({
+      error: 'run_not_started',
+      message: 'The API accepted the review but returned no run.',
+      next: 'Retry run_agent_on_pr, or check the terminal running the API.',
+    });
+  }
+  return { runId: first.run_id, reused: false };
+}
+
 export function registerRunAgentOnPr(server: McpServer, deps: ToolDeps): void {
+  // Checking /runs/active and then POSTing is not atomic: parallel calls for the
+  // same PR and agent share one reuse-or-start so the budget is spent once.
+  const starting = new Map<string, Promise<StartedRun>>();
+
   server.registerTool(
     'run_agent_on_pr',
     {
@@ -32,25 +75,16 @@ export function registerRunAgentOnPr(server: McpServer, deps: ToolDeps): void {
           });
         }
 
-        // Reuse a running run of the same agent so a retry does not spend the budget twice.
-        const active = (await deps.api.activeRuns(pull.id, signal)).find((r) => r.agent_id === found.id);
-        let runId: string;
-        let reused = false;
-        if (active) {
-          runId = active.run_id;
-          reused = true;
-        } else {
-          const started = await deps.api.startReview(pull.id, found.id, signal);
-          const first = started.runs[0];
-          if (!first) {
-            return fail({
-              error: 'run_not_started',
-              message: 'The API accepted the review but returned no run.',
-              next: 'Retry run_agent_on_pr, or check the terminal running the API.',
-            });
-          }
-          runId = first.run_id;
+        const key = `${pull.id}:${found.id}`;
+        let pending = starting.get(key);
+        const joined = pending !== undefined;
+        if (!pending) {
+          pending = reuseOrStart(deps, pull.id, found.id).finally(() => starting.delete(key));
+          starting.set(key, pending);
         }
+        const start = await pending;
+        const runId = start.runId;
+        const reused = start.reused || joined;
 
         const progressToken = extra._meta?.progressToken;
         const deadlineS = Math.round(deps.config.runTimeoutMs / 1000);
@@ -111,6 +145,9 @@ export function registerRunAgentOnPr(server: McpServer, deps: ToolDeps): void {
             return ok(payload);
           }
           case 'timeout':
+            if (isStaleRun(outcome.run.ran_at, deps.clock.now(), STALE_RUN_MS)) {
+              return fail(staleRunError(runId));
+            }
             return ok({
               status: 'running',
               run_id: runId,

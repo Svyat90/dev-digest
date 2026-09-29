@@ -57,7 +57,9 @@ export function toToolError(err: unknown, ctx: ErrorContext): ToolError {
       detail: truncate(err instanceof Error ? err.message : String(err), DETAIL_MAX),
     };
   }
-  const detail = err.kind === 'http' ? truncate(err.message, DETAIL_MAX) : undefined;
+  // The API's error code and message are upstream text: `detail` only, truncated.
+  const detail =
+    err.kind === 'http' ? truncate([err.code, err.message].filter(Boolean).join(': '), DETAIL_MAX) : undefined;
   const withDetail = (e: ToolError): ToolError => (detail ? { ...e, detail } : e);
 
   switch (err.kind) {
@@ -84,14 +86,17 @@ export function toToolError(err: unknown, ctx: ErrorContext): ToolError {
   }
 
   const status = err.status ?? 0;
-  const code = err.code ?? 'http_error';
+  const code = err.code;
   if (status === 404 && code === 'repo_not_found') {
-    const imported = ctx.importedRepos?.length ? ` Imported: ${ctx.importedRepos.join(', ')}.` : '';
-    return withDetail({
+    const base: ToolError = {
       error: 'repo_not_found',
-      message: `Repo ${ctx.repo ?? '(unknown)'} is not imported.${imported}`,
+      message: `Repo ${ctx.repo ?? '(unknown)'} is not imported.`,
       next: 'Add it in the DevDigest studio (Add repository), or use one of the imported repos.',
-    });
+    };
+    // Repo names come from the API: they go in `detail`, never in `message`.
+    return ctx.importedRepos?.length
+      ? { ...base, detail: truncate(`Imported: ${ctx.importedRepos.join(', ')}`, DETAIL_MAX) }
+      : withDetail(base);
   }
   if (status === 404 && code === 'pr_not_found') {
     return withDetail({
@@ -117,13 +122,13 @@ export function toToolError(err: unknown, ctx: ErrorContext): ToolError {
   if (status >= 500) {
     return withDetail({
       error: 'api_error',
-      message: `API error ${status} ${code}.`,
+      message: `API error ${status}.`,
       next: 'Check the terminal running the API, then retry.',
     });
   }
   return withDetail({
     error: 'api_rejected',
-    message: `API rejected the request (${code}).`,
+    message: `API rejected the request (HTTP ${status}).`,
     next: 'Check the arguments (list_agents for valid agents) and retry.',
   });
 }

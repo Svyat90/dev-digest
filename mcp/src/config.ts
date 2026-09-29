@@ -3,6 +3,10 @@ import { z } from 'zod';
 export const POLL_INTERVAL_MS = 5000;
 export const PROGRESS_INTERVAL_MS = 10000;
 export const HTTP_TIMEOUT_MS = 15000;
+// A run still `running` this long after `ran_at` is treated as stuck: the API reaps
+// orphaned runs only on boot. Generous, because a map-reduce review of a large PR
+// makes one model call per file.
+export const STALE_RUN_MS = 30 * 60_000;
 
 export const DEFAULT_API_URL = 'http://localhost:3001';
 export const DEFAULT_RUN_TIMEOUT_MS = 600000;
