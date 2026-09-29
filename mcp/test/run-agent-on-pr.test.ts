@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { ProgressNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { registerRunAgentOnPr } from '../src/tools/run-agent-on-pr.js';
 import type { Clock } from '../src/tools/common.js';
 import { connect, type RouteHandler } from './helpers/harness.js';
@@ -105,10 +106,15 @@ describe('run_agent_on_pr', () => {
     expect(seen).toEqual([...seen].sort((a, b) => a - b));
     expect(new Set(seen).size).toBe(seen.length);
 
-    // no token → no notification (would throw/ignore otherwise); the call still succeeds
+    // no token → no notification at all; the call still succeeds
+    let unsolicited = 0;
+    h.client.setNotificationHandler(ProgressNotificationSchema, () => {
+      unsolicited++;
+    });
     n = 0;
     const res = await h.client.callTool({ name: 'run_agent_on_pr', arguments: args });
     expect(res.isError).toBeFalsy();
+    expect(unsolicited).toBe(0);
   });
 
   it('stops polling when the client cancels the request', async () => {
