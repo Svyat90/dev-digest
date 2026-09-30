@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
 
@@ -26,6 +26,43 @@ export class RepoRepository {
       .select()
       .from(t.repos)
       .where(and(eq(t.repos.workspaceId, workspaceId), eq(t.repos.fullName, fullName)));
+    return row;
+  }
+
+  /** Case-insensitive `owner/name` lookup (GET /repos/lookup). Not the add-repo dedupe. */
+  async findByFullNameCi(workspaceId: string, fullName: string): Promise<RepoRow | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(t.repos)
+      .where(
+        and(
+          eq(t.repos.workspaceId, workspaceId),
+          sql`lower(${t.repos.fullName}) = lower(${fullName})`,
+        ),
+      )
+      // The unique index is case-sensitive, so `Acme/X` and `acme/x` can coexist:
+      // prefer the exact spelling, then the oldest import, so the pick is stable.
+      .orderBy(sql`${t.repos.fullName} = ${fullName} desc`, t.repos.createdAt)
+      .limit(1);
+    return row;
+  }
+
+  /** A PR of a repo by its GitHub number, scoped on `pull_requests.workspace_id`. */
+  async findPullByNumber(
+    workspaceId: string,
+    repoId: string,
+    number: number,
+  ): Promise<{ id: string; number: number } | undefined> {
+    const [row] = await this.db
+      .select({ id: t.pullRequests.id, number: t.pullRequests.number })
+      .from(t.pullRequests)
+      .where(
+        and(
+          eq(t.pullRequests.workspaceId, workspaceId),
+          eq(t.pullRequests.repoId, repoId),
+          eq(t.pullRequests.number, number),
+        ),
+      );
     return row;
   }
 

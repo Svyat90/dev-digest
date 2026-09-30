@@ -22,6 +22,17 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of the dependencies this package pins.
 
+- **2026-09-29 — The OpenAI SDK `timeout` stops at headers; a stalled OpenRouter call hangs forever.**
+  openai 4.104 clears its timer once `fetch` resolves (`node_modules/openai/core.js`
+  `fetchWithTimeout` → `.finally(clearTimeout)`), and OpenRouter answers non-streaming
+  calls with `200` headers at once, then keep-alive padding while the upstream
+  generates. A stalled upstream left a review run `running` for 25+ min with no
+  error, no retry and no generation on the OpenRouter dashboard.
+  Rule: every `chat.completions.create` call MUST go through `createWithDeadline`
+  (an `AbortSignal.timeout` passed as a request option, which also aborts the body
+  read) — never rely on the constructor's `timeout` alone.
+  `src/llm/openrouter.ts:131`, reproduced by `test/openrouter.test.ts`
+
 ## Recurring Errors & Fixes
 
 An error seen twice, plus the fix that actually worked.

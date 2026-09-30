@@ -47,6 +47,26 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
 
+- **2026-09-29 — `rg` (ripgrep) is not installed on the dev machine; gate commands written with it fail.**
+  The MCP plan's verification gates used `rg -n …`; every implementer had to
+  rewrite them by hand, and a gate that errors is easy to misread as "no output".
+  Rule: write grep-based gates in plans, skills and docs as `grep -rnE`
+  (`--exclude=<file>` instead of `--glob '!<file>'`); do not assume `rg` exists.
+  `command -v rg` → no output · `docs/plans/2026-09-29-mcp-server.md` (mcp-gates)
+
+- **2026-09-29 — The MCP TypeScript SDK v2 cannot be used here: it hard-depends on Zod 4.**
+  `@modelcontextprotocol/server` 2.x (the v2 package name) lists `zod: ^4.2.0` as a
+  regular dependency, and its migration guide states Zod 3 is no longer supported —
+  a Zod-3 range installs and typechecks cleanly and fails only at runtime. The v1
+  package `@modelcontextprotocol/sdk` (1.31.0) peers on `zod ^3.25 || ^4.0`, so it
+  accepts the repo's pinned 3.25.
+  Rule: any MCP server or client in this repo uses `@modelcontextprotocol/sdk` v1,
+  never `@modelcontextprotocol/server`/`client` v2, while the "Zod 3, not 4" rule
+  stands; after install, run `npm ls zod` and expect a single copy (two copies give
+  TS2589 in v1).
+  `npm view @modelcontextprotocol/server dependencies.zod` → `^4.2.0` ·
+  `npm view @modelcontextprotocol/sdk peerDependencies` → `zod: '^3.25 || ^4.0'`
+
 - **2026-09-26 — `./scripts/e2e.sh` leaves `client/next-env.d.ts` and `client/tsconfig.json` modified.**
   The hermetic stack runs `next dev` with the `.next-e2e` distDir, and Next rewrites
   both files on boot: `next-env.d.ts` references `./.next-e2e/types/routes.d.ts`, and

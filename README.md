@@ -15,6 +15,7 @@ aliases, not published modules):
 | `client/`        | `@devdigest/web`            | Next.js 15 web app (the studio)                       | 3000 |
 | `reviewer-core/` | `@devdigest/reviewer-core`  | Pure review engine: diff → prompt → LLM → findings    | —    |
 | `e2e/`           | `@devdigest/e2e`            | Deterministic browser e2e (agent-browser)             | —    |
+| `mcp/`           | `@devdigest/mcp`            | MCP server (stdio): the review flow inside Claude Code | —    |
 | `server/src/vendor/shared` | `@devdigest/shared` | Zod contracts shared across every package             | —    |
 
 `repo-intel` (the codebase indexer that powers the **Indexed** badge and feeds
@@ -61,7 +62,20 @@ Each package has its own README with deeper diagrams:
 [`client`](client/README.md) (UI route map) ·
 [`server`](server/README.md) (API map) ·
 [`reviewer-core`](reviewer-core/README.md) (review pipeline) ·
-[`e2e`](e2e/README.md).
+[`e2e`](e2e/README.md) ·
+[`mcp`](mcp/README.md) (tools, env, troubleshooting).
+
+## Use DevDigest from Claude Code
+
+The `mcp/` package lets Claude Code run a reviewer agent on an imported PR and
+read its findings.
+
+1. Start the stack (`./scripts/dev.sh`) and import the repo and PR in the studio.
+2. Build the server once: `cd mcp && npm install && npm run build`.
+3. Open Claude Code in this repo. It picks up [`.mcp.json`](.mcp.json); run `/mcp` to check that `devdigest` is connected.
+4. Typical flow: `list_agents`, then `run_agent_on_pr` (repo `owner/name`, PR number, agent), then `get_findings` if the run was still going at the deadline.
+
+Tools, env vars and troubleshooting: [`mcp/README.md`](mcp/README.md).
 
 ## What works on day 1
 
@@ -144,6 +158,7 @@ path filter — full strategy in **[`TESTING.md`](TESTING.md)**.
 | server integration (real Postgres) | `server-integration.yml` | yes |
 | reviewer-core (engine) | `reviewer-core.yml` | no |
 | web e2e (agent-browser, real stack) | `e2e-web.yml` | yes |
+| mcp (unit + in-memory MCP) | `mcp.yml` | no |
 
 Server tests split by filename: `*.it.test.ts` are DB-backed (testcontainers
 Postgres); everything else is hermetic. The browser e2e flows live in

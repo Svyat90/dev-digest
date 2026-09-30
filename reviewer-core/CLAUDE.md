@@ -37,7 +37,9 @@ then read code.
   the CI runner from L06. A wording change to the system prompt or the guard
   changes both at once; note the reasoning in `docs/` when you make one.
 - Tests stub `LLMProvider`. There is no key and no network in this suite; keep
-  it that way.
+  it that way. One exception: tests of the provider itself
+  (`test/openrouter.test.ts`) drive the real SDK against a `127.0.0.1` HTTP
+  stand-in with a fake key — never an external host, never a real key.
 
 ## Do-not-touch
 

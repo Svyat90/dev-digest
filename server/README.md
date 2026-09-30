@@ -64,12 +64,12 @@ Each module owns its routes (`modules/<name>/routes.ts`). Grouped by domain:
 ```mermaid
 flowchart TB
   subgraph Repos_PRs["Repos & PRs"]
-    repos["repos<br/>/repos"]
+    repos["repos<br/>/repos · /repos/lookup"]
     pulls["pulls<br/>/pulls/:id · /pulls/:id/comments"]
     polling["polling<br/>/repos/:id/poll"]
   end
   subgraph Review["Review & runs"]
-    reviews["reviews<br/>/pulls/:id/review · /reviews · /findings/:id/(accept|dismiss)<br/>/runs/:id/(events|trace)"]
+    reviews["reviews<br/>/pulls/:id/review · /reviews · /findings/:id/(accept|dismiss)<br/>/runs/:id · /runs/:id/(events|trace)"]
     smartDiff["smart-diff<br/>/pulls/:id/smart-diff<br/>(deterministic, no model call)"]
   end
   subgraph Agents["Agents"]

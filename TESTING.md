@@ -1,6 +1,6 @@
 # Testing & CI strategy
 
-DevDigest is four independent packages (no workspace), so testing is organised
+DevDigest is five independent packages (no workspace), so testing is organised
 as **one suite per package**, each with its own CI workflow, runner, and path
 filter. A package's suite runs only when that package (or a package it depends
 on at type-check time) changes.
@@ -31,6 +31,7 @@ If a test wouldn't catch a class of regression we care about, we don't write it.
 | server-integration | `server/` | integration (real Postgres) | vitest | `server-integration.yml` | **yes** |
 | reviewer-core | `reviewer-core/` | unit (engine) | vitest | `reviewer-core.yml` | no |
 | e2e web | `e2e/` | browser e2e (deterministic) | agent-browser + `run.ts` | `e2e-web.yml` | yes (stack) |
+| mcp | `mcp/` | unit + in-memory MCP | vitest | `mcp.yml` | no |
 
 ## What each suite covers
 
@@ -51,10 +52,18 @@ Docker is unavailable.
 
 **reviewer-core** — the pure engine: `toReview` selection, prompt construction,
 and a `run` with a stubbed model → grounded findings. No DB / GitHub / FS.
+`OpenRouterProvider` is tested against a loopback (`127.0.0.1`) HTTP stand-in
+with a fake key, because the transport behaviour is what it guards.
 
 **e2e web** — see `e2e/README.md`. Deterministic agent-browser flows over the
 main journeys (boot → PR list → PR detail; agents) against a real seeded stack.
 No `chat`, no model key.
+
+**mcp** — the stdio MCP server. Each test connects a real MCP `Client` to the
+server over an in-memory transport, with the DevDigest API replaced by a fake
+`fetch` router and a virtual clock, so waiting and progress run instantly. Covers
+tool inputs and outputs, error mapping, the wait/deadline outcomes and the pure
+domain helpers. No API, DB, LLM or network.
 
 ## Running locally
 
@@ -62,6 +71,7 @@ No `chat`, no model key.
 # per package
 cd client        && pnpm test           # + pnpm typecheck
 cd reviewer-core && npm test
+cd mcp           && npm test           # + npm run typecheck
 
 # server — the unit/integration split (see note below)
 cd server && pnpm exec vitest run --exclude '**/*.it.test.ts'   # unit, no Docker

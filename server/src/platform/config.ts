@@ -43,6 +43,13 @@ const EnvSchema = z.object({
     (v) => (v === '' ? undefined : v),
     z.enum(['off', 'summary', 'verbose']).optional(),
   ),
+  // Hard deadline (ms) for one OpenRouter completion call, body read included.
+  // Empty → undefined → reviewer-core's default (5 min). Capped at the largest
+  // delay Node timers accept: above it AbortSignal.timeout fires after 1 ms.
+  LLM_DEADLINE_MS: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.coerce.number().int().positive().max(2_147_483_647).optional(),
+  ),
 });
 
 export type AppConfig = {
@@ -73,6 +80,8 @@ export type AppConfig = {
   promptLog: PromptLogMode;
   /** True when PROMPT_LOG=verbose was requested but downgraded to `summary` (app.ts warns once). */
   promptLogDowngraded: boolean;
+  /** LLM_DEADLINE_MS; undefined keeps reviewer-core's default deadline. */
+  llmDeadlineMs?: number;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -94,5 +103,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     repoIntelEnabled: parsed.REPO_INTEL_ENABLED !== 'false',
     promptLog: promptLog.mode,
     promptLogDowngraded: promptLog.downgraded,
+    ...(parsed.LLM_DEADLINE_MS ? { llmDeadlineMs: parsed.LLM_DEADLINE_MS } : {}),
   };
 }
