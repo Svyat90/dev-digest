@@ -121,20 +121,57 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
         branch: 'feat/rate-limit-public',
         base: 'main',
         headSha: 'a1b2c3d4e5f6',
-        additions: 247,
-        deletions: 38,
-        filesCount: 9,
+        additions: 146,
+        deletions: 8,
+        filesCount: 8,
         status: 'needs_review',
         body: 'Add rate limiting to public API endpoints to prevent abuse from unauthenticated clients.',
       })
       .returning();
 
-    // pr_files (subset)
+    // pr_files
+    // The first four rows are the original core-only set (unchanged). The four
+    // that follow add one file per non-core Smart Diff role (tests, wiring,
+    // docs, boilerplate) so a fresh DB exercises all five role groups without
+    // a review run. The PR row's additions/deletions/filesCount are the sums of
+    // these rows, so the tab count and the diff header agree.
     await db.insert(t.prFiles).values([
       { prId: pr!.id, path: 'src/middleware/ratelimit.ts', additions: 84, deletions: 0 },
       { prId: pr!.id, path: 'src/api/public/webhooks.ts', additions: 31, deletions: 6 },
       { prId: pr!.id, path: 'src/config.ts', additions: 4, deletions: 0 },
       { prId: pr!.id, path: 'src/api/users.ts', additions: 7, deletions: 2 },
+      {
+        prId: pr!.id,
+        path: 'src/middleware/ratelimit.test.ts',
+        additions: 8,
+        deletions: 0,
+        patch:
+          '@@ -0,0 +1,8 @@\n+import { describe, it, expect } from \'vitest\';\n+import { rateLimit } from \'./ratelimit\';\n+\n+describe(\'rateLimit\', () => {\n+  it(\'allows requests under the bucket size\', () => {\n+    expect(rateLimit({ tokens: 5 })).toBe(true);\n+  });\n+});',
+      },
+      {
+        prId: pr!.id,
+        path: '.env.example',
+        additions: 2,
+        deletions: 0,
+        patch:
+          '@@ -3,2 +3,4 @@\n DATABASE_URL=postgres://localhost:5432/devdigest\n REDIS_URL=redis://localhost:6379\n+RATE_LIMIT_WINDOW_MS=60000\n+RATE_LIMIT_MAX_REQUESTS=100',
+      },
+      {
+        prId: pr!.id,
+        path: 'docs/rate-limiting.md',
+        additions: 6,
+        deletions: 0,
+        patch:
+          '@@ -0,0 +1,6 @@\n+# Rate limiting\n+\n+Public API endpoints are limited with a token-bucket algorithm.\n+\n+Configure the window and the request cap via `RATE_LIMIT_WINDOW_MS` and\n+`RATE_LIMIT_MAX_REQUESTS`.',
+      },
+      {
+        prId: pr!.id,
+        path: 'pnpm-lock.yaml',
+        additions: 4,
+        deletions: 0,
+        patch:
+          "@@ -120,4 +120,8 @@\n   dependencies:\n     '@fastify/rate-limit':\n       specifier: ^9.1.0\n       version: 9.1.0\n+\n+  ioredis:\n+    specifier: ^5.4.1\n+    version: 5.4.1",
+      },
     ]);
 
     // pr_commits

@@ -1,23 +1,28 @@
-/* FileCard — one collapsible file in the diff: header (path, +/- stat, comment
-   count) and, when open, its parsed lines plus any outdated comments. */
+/* FileCard — one collapsible file in the diff: header (path, findings dot,
+   +/- stat, comment count) and, when open, its parsed lines plus any
+   outdated comments and off-patch findings. */
 "use client";
 
 import React from "react";
 import { useTranslations } from "next-intl";
 import { Icon } from "@devdigest/ui";
+import type { FindingRecord } from "@devdigest/shared";
 import type { PrFile } from "@/lib/types";
 import { AUTO_EXPAND_MAX_LINES } from "../constants";
 import { parsePatch, type Line } from "../helpers";
 import {
   buildThreads,
   keysForLine,
+  lineKey,
   partitionThreads,
   type CommentThread,
   type DiffCommentApi,
 } from "../comments";
+import { isOpenFinding, partitionFindings, type DiffFindingApi } from "../findings";
 import { s, chevronFor } from "../styles";
 import { CodeLine } from "../CodeLine";
 import { OutdatedComments } from "../OutdatedComments";
+import { OffPatchFindings } from "../OffPatchFindings";
 
 /** Threads anchored to a given parsed line (RIGHT=new, LEFT=old). */
 function threadsForLine(ln: Line, matched: Map<string, CommentThread[]>): CommentThread[] {
@@ -30,23 +35,54 @@ function threadsForLine(ln: Line, matched: Map<string, CommentThread[]>): Commen
   return out;
 }
 
-export function FileCard({ file, commenting }: { file: PrFile; commenting?: DiffCommentApi }) {
+/** Findings anchored to a given parsed line — RIGHT side only (findings
+ *  never bind to a deleted, LEFT-side line; see findings.ts). */
+function findingsForLine(ln: Line, matched: Map<string, FindingRecord[]>): FindingRecord[] {
+  if (matched.size === 0) return [];
+  const key = lineKey("RIGHT", ln.newNo);
+  return key ? matched.get(key) ?? [] : [];
+}
+
+export function FileCard({
+  file,
+  commenting,
+  findings,
+}: {
+  file: PrFile;
+  commenting?: DiffCommentApi;
+  findings?: DiffFindingApi;
+}) {
   const t = useTranslations("shell");
+  const tPr = useTranslations("prReview");
   const [open, setOpen] = React.useState(
     (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
   );
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
 
-  // Group this file's comments into threads, then split into ones we can anchor
-  // to a rendered line vs. "outdated" (GitHub dropped the line / it's not here).
+  // Group this file's comments into threads and findings into per-line
+  // buckets, against the same rendered-line keys, then split each into
+  // "matched" (anchors a rendered line) vs. the leftover bucket (outdated
+  // comments / off-patch findings) — one memo, no extra state.
   const comments = commenting?.comments;
-  const { matched, outdated } = React.useMemo(() => {
-    if (!comments) return { matched: new Map<string, CommentThread[]>(), outdated: [] };
-    const fileThreads = buildThreads(comments.filter((c) => c.path === file.path));
+  const { matched, outdated, matchedFindings, offPatch, hasOpenFinding } = React.useMemo(() => {
     const renderedKeys = new Set<string>();
     for (const ln of lines) for (const k of keysForLine(ln)) renderedKeys.add(k);
-    return partitionThreads(fileThreads, renderedKeys);
-  }, [comments, file.path, lines]);
+
+    const threadResult = comments
+      ? partitionThreads(buildThreads(comments.filter((c) => c.path === file.path)), renderedKeys)
+      : { matched: new Map<string, CommentThread[]>(), outdated: [] };
+
+    const fileFindings = findings ? findings.findings.filter((f) => f.file === file.path) : [];
+    const findingResult = partitionFindings(fileFindings, renderedKeys);
+
+    return {
+      matched: threadResult.matched,
+      outdated: threadResult.outdated,
+      matchedFindings: findingResult.matched,
+      offPatch: findingResult.offPatch,
+      hasOpenFinding: fileFindings.some(isOpenFinding),
+    };
+  }, [comments, findings, file.path, lines]);
 
   const commentCount = commenting
     ? commenting.comments.filter((c) => c.path === file.path).length
@@ -60,6 +96,9 @@ export function FileCard({ file, commenting }: { file: PrFile; commenting?: Diff
         <span className="mono" style={s.filePath}>
           {file.path}
         </span>
+        {hasOpenFinding && (
+          <span role="img" aria-label={tPr("smartDiff.fileHasFindings")} style={s.findingDot} />
+        )}
         <span className="mono tnum" style={s.fileStat}>
           <span style={s.addText}>+{file.additions}</span>{" "}
           <span style={s.delText}>−{file.deletions}</span>
@@ -85,10 +124,15 @@ export function FileCard({ file, commenting }: { file: PrFile; commenting?: Diff
                 path={file.path}
                 threads={threadsForLine(ln, matched)}
                 commenting={commenting}
+                findings={findingsForLine(ln, matchedFindings)}
+                findingApi={findings}
               />
             ))
           )}
           {commenting && commenting.showComments && <OutdatedComments threads={outdated} />}
+          {commenting && commenting.showComments && findings && (
+            <OffPatchFindings findings={offPatch} api={findings} />
+          )}
         </div>
       )}
     </div>

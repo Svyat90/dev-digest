@@ -100,6 +100,7 @@ Every key is built by the factory in `src/lib/hooks/keys.ts` (`keys.pulls(repoId
 | `["pulls", repoId]` | `GET /repos/:id/pulls` | refetches on an interval and on focus |
 | `["pull", prId]` | `GET /pulls/:id` | |
 | `["reviews", prId]` | `GET /pulls/:id/reviews` | reviews **with findings embedded** |
+| `["smart-diff", prId]` | `GET /pulls/:id/smart-diff` | role groups for the Files-changed tab; deterministic, no model call. Invalidated alongside `["reviews", prId]` by `useInvalidateReviewResults` and by `useRunReview` / `useFindingAction` / `useDeleteRun` / `useDeleteReview`, so the dot, the group counter and the reviews list never disagree mid-refetch |
 | `["pr-runs", prId]` | `GET /pulls/:id/runs` | polls while anything is `running` |
 | `["pr-active-runs", prId]` | `GET /pulls/:id/runs/active` | server-sourced live state |
 | `["run-trace", runId]` | `GET /runs/:id/trace` | |

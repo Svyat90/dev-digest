@@ -1,11 +1,16 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, type RefObject } from "react";
 import { useTranslations } from "next-intl";
 import { Icon, Avatar, Badge, Button, Tabs } from "@devdigest/ui";
 import { RunReviewDropdown } from "./_components/RunReviewDropdown";
+import { useHeaderHeightVar } from "./useHeaderHeightVar";
 import { s } from "./styles";
 import type { PrDetail } from "@/lib/types";
+
+/** Read by `DiffTab/styles.ts` to stick the role-group header right below
+ *  this one instead of behind it. */
+const HEADER_HEIGHT_VAR = "--pr-header-h";
 
 interface PrDetailHeaderProps {
   pr: PrDetail;
@@ -14,6 +19,8 @@ interface PrDetailHeaderProps {
   findingsCount: number;
   /** github.com PR URL; null when the repo's full_name isn't known yet. */
   githubUrl?: string | null;
+  /** The shared ancestor (PrDetailView's root) that receives `--pr-header-h`. */
+  heightVarTarget: RefObject<HTMLElement | null>;
   onSetTab: (tab: string) => void;
   onRunStart: () => void;
   onRunsStarted: () => void;
@@ -25,11 +32,13 @@ export function PrDetailHeader({
   tab,
   findingsCount,
   githubUrl,
+  heightVarTarget,
   onSetTab,
   onRunStart,
   onRunsStarted,
 }: PrDetailHeaderProps) {
   const t = useTranslations("prReview");
+  const rootRef = useHeaderHeightVar(heightVarTarget, HEADER_HEIGHT_VAR);
   const handleRunStart = useCallback(() => {
     onRunStart();
   }, [onRunStart]);
@@ -46,7 +55,7 @@ export function PrDetailHeader({
         : "var(--warn)";
 
   return (
-    <div style={s.root}>
+    <div ref={rootRef} style={s.root}>
       <div style={s.titleRow}>
         <div style={s.titleCol}>
           <h1 style={s.h1}>

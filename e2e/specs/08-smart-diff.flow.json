@@ -1,0 +1,28 @@
+{
+  "name": "Smart Diff groups the Files changed tab by role and the order toggle switches back",
+  "description": "From PR #482, open the Files changed tab and confirm the Smart-order header renders (label, stats, all five role groups with their labels and the core description). Docs and Boilerplate start collapsed; expanding Boilerplate reveals the seeded lock file. Then flip the Smart/Original segmented toggle and back, confirming Original order shows the flat GitHub-order diff (src/config.ts) and Smart order restores the role groups (Core). Group ORDER is asserted in DiffTab.test.tsx (T016) — this runner can only assert presence, never absence (flow-authoring.md). Read-only seeded data (no model call). Assumes a freshly-seeded DB (see e2e/README.md).",
+  "steps": [
+    { "cmd": ["open", "{BASE}/"], "label": "load the app root" },
+    { "cmd": ["wait", "--url", "/pulls"], "label": "land on the PR list" },
+    { "cmd": ["find", "text", "Add rate limiting to public API endpoints", "click"], "label": "open the PR row" },
+    { "cmd": ["wait", "--url", "/pulls/482"], "label": "navigate to the PR detail route" },
+    { "cmd": ["wait", "--load", "networkidle"], "label": "PR detail data settles" },
+    { "cmd": ["find", "role", "button", "click", "--name", "Files changed"], "label": "switch to the Files changed tab" },
+    { "cmd": ["wait", "--url", "tab=diff"], "label": "diff tab is active in the URL" },
+    { "cmd": ["wait", "--text", "REVIEWER-ORDERED DIFF"], "label": "Smart Diff header renders (CSS uppercases it; the runner matches rendered text)" },
+    { "cmd": ["wait", "--text", "Core"], "label": "Core group label renders" },
+    { "cmd": ["wait", "--text", "Tests"], "label": "Tests group label renders" },
+    { "cmd": ["wait", "--text", "Wiring"], "label": "Wiring group label renders" },
+    { "cmd": ["wait", "--text", "Docs"], "label": "Docs group label renders" },
+    { "cmd": ["wait", "--text", "Boilerplate"], "label": "Boilerplate group label renders" },
+    { "cmd": ["wait", "--text", "The substance of the change — review closely"], "label": "core role description renders" },
+    { "cmd": ["find", "role", "button", "click", "--name", "Expand Boilerplate group"], "label": "expand the collapsed Boilerplate group" },
+    { "cmd": ["wait", "--text", "pnpm-lock.yaml"], "label": "the seeded lock file is visible once Boilerplate is expanded" },
+    { "cmd": ["find", "role", "button", "text", "--name", "Collapse Boilerplate group"], "label": "the expanded group now offers a Collapse control" },
+    { "cmd": ["find", "role", "button", "text", "--name", "Expand Docs group"], "label": "Docs is still collapsed by default" },
+    { "cmd": ["find", "role", "button", "click", "--name", "Original order"], "label": "switch to Original order" },
+    { "cmd": ["wait", "--text", "src/config.ts"], "label": "Original order shows the flat GitHub-order diff" },
+    { "cmd": ["find", "role", "button", "click", "--name", "Smart order"], "label": "switch back to Smart order" },
+    { "cmd": ["wait", "--text", "Core"], "label": "Smart order restores the role groups" }
+  ]
+}

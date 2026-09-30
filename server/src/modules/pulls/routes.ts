@@ -13,12 +13,12 @@ import * as t from '../../db/schema.js';
 import { getContext } from '../_shared/context.js';
 import { IdParams } from '../_shared/schemas.js';
 import { AppError, NotFoundError } from '../../platform/errors.js';
+import { pickLatestReviewIds } from '../../domain/reviews/latest-review.js';
 import {
   deriveReviewStatus,
   emptySeverityCounts,
   foldSeverityCounts,
   parseAggregateCost,
-  pickLatestReviewIds,
 } from './status.js';
 
 /**
