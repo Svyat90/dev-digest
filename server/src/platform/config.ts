@@ -44,10 +44,11 @@ const EnvSchema = z.object({
     z.enum(['off', 'summary', 'verbose']).optional(),
   ),
   // Hard deadline (ms) for one OpenRouter completion call, body read included.
-  // Empty → undefined → reviewer-core's default (5 min).
+  // Empty → undefined → reviewer-core's default (5 min). Capped at the largest
+  // delay Node timers accept: above it AbortSignal.timeout fires after 1 ms.
   LLM_DEADLINE_MS: z.preprocess(
     (v) => (v === '' ? undefined : v),
-    z.coerce.number().int().positive().optional(),
+    z.coerce.number().int().positive().max(2_147_483_647).optional(),
   ),
 });
 

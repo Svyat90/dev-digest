@@ -51,10 +51,10 @@ export async function listRunsForPull(
   return rows.map(({ run, agentName }) => toRunSummary(run, agentName));
 }
 
-/** One run by id, scoped to the workspace; `pr_id` lets a caller find its findings. */
 /** One run as `GET /runs/:id` returns it (mcp/src/api/schemas.ts projects it). */
 export type RunState = RunSummary & { pr_id: string | null };
 
+/** One run by id, scoped to the workspace; `pr_id` lets a caller find its findings. */
 export async function getRunForWorkspace(
   db: Db,
   workspaceId: string,
