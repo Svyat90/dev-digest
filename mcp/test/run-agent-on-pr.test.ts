@@ -14,7 +14,11 @@ afterEach(async () => {
 const AGENT = { id: 'ag1', name: 'Security Reviewer', description: 'd', model: 'm', enabled: true };
 const PR = { id: 'pr1', number: 482 };
 const RUN = '22222222-2222-4222-8222-222222222222';
-const OLD = '2026-01-01T00:00:00.000Z'; // far past STALE_RUN_MS on a real clock
+// Stale-run tests pin the clock at NOW: OLD is 60 min before it (past STALE_RUN_MS),
+// FRESH 5 min before it.
+const NOW = Date.parse('2026-01-01T01:00:00.000Z');
+const OLD = '2026-01-01T00:00:00.000Z';
+const FRESH = '2026-01-01T00:55:00.000Z';
 const run = (status: string, extra: Record<string, unknown> = {}) => ({
   run_id: RUN,
   pr_id: 'pr1',
@@ -170,7 +174,7 @@ describe('run_agent_on_pr', () => {
       routes: baseRoutes(() => run('running'), {
         'GET /pulls/:id/runs/active': () => [{ run_id: RUN, agent_id: 'ag1', agent_name: 'x', ran_at: OLD }],
       }),
-      clock: virtualClock(Date.parse('2026-01-01T01:00:00.000Z')),
+      clock: virtualClock(NOW),
     });
     const res = await h.client.callTool({ name: 'run_agent_on_pr', arguments: args });
     expect(res.isError).toBe(true);
@@ -184,7 +188,7 @@ describe('run_agent_on_pr', () => {
   it('reports stale_run when the deadline passes on a run that is by then stale', async () => {
     h = await connect(registerRunAgentOnPr, {
       routes: baseRoutes(() => run('running', { ran_at: OLD })),
-      clock: virtualClock(Date.parse('2026-01-01T01:00:00.000Z')),
+      clock: virtualClock(NOW),
       config: { runTimeoutMs: 12000 },
     });
     const res = await h.client.callTool({ name: 'run_agent_on_pr', arguments: args });
@@ -204,8 +208,9 @@ describe('run_agent_on_pr', () => {
   it('reuses an active run of the same agent without a POST', async () => {
     h = await connect(registerRunAgentOnPr, {
       routes: baseRoutes(() => run('done'), {
-        'GET /pulls/:id/runs/active': () => [{ run_id: RUN, agent_id: 'ag1', agent_name: 'x', ran_at: null }],
+        'GET /pulls/:id/runs/active': () => [{ run_id: RUN, agent_id: 'ag1', agent_name: 'x', ran_at: FRESH }],
       }),
+      clock: virtualClock(NOW),
     });
     const res = await h.client.callTool({ name: 'run_agent_on_pr', arguments: args });
     expect(JSON.parse(text(res)).reused).toBe(true);

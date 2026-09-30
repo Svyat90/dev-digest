@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RunState } from '../src/api/schemas.js';
-import { waitForRun, type WaitClock } from '../src/domain/wait.js';
+import { isStaleRun, waitForRun, type WaitClock } from '../src/domain/wait.js';
 
 const state = (status: string): RunState => ({
   run_id: 'r1', agent_id: 'a', agent_name: 'A', status, error: null,
@@ -50,5 +50,21 @@ describe('waitForRun', () => {
     expect(await p).toEqual({ kind: 'aborted' });
     await vi.advanceTimersByTimeAsync(20000);
     expect(getRun).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('isStaleRun', () => {
+  const start = '2026-01-01T00:00:00.000Z';
+  const at = (ms: number): number => Date.parse(start) + ms;
+
+  it('is stale only strictly past the bound', () => {
+    expect(isStaleRun(start, at(1000), 1000)).toBe(false);
+    expect(isStaleRun(start, at(1001), 1000)).toBe(true);
+    expect(isStaleRun(start, at(10), 1000)).toBe(false);
+  });
+
+  it('never calls a run with an unknown start stale', () => {
+    expect(isStaleRun(null, at(1e9), 1000)).toBe(false);
+    expect(isStaleRun('not a date', at(1e9), 1000)).toBe(false);
   });
 });
