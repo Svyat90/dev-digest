@@ -117,7 +117,12 @@ npm run build       # emits dist/ (git-ignored)
 npm run typecheck
 npm test            # 43 tests, hermetic
 npm start           # node dist/index.js; speaks MCP on stdio
+npm run inspect     # rebuild, then open the MCP inspector web UI
 ```
+
+`npm run inspect` needs the inspector installed globally, once:
+`npm install -g --allow-scripts=@modelcontextprotocol/inspector @modelcontextprotocol/inspector`.
+It is not a devDependency because it brings its own `zod` and MCP SDK.
 
 CI runs typecheck, tests and build in [`../.github/workflows/mcp.yml`](../.github/workflows/mcp.yml).
 

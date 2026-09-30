@@ -48,6 +48,14 @@ Quirks of the dependencies this package pins.
 
 An error seen twice, plus the fix that actually worked.
 
+- **2026-09-30 — Any pnpm command in `mcp/` silently replaces the npm install.**
+  `pnpm inspect` (no such script) still reinstalled deps, left untracked
+  `pnpm-lock.yaml` + `pnpm-workspace.yaml`, rebuilt `node_modules` as a pnpm tree
+  (`node_modules/.pnpm`) and exited with `ERR_PNPM_IGNORED_BUILDS` (esbuild).
+  Rule: to recover, `rm -f pnpm-lock.yaml pnpm-workspace.yaml && rm -rf node_modules && npm ci`;
+  never answer the `allowBuilds` prompt in `pnpm-workspace.yaml`. Launch the inspector with `npm run inspect`.
+  `mcp/package.json` (`inspect` script)
+
 ## Session Notes
 
 Dated summary, only when a session changed how this package is worked on.
