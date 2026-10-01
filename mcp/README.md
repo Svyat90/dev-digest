@@ -13,7 +13,7 @@ flowchart LR
     MODEL["model<br/>mcp__devdigest__*"]
   end
   subgraph MCP["mcp/ (node mcp/dist/index.js)"]
-    TOOLS["tools/*<br/>list_agents · run_agent_on_pr · get_findings<br/>get_conventions · get_blast_radius (stub)"]
+    TOOLS["tools/*<br/>list_agents · run_agent_on_pr · get_findings<br/>get_conventions · get_blast_radius"]
     DOMAIN["domain/*<br/>verdict · findings · wait (pure)"]
     APIC["api/client.ts<br/>fetch + Zod projections"]
     LOG["log.ts → stderr only"]
@@ -21,7 +21,7 @@ flowchart LR
     TOOLS -->|"typed calls"| APIC
   end
   subgraph API["server/ Fastify :3001 (e2e :3101)"]
-    ROUTES["REST routes<br/>/agents · /repos/lookup · /pulls/:id/review<br/>/runs/:id · /pulls/:id/reviews · /repos/:id/conventions"]
+    ROUTES["REST routes<br/>/agents · /repos/lookup · /pulls/:id/review<br/>/runs/:id · /pulls/:id/reviews · /pulls/:id/blast<br/>/repos/:id/conventions"]
     CORE["reviewer-core<br/>diff → prompt → LLM → grounded findings"]
   end
   PG[("Postgres + pgvector")]
@@ -48,7 +48,7 @@ Every tool takes flat arguments. `repo` is `"owner/name"`. Errors come back as
 | `run_agent_on_pr` | `repo`, `pr_number`, `agent` (id or exact name) | **no** | Starts a review and waits, then returns the verdict and findings. Spends LLM budget. |
 | `get_findings` | `run_id`, **or** `repo` + `pr_number` (+ `agent`); `limit` (1-50, default 20), `cursor` | yes | Never starts a review. Latest run when addressed by PR. |
 | `get_conventions` | `repo` | yes | Accepted conventions first, then pending; at most 50 |
-| `get_blast_radius` | `repo`, `pr_number` | yes | Stub: always returns an error `Not Implemented Yet` |
+| `get_blast_radius` | `repo`, `pr_number` | yes | Callers (`file:line`), endpoints and crons for each symbol the PR changes, plus `summary`, `degraded`, `reason` and `index_status`; reads `GET /pulls/:id/blast` (a precomputed index, no LLM cost) |
 
 `run_agent_on_pr` details:
 
@@ -138,4 +138,4 @@ npx @modelcontextprotocol/inspector --cli node mcp/dist/index.js --method tools/
 - **Claude Code shows `devdigest` as failed, or `Cannot find module …/dist/index.js`** — `dist/` is missing. Run `cd mcp && npm run build`.
 - **`api_shape_mismatch`** — mcp and the server disagree on a response shape. Rebuild mcp and restart the MCP server.
 - **`repo_not_found` / `pr_not_found`** — import the repo and the PR in the studio first.
-- **`Not Implemented Yet`** — expected from `get_blast_radius`.
+- **`degraded: true` in a `get_blast_radius` result** — the index is missing or partial; resync the index in the studio and retry.

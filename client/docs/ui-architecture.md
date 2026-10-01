@@ -101,6 +101,8 @@ Every key is built by the factory in `src/lib/hooks/keys.ts` (`keys.pulls(repoId
 | `["pull", prId]` | `GET /pulls/:id` | |
 | `["reviews", prId]` | `GET /pulls/:id/reviews` | reviews **with findings embedded** |
 | `["smart-diff", prId]` | `GET /pulls/:id/smart-diff` | role groups for the Files-changed tab; deterministic, no model call. Invalidated alongside `["reviews", prId]` by `useInvalidateReviewResults` and by `useRunReview` / `useFindingAction` / `useDeleteRun` / `useDeleteReview`, so the dot, the group counter and the reviews list never disagree mid-refetch |
+| `["blast", prId]` | `GET /pulls/:id/blast` | blast radius for the Overview card; `useResyncRepoIntel` invalidates the `["blast"]` prefix (`keys.blastAll()`) because the mutation knows only the repo |
+| `["pr-history", prId]` | `GET /pulls/:id/history` | prior merged PRs; fetched only when the card's Prior PRs footer is first opened (`enabled` gated on open) |
 | `["pr-runs", prId]` | `GET /pulls/:id/runs` | polls while anything is `running` |
 | `["pr-active-runs", prId]` | `GET /pulls/:id/runs/active` | server-sourced live state |
 | `["run-trace", runId]` | `GET /runs/:id/trace` | |
