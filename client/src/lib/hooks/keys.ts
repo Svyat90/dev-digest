@@ -31,4 +31,8 @@ export const keys = {
   conventions: (repoId: Id) => ["conventions", repoId] as const,
   intent: (prId: Id) => ["intent", prId] as const,
   smartDiff: (prId: Id) => ["smart-diff", prId] as const,
+  blast: (prId: Id) => ["blast", prId] as const,
+  /** Prefix matching every PR's blast radius — for invalidation only. */
+  blastAll: () => ["blast"] as const,
+  prHistory: (prId: Id) => ["pr-history", prId] as const,
 };
