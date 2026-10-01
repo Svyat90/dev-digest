@@ -53,21 +53,29 @@ export const s = {
   } satisfies CSSProperties,
 } as const;
 
+/** Node outline colours: the single source for both the node strokes and the legend dots. */
+export const NODE_STROKES = {
+  symbol: "var(--accent)",
+  caller: "var(--border)",
+  endpoint: "var(--accent)",
+  cron: "var(--warn)",
+} as const;
+
 export const NODE_STYLES: Record<GraphNodeKind, { box: CSSProperties; text: CSSProperties }> = {
   symbol: {
-    box: { fill: "var(--bg-elevated)", stroke: "var(--accent)", strokeWidth: 1.5 },
+    box: { fill: "var(--bg-elevated)", stroke: NODE_STROKES.symbol, strokeWidth: 1.5 },
     text: { fill: "var(--text-primary)" },
   },
   caller: {
-    box: { fill: "var(--bg-hover)", stroke: "var(--border)", strokeWidth: 1 },
+    box: { fill: "var(--bg-hover)", stroke: NODE_STROKES.caller, strokeWidth: 1 },
     text: { fill: "var(--text-primary)" },
   },
   endpoint: {
-    box: { fill: "var(--accent-bg)", stroke: "var(--accent)", strokeWidth: 1 },
+    box: { fill: "var(--accent-bg)", stroke: NODE_STROKES.endpoint, strokeWidth: 1 },
     text: { fill: "var(--accent-text)" },
   },
   cron: {
-    box: { fill: "var(--warn-bg)", stroke: "var(--warn)", strokeWidth: 1 },
+    box: { fill: "var(--warn-bg)", stroke: NODE_STROKES.cron, strokeWidth: 1 },
     text: { fill: "var(--warn)" },
   },
   more: {
@@ -76,9 +84,5 @@ export const NODE_STYLES: Record<GraphNodeKind, { box: CSSProperties; text: CSSP
   },
 };
 
-/** Legend dot colours, matching the node outlines above. */
-export const LEGEND_COLORS = {
-  symbol: "var(--accent)",
-  caller: "var(--info)",
-  endpoint: "var(--accent-text)",
-} as const;
+/** Legend dot colours: the node outline colours, so the legend always matches the nodes. */
+export const LEGEND_COLORS = NODE_STROKES;

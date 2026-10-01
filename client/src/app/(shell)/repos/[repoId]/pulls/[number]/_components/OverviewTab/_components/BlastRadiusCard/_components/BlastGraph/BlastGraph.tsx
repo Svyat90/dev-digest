@@ -8,12 +8,14 @@ export interface BlastGraphProps {
   downstream: readonly DownstreamImpact[];
 }
 
-const LEGEND = ["symbol", "caller", "endpoint"] as const;
+const LEGEND = ["symbol", "caller", "endpoint", "cron"] as const;
 
 /** Pure-SVG blast radius: changed symbols -> callers, and changed symbols -> endpoints/crons. */
 export function BlastGraph({ downstream }: BlastGraphProps) {
   const t = useTranslations("blast");
   const { nodes, edges, height } = layoutBlastGraph(downstream);
+
+  const hasCron = nodes.some((n) => n.kind === "cron");
 
   if (nodes.length === 0) return <span style={s.empty}>{t("graph.empty")}</span>;
 
@@ -51,7 +53,7 @@ export function BlastGraph({ downstream }: BlastGraphProps) {
         })}
       </svg>
       <ul style={s.legend}>
-        {LEGEND.map((k) => (
+        {LEGEND.filter((k) => k !== "cron" || hasCron).map((k) => (
           <li key={k} style={s.legendItem}>
             <span aria-hidden="true" style={{ ...s.dot, background: LEGEND_COLORS[k] }} />
             {t(`graph.legend.${k}`)}

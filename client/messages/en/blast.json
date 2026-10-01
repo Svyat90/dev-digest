@@ -19,7 +19,8 @@
     "legend": {
       "symbol": "changed symbol",
       "caller": "callers",
-      "endpoint": "endpoints affected"
+      "endpoint": "endpoints affected",
+      "cron": "cron schedules"
     }
   },
   "degraded": {
