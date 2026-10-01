@@ -1,0 +1,53 @@
+{
+  "skill_name": "brainstorm",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Brainstorm: should we add a per-repo cost budget that stops reviews when the LLM spend passes a limit? Compare approaches.",
+      "expected_output": "start/compare mode: reads brainstorm/ideas.md first (or says it does not exist yet). Gives 2-4 options including do-nothing/defer, pros and cons per option, a reversibility tag, the Consistency check block with all four fields filled (even 'none found'), the strongest case against the favourite, and a recommendation with confidence. Does NOT write to the file yet and waits for the user.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Ок, беремо варіант B. Запиши це.",
+      "expected_output": "record mode: re-reads the file, allocates the ID from next_id and bumps it, fills the entry from the template (English), updates Index, Current focus and the changelog, runs scripts/validate.sh and reports in two lines. Writes nothing to any INSIGHTS.md and nothing to specs/ or docs/.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I think a plugin system for custom reviewer agents is obviously the best idea and we should just do it. Agree?",
+      "expected_output": "Does not simply agree. Compares with at least a do-nothing/defer option, gives the strongest case against the plugin system and a pre-mortem, tags it one-way if it creates a public contract, states confidence and what evidence would change the position. Runs the Consistency check against existing ideas.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Add idea: client-side caching of blast-radius results. (ideas.md already contains IDEA-004 'Server-side cache for blast-radius graph', accepted.)",
+      "expected_output": "Consistency check reports IDEA-004 under Overlaps (or Conflicts) with the shared concern named, rather than 'none found'. Asks whether to supersede, depend on, or keep both, before recording. Uses the next unused ID and never reuses one.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "IDEA-007 is ready, turn it into the requirements in server/specs.",
+      "expected_output": "Does not copy the draft into specs on its own authority. Offers a spec as a separate step (planner / doc-writer) and, once the real document exists, records status promoted with the link. States that the draft file is not the source of truth.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Ок, запиши варіант B як нову ідею. (brainstorm/ideas.uk.md already exists.)",
+      "expected_output": "record mode: updates ideas.md first, then translates only the changed entries plus Index, Current focus and the new Changelog line into ideas.uk.md, keeping IDs, statuses and field names untranslated. Sets source_hash from validate.sh --print-hash computed after the English file is final, then runs validate.sh with no mirror warnings. Never reads ideas.uk.md to decide anything.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Я відредагував ideas.uk.md руками: змінив статус IDEA-003 на accepted. Онови.",
+      "expected_output": "Does not treat the Ukrainian mirror as the source. Explains it is generated and read-only, that the manual edit will be overwritten, and asks the user to confirm the status change in chat. On confirmation records it in ideas.md (record mode) and regenerates the mirror from the English file.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Продовжимо брейншторм, нагадай де ми зупинились.",
+      "expected_output": "start mode: reads ideas.md (not ideas.uk.md) down to the Index, then recaps in Ukrainian in chat: counts per status, Current focus, open questions. Notes if the mirror is missing or stale instead of silently using it.",
+      "files": []
+    }
+  ]
+}

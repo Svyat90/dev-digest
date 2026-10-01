@@ -27,3 +27,6 @@ test-results/
 
 # pr-self-review verdict (local, per diff)
 .claude/pr-self-review/
+
+# brainstorm: generated Ukrainian mirror, local reading aid only
+brainstorm/*.uk.md
