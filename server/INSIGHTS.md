@@ -176,6 +176,21 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-09-30 — A TYPE-ONLY import of another module's `types.ts` also fails `no-cross-module-imports`; a shared constant goes to `src/domain/<topic>/`.**
+  The blast spec said "type-only import of `repo-intel/types.ts`", but
+  `.dependency-cruiser.cjs` runs with `tsPreCompilationDeps: true`, so erased
+  type imports count, and `modules/blast/**` → `modules/repo-intel/**` is forbidden
+  (only `repos/service.ts → repo-intel/constants.ts` is grandfathered; never
+  re-baseline). Two fixes held: (a) declare a local structural port + the result
+  shapes in `modules/<new>/types.ts`, and assign the real object to it in
+  `routes.ts` (`const r: BlastIndexReader = container.repoIntel`), so facade drift
+  is a compile error there; (b) move a value both modules need (here
+  `MAX_CALLERS_PER_SYMBOL`) to `src/domain/repo-intel/limits.ts`, no re-export shim.
+  Rule: NEVER plan a cross-module import, type-only included; check with
+  `pnpm run arch:check`.
+  `server/src/modules/blast/types.ts`, `server/src/modules/blast/routes.ts:21`,
+  `server/src/domain/repo-intel/limits.ts`
+
 - **2026-09-25 — `truncateSampleFile`'s byte cap is NOT strict, despite its comment.**
   The comment says "Byte-cap without splitting a multi-byte codepoint", but
   `Buffer.from(out).subarray(0, MAX_SAMPLE_FILE_BYTES).toString('utf8')` cuts
