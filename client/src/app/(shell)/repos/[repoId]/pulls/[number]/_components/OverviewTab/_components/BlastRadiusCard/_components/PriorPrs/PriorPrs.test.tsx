@@ -50,6 +50,28 @@ describe("PriorPrs", () => {
       "https://github.com/acme/a/pull/42",
     );
     expect(screen.getByText("Harden the parser")).toBeInTheDocument();
+    expect(screen.getByText(/^dev · /)).toBeInTheDocument();
+    expect(screen.getByTitle("src/a.ts")).toBeInTheDocument();
+  });
+
+  it("wraps a very long title and truncates a long overlap file inside the card", () => {
+    const title = "Refactor ".repeat(3) + "SupercalifragilisticexpialidociousIdentifier".repeat(4);
+    const file = `src/${"nested/".repeat(15)}file.ts`;
+    mockHistory({
+      degraded: false,
+      reason: null,
+      history: [
+        { pr_number: 7, title, merged_at: "2026-01-02T00:00:00Z", author: "dev", files_overlap: [file], notes: "" },
+      ],
+    });
+    renderIt();
+    fireEvent.click(screen.getByRole("button", { name: blast.history.expand }));
+
+    expect(screen.getByText(title).style.overflowWrap).toBe("anywhere");
+    const chip = screen.getByTitle(file);
+    expect(chip.style.textOverflow).toBe("ellipsis");
+    expect(chip.style.maxWidth).toBe("100%");
+    expect(chip.closest("ul")?.style.flexWrap).toBe("wrap");
   });
 
   it("shows the degraded sentence instead of the empty text", () => {

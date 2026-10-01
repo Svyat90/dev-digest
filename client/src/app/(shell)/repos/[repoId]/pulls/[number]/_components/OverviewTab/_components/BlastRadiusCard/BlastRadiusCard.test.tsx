@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { BlastRadiusResponse } from "@devdigest/shared";
 import blast from "@messages/en/blast.json";
@@ -63,10 +63,8 @@ describe("BlastRadiusCard", () => {
       "href",
       "https://github.com/acme/a/blob/idx123/src/b.ts#L12",
     );
-    expect(screen.getByText(blast.tree.endpoints)).toBeInTheDocument();
-    expect(screen.getByText("GET /users")).toBeInTheDocument();
-    expect(screen.getByText(blast.tree.crons)).toBeInTheDocument();
-    expect(screen.getByText("0 * * * *")).toBeInTheDocument();
+    expect(within(screen.getByRole("group", { name: blast.tree.endpoints })).getByText("GET /users")).toBeInTheDocument();
+    expect(within(screen.getByRole("group", { name: blast.tree.crons })).getByText("0 * * * *")).toBeInTheDocument();
 
     const second = screen.getByRole("button", { name: "Expand beta" });
     expect(second).toHaveAttribute("aria-expanded", "false");
@@ -89,5 +87,44 @@ describe("BlastRadiusCard", () => {
     expect(screen.getByRole("link", { name: "Open src/b.ts:12 on GitHub" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: blast.resync }));
     expect(onResync).toHaveBeenCalledTimes(1);
+  });
+
+  it("styles the cron chip apart from the endpoint chip", () => {
+    renderCard({ blast: RESPONSE });
+    const endpoint = screen.getByTitle("GET /users");
+    const cron = screen.getByTitle("0 * * * *");
+    expect(cron.style.color).toBe("var(--warn)");
+    expect(endpoint.style.color).toBe("var(--accent-text)");
+    expect(cron.style.background).not.toBe(endpoint.style.background);
+  });
+
+  it("keeps a very long path, caller name and chip inside the card (wrap and ellipsis styles)", () => {
+    const longFile = `client/src/${"deeply/nested/".repeat(12)}Component.tsx`;
+    const longEndpoint = `GET /api/${"segment/".repeat(20)}:id`;
+    renderCard({
+      blast: {
+        ...RESPONSE,
+        downstream: [
+          {
+            symbol: "alpha",
+            callers: [{ name: "AVeryLongCallerNameWithoutAnySpaces".repeat(3), file: longFile, line: 7 }],
+            endpoints_affected: [longEndpoint],
+            crons_affected: [],
+          },
+        ],
+      },
+    });
+
+    const link = screen.getByRole("link", { name: `Open ${longFile}:7 on GitHub` });
+    expect(link.style.overflowWrap).toBe("anywhere");
+    expect(link.style.minWidth).toBe("0");
+    expect(link.parentElement?.style.minWidth).toBe("0");
+
+    const chip = screen.getByTitle(longEndpoint);
+    expect(chip.style.maxWidth).toBe("100%");
+    const text = within(chip).getByText(longEndpoint);
+    expect(text.style.textOverflow).toBe("ellipsis");
+    expect(text.style.overflow).toBe("hidden");
+    expect(chip.parentElement?.style.flexWrap).toBe("wrap");
   });
 });

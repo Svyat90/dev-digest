@@ -6,7 +6,7 @@ import { Badge, Button, Icon, SectionLabel, Skeleton } from "@devdigest/ui";
 import type { BlastRadiusResponse } from "@devdigest/shared";
 import { PriorPrs } from "./_components/PriorPrs";
 import { SymbolGroup } from "./SymbolGroup";
-import { blastCounts, isAtLimit } from "./helpers";
+import { STAT_ICONS, blastCounts, isAtLimit } from "./helpers";
 import { s } from "./styles";
 
 export interface BlastRadiusCardProps {
@@ -46,7 +46,7 @@ export function BlastRadiusCard({
 
   if (isLoading) {
     return (
-      <section aria-busy="true">
+      <section aria-busy="true" style={s.root}>
         {label}
         <div style={s.card}>
           <div style={s.skeletonStack}>
@@ -61,7 +61,7 @@ export function BlastRadiusCard({
 
   if (isError || !blast) {
     return (
-      <section>
+      <section style={s.root}>
         {label}
         <div style={s.card}>
           <span style={s.muted}>{t("error")}</span>
@@ -80,7 +80,7 @@ export function BlastRadiusCard({
   const first = blast.downstream[0]?.symbol;
 
   return (
-    <section>
+    <section style={s.root}>
       {label}
       <div style={s.card}>
         {blast.degraded && blast.reason && (
@@ -99,14 +99,23 @@ export function BlastRadiusCard({
           <span style={s.muted}>{t("noDownstream", { count: counts.symbols })}</span>
         ) : (
           <>
-            <dl style={s.stats}>
-              {stats.map(([key, value]) => (
-                <div key={key} style={s.stat}>
-                  <dt style={s.statLabel}>{t(`stat.${key}`)}</dt>
-                  <dd style={s.statValue}>{value}</dd>
-                </div>
-              ))}
-            </dl>
+            {/* The row's right side is left free for the Tree/Graph toggle. */}
+            <div style={s.statsRow}>
+              <dl style={s.stats}>
+                {stats.map(([key, value]) => {
+                  const I = Icon[STAT_ICONS[key]];
+                  return (
+                    <div key={key} style={s.stat}>
+                      <dt style={s.statLabel}>{t(`stat.${key}`)}</dt>
+                      <dd style={s.statValue}>{value}</dd>
+                      <span style={s.statIcon} aria-hidden="true">
+                        <I size={13} />
+                      </span>
+                    </div>
+                  );
+                })}
+              </dl>
+            </div>
             <ul style={s.groups}>
               {blast.downstream.map((group) => (
                 <SymbolGroup

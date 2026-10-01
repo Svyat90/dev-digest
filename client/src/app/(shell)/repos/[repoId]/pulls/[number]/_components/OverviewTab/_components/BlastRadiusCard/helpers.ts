@@ -1,5 +1,14 @@
 import type { BlastRadiusResponse, DownstreamImpact } from "@devdigest/shared";
+import type { IconName } from "@devdigest/ui";
 import { githubBlobUrl } from "@/lib/github-urls";
+
+/** Summary-row icon per stat; `endpoints` and `crons` match the chip icons below. */
+export const STAT_ICONS = {
+  symbols: "Code",
+  callers: "CornerDownRight",
+  endpoints: "Globe",
+  crons: "Clock",
+} as const satisfies Record<string, IconName>;
 
 export interface BlastCounts {
   symbols: number;

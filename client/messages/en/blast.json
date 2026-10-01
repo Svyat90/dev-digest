@@ -44,6 +44,7 @@
     "empty": "No merged PRs touched these files.",
     "error": "Could not load prior PRs.",
     "merged": "merged {date} by {author}",
+    "meta": "{author} · {date}",
     "degraded": {
       "no_clone": "The repository is not cloned locally, so its history cannot be read.",
       "github_unavailable": "GitHub is not reachable (no token or an API error), so prior PRs cannot be listed.",

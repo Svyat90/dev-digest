@@ -28,9 +28,12 @@ export function PriorPrs({ prId, repoFullName }: PriorPrsProps) {
         aria-label={t(open ? "history.collapse" : "history.expand")}
         onClick={() => setOpen((v) => !v)}
       >
-        {open ? <Icon.ChevronDown size={14} /> : <Icon.ChevronRight size={14} />}
-        <span>{t("history.title")}</span>
+        <Icon.History size={14} />
+        <span style={s.toggleTitle}>{t("history.title")}</span>
         {data && <Badge>{t("history.count", { count: data.history.length })}</Badge>}
+        <span style={s.chevron}>
+          {open ? <Icon.ChevronDown size={14} /> : <Icon.ChevronRight size={14} />}
+        </span>
       </button>
 
       {open && (
@@ -57,9 +60,11 @@ export function PriorPrs({ prId, repoFullName }: PriorPrsProps) {
                 <ul style={s.list}>
                   {data.history.map((item) => (
                     <li key={item.pr_number} style={s.row}>
+                      <span style={s.bullet} aria-hidden="true" />
                       <div style={s.rowHead}>
                         {repoFullName ? (
                           <a
+                            className="mono"
                             href={githubPrUrl(repoFullName, item.pr_number)}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -68,12 +73,14 @@ export function PriorPrs({ prId, repoFullName }: PriorPrsProps) {
                             #{item.pr_number}
                           </a>
                         ) : (
-                          <span style={s.link}>#{item.pr_number}</span>
+                          <span className="mono" style={s.link}>
+                            #{item.pr_number}
+                          </span>
                         )}
                         <span style={s.title}>{item.title}</span>
                       </div>
                       <span style={s.meta}>
-                        {t("history.merged", {
+                        {t("history.meta", {
                           date: new Date(item.merged_at).toLocaleDateString("en", {
                             year: "numeric",
                             month: "short",
@@ -85,8 +92,10 @@ export function PriorPrs({ prId, repoFullName }: PriorPrsProps) {
                       {item.files_overlap.length > 0 && (
                         <ul style={s.chips}>
                           {item.files_overlap.map((f) => (
-                            <li key={f}>
-                              <Badge mono>{f}</Badge>
+                            <li key={f} style={s.chipItem}>
+                              <span className="mono" title={f} style={s.chip}>
+                                {f}
+                              </span>
                             </li>
                           ))}
                         </ul>

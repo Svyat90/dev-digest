@@ -2,8 +2,9 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Badge, Icon } from "@devdigest/ui";
+import { Icon } from "@devdigest/ui";
 import type { DownstreamImpact } from "@devdigest/shared";
+import { Chip } from "./Chip";
 import { callerHref } from "./helpers";
 import { s } from "./styles";
 
@@ -23,13 +24,20 @@ export function SymbolGroup({ group, open, onToggle, repoFullName, indexSha, hea
     <li style={s.group}>
       <button
         type="button"
-        style={s.groupToggle}
+        style={open ? s.groupToggle : { ...s.groupToggle, ...s.groupToggleIdle }}
         aria-expanded={open}
         aria-label={t(open ? "tree.collapse" : "tree.expand", { symbol: group.symbol })}
         onClick={onToggle}
       >
-        {open ? <Icon.ChevronDown size={14} /> : <Icon.ChevronRight size={14} />}
-        <span className="mono">{group.symbol}</span>
+        <span style={s.groupIcon}>
+          {open ? <Icon.ChevronDown size={14} /> : <Icon.ChevronRight size={14} />}
+        </span>
+        <span style={s.groupIcon}>
+          <Icon.Code size={14} />
+        </span>
+        <span className="mono" style={s.groupSymbol}>
+          {group.symbol}
+        </span>
         <span style={s.groupCount}>{t("callerCount", { count: group.callers.length })}</span>
       </button>
       {open && (
@@ -40,6 +48,9 @@ export function SymbolGroup({ group, open, onToggle, repoFullName, indexSha, hea
               const href = callerHref(repoFullName, indexSha, headSha, c);
               return (
                 <li key={`${location}:${c.name}`} style={s.caller}>
+                  <span style={s.callerArrow} aria-hidden="true">
+                    <Icon.CornerDownRight size={12} />
+                  </span>
                   {href ? (
                     <a
                       className="mono"
@@ -47,35 +58,35 @@ export function SymbolGroup({ group, open, onToggle, repoFullName, indexSha, hea
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={t("tree.openOnGithub", { location })}
-                      style={s.callerLink}
+                      style={{ ...s.callerLocation, ...s.callerLink }}
                     >
                       {location}
                     </a>
                   ) : (
-                    <span className="mono">{location}</span>
+                    <span className="mono" style={s.callerLocation}>
+                      {location}
+                    </span>
                   )}
-                  <span>{c.name}</span>
+                  <span style={s.callerName}>{c.name}</span>
                 </li>
               );
             })}
           </ul>
           {group.endpoints_affected.length > 0 && (
-            <div style={s.chipRow}>
-              <span style={s.chipLabel}>{t("tree.endpoints")}</span>
+            <div style={s.chipRow} role="group" aria-label={t("tree.endpoints")}>
               {group.endpoints_affected.map((e) => (
-                <Badge key={e} mono icon="Globe" color="var(--accent-text)" bg="var(--accent-bg)">
+                <Chip key={e} icon="Globe" color="var(--accent-text)" bg="var(--accent-bg)">
                   {e}
-                </Badge>
+                </Chip>
               ))}
             </div>
           )}
           {group.crons_affected.length > 0 && (
-            <div style={s.chipRow}>
-              <span style={s.chipLabel}>{t("tree.crons")}</span>
+            <div style={s.chipRow} role="group" aria-label={t("tree.crons")}>
               {group.crons_affected.map((c) => (
-                <Badge key={c} mono icon="Clock" color="var(--info)" bg="var(--info-bg)">
+                <Chip key={c} icon="Clock" color="var(--warn)" bg="var(--warn-bg)">
                   {c}
-                </Badge>
+                </Chip>
               ))}
             </div>
           )}
