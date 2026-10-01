@@ -4,6 +4,7 @@ import {
   ActiveRunList,
   AgentList,
   ApiErrorBody,
+  BlastRadiusLite,
   ConventionListLite,
   LookupResult,
   RepoList,
@@ -83,6 +84,10 @@ export class DevDigestApi {
 
   reviewsForPull(prId: string, signal?: AbortSignal) {
     return this.request({ path: `/pulls/${enc(prId)}/reviews`, schema: ReviewLiteList, signal });
+  }
+
+  blast(prId: string, signal?: AbortSignal) {
+    return this.request({ path: `/pulls/${enc(prId)}/blast`, schema: BlastRadiusLite, signal });
   }
 
   conventions(repoId: string, signal?: AbortSignal) {

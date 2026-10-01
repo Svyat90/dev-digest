@@ -44,7 +44,10 @@ describe('createServer', () => {
     }
     const run = tools.find((t) => t.name === 'run_agent_on_pr');
     expect(run?.annotations?.openWorldHint).toBe(true);
-    expect(tools.find((t) => t.name === 'get_blast_radius')?.description).toMatch(/^NOT IMPLEMENTED YET/);
+    const blast = tools.find((t) => t.name === 'get_blast_radius');
+    expect(blast?.description).not.toMatch(/^NOT IMPLEMENTED/);
+    expect(blast?.title).not.toMatch(/not implemented/i);
+    expect(blast?.annotations?.readOnlyHint).toBe(true);
   });
 
   it('has short instructions and no resources or prompts capability', async () => {
