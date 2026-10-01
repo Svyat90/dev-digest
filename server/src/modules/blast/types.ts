@@ -1,8 +1,8 @@
 import type { BlastDegradedReason, BlastIndexStatus } from '@devdigest/shared';
 
 /**
- * Local structural port over `container.repoIntel`. `modules/blast/**` may not
- * import `modules/repo-intel/**` (not even types: `tsPreCompilationDeps`), so the
+ * Local structural port over `container.repoIntel`. A module may not import
+ * another module's files (not even types: `tsPreCompilationDeps`), so the
  * facade shapes blast reads are declared here. `routes.ts` assigns
  * `container.repoIntel` to `BlastIndexReader`, which is where drift becomes a
  * compile error.
