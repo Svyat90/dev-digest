@@ -127,4 +127,28 @@ describe("BlastRadiusCard", () => {
     expect(text.style.overflow).toBe("hidden");
     expect(chip.parentElement?.style.flexWrap).toBe("wrap");
   });
+
+  it("switches between the tree and the graph with the segmented toggle", () => {
+    renderCard({ blast: RESPONSE });
+    const treeBtn = screen.getByRole("button", { name: blast.view.tree });
+    const graphBtn = screen.getByRole("button", { name: blast.view.graph });
+    expect(treeBtn).toHaveAttribute("aria-pressed", "true");
+    expect(graphBtn).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "Expand beta" })).toBeInTheDocument();
+
+    fireEvent.click(graphBtn);
+    expect(graphBtn).toHaveAttribute("aria-pressed", "true");
+    expect(treeBtn).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByRole("button", { name: "Expand beta" })).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: blast.graph.ariaLabel })).toBeInTheDocument();
+
+    fireEvent.click(treeBtn);
+    expect(screen.queryByRole("img", { name: blast.graph.ariaLabel })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Expand beta" })).toBeInTheDocument();
+  });
+
+  it("hides the toggle when there is no downstream data", () => {
+    renderCard({ blast: { ...RESPONSE, downstream: [] } });
+    expect(screen.queryByRole("button", { name: blast.view.graph })).not.toBeInTheDocument();
+  });
 });

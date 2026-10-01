@@ -14,7 +14,13 @@
   "noDownstream": "{count} changed symbol(s), no downstream callers found.",
   "graph": {
     "empty": "No downstream callers to graph.",
-    "ariaLabel": "Blast radius graph"
+    "ariaLabel": "Blast radius graph",
+    "more": "+{count} more",
+    "legend": {
+      "symbol": "changed symbol",
+      "caller": "callers",
+      "endpoint": "endpoints affected"
+    }
   },
   "degraded": {
     "badge": "Partial data",

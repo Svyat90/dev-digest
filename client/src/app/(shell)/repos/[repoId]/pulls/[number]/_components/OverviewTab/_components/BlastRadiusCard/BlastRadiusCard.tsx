@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Badge, Button, Icon, SectionLabel, Skeleton } from "@devdigest/ui";
 import type { BlastRadiusResponse } from "@devdigest/shared";
+import { BlastGraph } from "./_components/BlastGraph";
 import { PriorPrs } from "./_components/PriorPrs";
 import { SymbolGroup } from "./SymbolGroup";
 import { STAT_ICONS, blastCounts, isAtLimit } from "./helpers";
@@ -35,6 +36,7 @@ export function BlastRadiusCard({
   const t = useTranslations("blast");
   // The first group is open by default; this set holds the groups the user flipped.
   const [flipped, setFlipped] = useState<ReadonlySet<string>>(new Set());
+  const [view, setView] = useState<"tree" | "graph">("tree");
   const toggle = (symbol: string) =>
     setFlipped((prev) => {
       const next = new Set(prev);
@@ -99,7 +101,7 @@ export function BlastRadiusCard({
           <span style={s.muted}>{t("noDownstream", { count: counts.symbols })}</span>
         ) : (
           <>
-            {/* The row's right side is left free for the Tree/Graph toggle. */}
+
             <div style={s.statsRow}>
               <dl style={s.stats}>
                 {stats.map(([key, value]) => {
@@ -115,20 +117,37 @@ export function BlastRadiusCard({
                   );
                 })}
               </dl>
+              <div role="group" aria-label={t("title")} style={s.viewToggle}>
+                {(["tree", "graph"] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    aria-pressed={view === v}
+                    style={view === v ? { ...s.viewButton, ...s.viewButtonActive } : s.viewButton}
+                    onClick={() => setView(v)}
+                  >
+                    {t(`view.${v}`)}
+                  </button>
+                ))}
+              </div>
             </div>
-            <ul style={s.groups}>
-              {blast.downstream.map((group) => (
-                <SymbolGroup
-                  key={group.symbol}
-                  group={group}
-                  open={(group.symbol === first) !== flipped.has(group.symbol)}
-                  onToggle={() => toggle(group.symbol)}
-                  repoFullName={repoFullName}
-                  indexSha={blast.index_sha}
-                  headSha={headSha}
-                />
-              ))}
-            </ul>
+            {view === "graph" ? (
+              <BlastGraph downstream={blast.downstream} />
+            ) : (
+              <ul style={s.groups}>
+                {blast.downstream.map((group) => (
+                  <SymbolGroup
+                    key={group.symbol}
+                    group={group}
+                    open={(group.symbol === first) !== flipped.has(group.symbol)}
+                    onToggle={() => toggle(group.symbol)}
+                    repoFullName={repoFullName}
+                    indexSha={blast.index_sha}
+                    headSha={headSha}
+                  />
+                ))}
+              </ul>
+            )}
             {blast.downstream.some((g) => isAtLimit(g, blast.limits)) && (
               <span style={s.limitHint}>
                 {t("limitHint", { max: blast.limits.max_callers_per_symbol })}
