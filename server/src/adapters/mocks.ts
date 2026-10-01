@@ -16,6 +16,7 @@ import type {
   PrReviewComment,
   OpenPrPayload,
   CommitFilesPayload,
+  CommitPull,
   IssueMeta,
   GitClient,
   CloneOptions,
@@ -128,6 +129,8 @@ export interface MockGitHubOptions {
   login?: string;
   /** Existing inline review comments returned by listReviewComments. */
   comments?: PrReviewComment[];
+  /** Per-sha PRs returned by listPullsForCommit. */
+  pullsForCommit?: Record<string, CommitPull[]>;
 }
 
 export class MockGitHubClient implements GitHubClient {
@@ -235,6 +238,10 @@ export class MockGitHubClient implements GitHubClient {
 
   async getIssue(_repo: RepoRef, n: number): Promise<IssueMeta> {
     return { number: n, title: `Issue #${n}`, body: 'mock issue', state: 'open' };
+  }
+
+  async listPullsForCommit(_repo: RepoRef, sha: string): Promise<CommitPull[]> {
+    return this.opts.pullsForCommit?.[sha] ?? [];
   }
 
   async currentLogin(): Promise<string> {
