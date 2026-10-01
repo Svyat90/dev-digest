@@ -17,8 +17,8 @@ This spec describes the **shipped** behaviour of the L04 feature (plan:
 the client and the MCP tool already depend on, so changing one is a breaking
 change, not a refactor. Scope: P1 + P2 acceptance criteria + the P3 items
 collapsible tree, crons apart from endpoints, rank order, resync button, i18n
-**and Prior PRs** (separate route, see *Prior PRs*). Graph view is out of scope
-(see the end).
+**Prior PRs** (separate route, see *Prior PRs*) **and the Tree/Graph toggle with
+the SVG graph view** (see *Client*).
 
 Context: [`../src/modules/repo-intel/README.md`](../src/modules/repo-intel/README.md)
 (the facade), [`smart-diff.md`](smart-diff.md) (the nearest precedent: a
@@ -198,8 +198,8 @@ Choices made while implementing, kept here so nobody reverses them by accident.
   `keys.prHistory(prId)`, re-exported from `hooks/index.ts`. `OverviewTab` owns
   `useBlastRadius` and `useResyncRepoIntel`; the card is presentational.
 - **Card** `OverviewTab/_components/BlastRadiusCard/` (`BlastRadiusCard.tsx`,
-  `SymbolGroup.tsx`, `helpers.ts`, `styles.ts`, `index.ts`, test) with the
-  `_components/PriorPrs/` footer. `OverviewTab` gains `repoFullName` and
+  `SymbolGroup.tsx`, `Chip.tsx`, `helpers.ts`, `styles.ts`, `index.ts`, test) with
+  the `_components/PriorPrs/` footer and the `_components/BlastGraph/` view. `OverviewTab` gains `repoFullName` and
   `repoId` props (Decision 8). Layout per the design: Intent and Blast radius
   side by side, PR description below.
 - **Summary row** (P1): symbols · callers · endpoints · crons, counted from the
@@ -207,7 +207,26 @@ Choices made while implementing, kept here so nobody reverses them by accident.
 - **Tree** (P1 + P3): one collapsible row per `downstream` group — symbol name,
   `callerCount`; expanded body = callers as `file:line` links (BR13, open in a
   new tab), then endpoint chips, then cron chips **visually distinct** from
-  endpoints. First group expanded by default, the rest collapsed.
+  endpoints. First group expanded by default, the rest collapsed. Endpoint and
+  cron chips (`Chip.tsx`) never outgrow their row: a long value is cut with an
+  ellipsis and the full text stays in `title`.
+- **Tree/Graph toggle.** Two `aria-pressed` buttons beside the summary row
+  (labels `view.tree` / `view.graph`). The card state `view` defaults to
+  `"tree"`; the choice lives in the card and is not persisted.
+- **Graph view** (`_components/BlastGraph/`): a pure SVG drawn from
+  `blast.downstream` alone, with **no new dependency** (no graph or chart
+  library). It has three columns: changed symbols, unique caller names, and
+  unique endpoints plus crons (`layoutBlastGraph`, `helpers.ts`). The contract
+  carries endpoints and crons per symbol group, not per caller, so the edges are
+  **symbol → caller** and **symbol → endpoint/cron** for each group; there is no
+  caller → endpoint edge. Callers are de-duplicated by `name`, so one caller name
+  that appears under several symbols is one node with several incoming edges.
+  Each column draws at most `GRAPH_LIMITS.maxPerColumn` (12) nodes; the rest
+  collapse into one `+N more` node (`graph.more`), and an edge whose far end is
+  hidden is not drawn. Labels longer than `maxChars` (22 / 22 / 26 characters)
+  are cut with an ellipsis, with the full text in the node's `<title>`. These are
+  **view limits** and are unrelated to the server's `MAX_CALLERS_PER_SYMBOL`
+  (BR6). With no nodes the view shows `graph.empty`.
 - **States** (P1): loading skeleton; error line; **no callers** → the
   `noDownstream` message with the changed-symbol count (never an empty card);
   **degraded** → a badge with a human sentence per `reason`, shown above
@@ -218,8 +237,9 @@ Choices made while implementing, kept here so nobody reverses them by accident.
 - **i18n** (P3): every visible string comes from `messages/en/blast.json`
   (imported in tests as `@messages/en/blast.json`). New keys: `title`,
   `degraded.badge`, `degraded.reason.<reason>`, `resync`, `error`, `limitHint`, plus the `history.*`
-  keys for Prior PRs.
-  The unused `view.*` / `graph.*` keys stay for the out-of-scope Graph view.
+  keys for Prior PRs. The Graph view uses `view.tree`, `view.graph`,
+  `graph.empty`, `graph.ariaLabel`, `graph.more` (`+{count} more`) and
+  `graph.legend.symbol` / `.caller` / `.endpoint`.
 
 ## MCP — `get_blast_radius`
 
@@ -253,6 +273,7 @@ Replace the stub in `mcp/src/tools/get-blast-radius.ts`:
 | `server/test/blast-service.test.ts` | `BlastService` with doubles: facade/index-state call counts, the log line (BR12), 404 before the facade, the PH5 degraded reasons. |
 | `server/test/blast.it.test.ts` | Routes: `/blast` 200 validated by `BlastRadiusResponse` with one facade call, 404 other workspace, 422 bad id; `/history` merged PRs only and `no_clone`. |
 | `client/…/BlastRadiusCard.test.tsx` | Renders a group with a `file:line` link whose `href` is the blob URL at `index_sha`; the no-callers message; the degraded badge. |
+| `client/…/BlastGraph/helpers.test.ts`, `BlastGraph.test.tsx` | `layoutBlastGraph` columns, edges and the per-column cap; the rendered graph. `BlastRadiusCard.test.tsx` also covers the toggle. |
 | `client/…/PriorPrs/PriorPrs.test.tsx` | The Prior PRs footer: collapsed by default, fetch on first open, rows and degraded text. |
 | `mcp/test/tools-readonly.test.ts`, `mcp/test/server.test.ts` | Replace the stub assertions: happy path calls `/pulls/:id/blast` and returns the compact map; unknown PR → `pr_not_found`; `readOnlyHint: true`. |
 
@@ -318,6 +339,5 @@ Gate per package: `pnpm typecheck && pnpm test` (server, client),
 
 ## Out of scope (v1)
 
-- Graph view and the Tree/Graph toggle (P3).
 - An LLM-written summary.
 - Adding Blast Radius to the reviewer prompt or to `PrBrief` persistence.
