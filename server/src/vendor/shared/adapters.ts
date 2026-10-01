@@ -140,6 +140,14 @@ export interface CommitFilesPayload {
   files: CommitFile[];
 }
 
+/** A PR associated with a commit (GET /repos/{o}/{r}/commits/{sha}/pulls). */
+export interface CommitPull {
+  number: number;
+  title: string;
+  author: string; // user.login, '' when absent
+  mergedAt: string | null; // ISO; null = not merged
+}
+
 export interface GitHubClient {
   listPullRequests(repo: RepoRef): Promise<PrMeta[]>;
   getPullRequest(repo: RepoRef, n: number): Promise<PrDetail>;
@@ -162,6 +170,8 @@ export interface GitHubClient {
   /** The open PR whose head is `branch`, if any (so re-publish reuses it). */
   findOpenPr(repo: RepoRef, branch: string): Promise<{ url: string } | null>;
   getIssue(repo: RepoRef, n: number): Promise<IssueMeta>;
+  /** PRs associated with a commit; the caller filters merged ones. */
+  listPullsForCommit(repo: RepoRef, sha: string): Promise<CommitPull[]>;
   /** GET /user — for "posting as @user". */
   currentLogin(): Promise<string>;
 }

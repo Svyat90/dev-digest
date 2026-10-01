@@ -44,8 +44,11 @@ touch the pipeline internals:
 
 In the starter, only `getRepoMap` / `getFileRank` / `getCallerSignatures` are
 wired — into `modules/reviews/run-executor.ts`, which adds the repo map and a
-high-blast-radius note to the prompt. Toggled by `REPO_INTEL_ENABLED` (global)
-and a per-agent `repo_intel` flag.
+high-blast-radius note to the prompt. `getBlastRadius` (with `getIndexState`) is
+read by `modules/blast`, which serves the PR Overview card and the
+`get_blast_radius` MCP tool; the per-symbol caller cap it applies lives in
+`src/domain/repo-intel/limits.ts` (`MAX_CALLERS_PER_SYMBOL`). Toggled by
+`REPO_INTEL_ENABLED` (global) and a per-agent `repo_intel` flag.
 
 ## Routes
 

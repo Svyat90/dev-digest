@@ -47,11 +47,11 @@ import {
   DEFAULT_REPO_MAP_TOKEN_BUDGET,
   INDEX_JOB_KIND,
   INDEXER_VERSION,
-  MAX_CALLERS_PER_SYMBOL,
   REFRESH_JOB_KIND,
   RESYNC_JOB_KIND,
   SUPPORTED_EXT,
 } from './constants.js';
+import { MAX_CALLERS_PER_SYMBOL } from '../../domain/repo-intel/limits.js';
 import { runFullIndex, type IndexPayload } from './pipeline/full.js';
 import { runIncremental } from './pipeline/incremental.js';
 
@@ -371,9 +371,19 @@ export class RepoIntelService implements RepoIntel {
     }
     callers.sort((a, b) => b.rank - a.rank);
 
-    // Precomputed facts per caller file (endpoints + crons), so consumers can
+    // Cap PER changed symbol (the sort above is stable, so rank order is kept):
+    // one hot symbol must not starve the others.
+    const perSymbol = new Map<string, number>();
+    const kept = callers.filter((c) => {
+      const n = perSymbol.get(c.viaSymbol) ?? 0;
+      if (n >= MAX_CALLERS_PER_SYMBOL) return false;
+      perSymbol.set(c.viaSymbol, n + 1);
+      return true;
+    });
+
+    // Precomputed facts per kept caller file (endpoints + crons), so consumers can
     // attribute them to the changed symbol whose callers live in that file.
-    const facts = await this.repo.getFileFacts(repoId, callerFiles);
+    const facts = await this.repo.getFileFacts(repoId, [...new Set(kept.map((c) => c.file))]);
     const endpoints = new Set<string>();
     const factsByFile: Record<string, { endpoints: string[]; crons: string[] }> = {};
     for (const f of facts) {
@@ -383,7 +393,7 @@ export class RepoIntelService implements RepoIntel {
 
     return {
       changedSymbols,
-      callers: callers.slice(0, MAX_CALLERS_PER_SYMBOL),
+      callers: kept,
       impactedEndpoints: [...endpoints],
       factsByFile,
       degraded: false,

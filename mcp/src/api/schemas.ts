@@ -86,6 +86,24 @@ export const ReviewLite = z.object({
 export type ReviewLite = z.infer<typeof ReviewLite>;
 export const ReviewLiteList = z.array(ReviewLite);
 
+// canonical: server/src/vendor/shared/contracts/review-api.ts BlastRadiusResponse
+export const BlastRadiusLite = z.object({
+  changed_symbols: z.array(z.object({ name: z.string(), file: z.string(), kind: z.string() })),
+  downstream: z.array(
+    z.object({
+      symbol: z.string(),
+      callers: z.array(z.object({ name: z.string(), file: z.string(), line: z.number().int() })),
+      endpoints_affected: z.array(z.string()),
+      crons_affected: z.array(z.string()),
+    }),
+  ),
+  summary: z.string(),
+  degraded: z.boolean(),
+  reason: z.string().nullable(),
+  index_status: z.string(),
+});
+export type BlastRadiusLite = z.infer<typeof BlastRadiusLite>;
+
 // canonical: server/src/vendor/shared/contracts/knowledge.ts ConventionList
 export const ConventionListLite = z.object({
   scan: z.object({ status: z.string(), created_at: z.string() }).nullable(),

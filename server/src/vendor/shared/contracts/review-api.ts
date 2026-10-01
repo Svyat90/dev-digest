@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Finding, Verdict } from './findings.js';
-import { Intent, SmartDiff } from './brief.js';
+import { Intent, SmartDiff, BlastRadius, PrHistory } from './brief.js';
 
 /**
  * A2 — Review-Core API surface contracts. These extend the core
@@ -95,3 +95,25 @@ export type PrIntentRecord = z.infer<typeof PrIntentRecord>;
 /** Smart-diff response for a PR (the SmartDiff). */
 export const SmartDiffResponse = SmartDiff;
 export type SmartDiffResponse = z.infer<typeof SmartDiffResponse>;
+
+export const BlastDegradedReason = z.enum([
+  'flag_off', 'index_failed', 'index_partial', 'repo_too_large', 'no_data',
+]);
+export type BlastDegradedReason = z.infer<typeof BlastDegradedReason>;
+export const BlastIndexStatus = z.enum(['full', 'partial', 'degraded', 'failed']);
+export type BlastIndexStatus = z.infer<typeof BlastIndexStatus>;
+
+export const BlastRadiusResponse = BlastRadius.extend({
+  degraded: z.boolean(),
+  reason: BlastDegradedReason.nullable(),
+  index_status: BlastIndexStatus,
+  index_sha: z.string().nullable(),
+  limits: z.object({ max_callers_per_symbol: z.number().int() }),
+});
+export type BlastRadiusResponse = z.infer<typeof BlastRadiusResponse>;
+
+export const PrHistoryResponse = PrHistory.extend({
+  degraded: z.boolean(),
+  reason: z.enum(['no_clone', 'github_unavailable', 'partial']).nullable(),
+});
+export type PrHistoryResponse = z.infer<typeof PrHistoryResponse>;

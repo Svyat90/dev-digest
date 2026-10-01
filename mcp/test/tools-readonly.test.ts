@@ -122,11 +122,54 @@ describe('read-only tools', () => {
     expect(text(res)).toContain('No conventions extracted yet');
   });
 
-  it('get_blast_radius is a stub error and makes no API call', async () => {
-    h = await connect(registerAll);
-    const res = await h.client.callTool({ name: 'get_blast_radius', arguments: { repo: 'acme/a', pr_number: 1 } });
+  it('get_blast_radius returns compact callers per symbol and never reads /history', async () => {
+    h = await connect(registerAll, {
+      routes: {
+        'GET /repos/lookup': () => ({ repo: { id: 'r1', full_name: 'acme/a' }, pull: { id: 'p1', number: 7 } }),
+        'GET /pulls/:id/blast': () => ({
+          changed_symbols: [{ name: 'f', file: 'src/a.ts', kind: 'function' }],
+          downstream: [
+            {
+              symbol: 'f',
+              callers: [{ name: 'handler', file: 'src/api.ts', line: 9 }],
+              endpoints_affected: ['GET /x'],
+              crons_affected: [],
+            },
+            { symbol: 'g', callers: [], endpoints_affected: [], crons_affected: ['0 * * * *'] },
+          ],
+          summary: '2 symbols · 1 caller · 1 endpoint · 1 cron',
+          degraded: false,
+          reason: null,
+          index_status: 'full',
+          extra_server_field: 'stripped',
+        }),
+      },
+    });
+    const res = await h.client.callTool({ name: 'get_blast_radius', arguments: { repo: 'acme/a', pr_number: 7 } });
+    expect(res.isError).toBeFalsy();
+    const body = JSON.parse(text(res)) as {
+      summary: string;
+      downstream: { symbol: string; callers: string[]; endpoints: string[]; crons: string[] }[];
+    };
+    expect(body.summary).toBe('2 symbols · 1 caller · 1 endpoint · 1 cron');
+    expect(body.downstream).toHaveLength(2);
+    expect(body.downstream[0]).toEqual({
+      symbol: 'f',
+      callers: ['src/api.ts:9 (handler)'],
+      endpoints: ['GET /x'],
+      crons: [],
+    });
+    expect(text(res)).not.toContain('extra_server_field');
+    expect(h.calls.map((c) => c.path)).toContain('/pulls/p1/blast');
+    expect(h.calls.some((c) => c.path.includes('/history'))).toBe(false);
+  });
+
+  it('get_blast_radius reports pr_not_found when the PR is not imported', async () => {
+    h = await connect(registerAll, {
+      routes: { 'GET /repos/lookup': () => ({ repo: { id: 'r1', full_name: 'acme/a' }, pull: null }) },
+    });
+    const res = await h.client.callTool({ name: 'get_blast_radius', arguments: { repo: 'acme/a', pr_number: 9 } });
     expect(res.isError).toBe(true);
-    expect(text(res)).toContain('Not Implemented Yet');
-    expect(h.calls).toHaveLength(0);
+    expect(text(res)).toContain('pr_not_found');
   });
 });

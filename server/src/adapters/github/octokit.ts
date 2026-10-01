@@ -10,6 +10,7 @@ import type {
   PrReviewComment,
   OpenPrPayload,
   CommitFilesPayload,
+  CommitPull,
   IssueMeta,
 } from '@devdigest/shared';
 import { withRetry, withTimeout } from '../../platform/resilience.js';
@@ -361,6 +362,26 @@ export class OctokitGitHubClient implements GitHubClient {
       body: res.data.body,
       state: res.data.state,
     };
+  }
+
+  async listPullsForCommit(repo: RepoRef, sha: string): Promise<CommitPull[]> {
+    const res = await withRetry(() =>
+      withTimeout(
+        this.octokit.rest.repos.listPullRequestsAssociatedWithCommit({
+          owner: repo.owner,
+          repo: repo.name,
+          commit_sha: sha,
+          per_page: 10,
+        }),
+        TIMEOUT,
+      ),
+    );
+    return res.data.map((p) => ({
+      number: p.number,
+      title: p.title,
+      author: p.user?.login ?? '',
+      mergedAt: p.merged_at ?? null,
+    }));
   }
 
   async currentLogin(): Promise<string> {

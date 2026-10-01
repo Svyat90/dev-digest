@@ -45,6 +45,8 @@ export function useResyncRepoIntel(repoId: string | null | undefined) {
     mutationFn: () => api.post<{ status: string }>(`/repos/${repoId}/resync`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.repoIntelState(repoId) });
+      // The mutation knows only the repo, so refresh every PR's blast radius.
+      qc.invalidateQueries({ queryKey: keys.blastAll() });
     },
   });
 }

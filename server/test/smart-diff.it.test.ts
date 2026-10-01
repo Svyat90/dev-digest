@@ -24,6 +24,7 @@ import type {
   PrMeta,
   PrDetail,
   PrReviewComment,
+  CommitPull,
   IssueMeta,
 } from '@devdigest/shared';
 
@@ -85,6 +86,9 @@ class ThrowingGitHubClient implements GitHubClient {
   }
   getIssue(): Promise<IssueMeta> {
     return neverCalled('GitHubClient.getIssue');
+  }
+  listPullsForCommit(): Promise<CommitPull[]> {
+    return neverCalled('GitHubClient.listPullsForCommit');
   }
   currentLogin(): Promise<string> {
     return neverCalled('GitHubClient.currentLogin');

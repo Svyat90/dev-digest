@@ -26,8 +26,7 @@ export const EXCLUDED_DIRS = [
 ] as const;
 
 // --- Read-time limits -------------------------------------------------------
-/** [T1] Caller fan-out cap per changed symbol (ORDER BY rank DESC LIMIT N). */
-export const MAX_CALLERS_PER_SYMBOL = 20;
+// MAX_CALLERS_PER_SYMBOL lives in src/domain/repo-intel/limits.ts (shared with `blast`).
 
 /**
  * [T1] Bumped whenever the AST extractor or symbol schema changes. A mismatch

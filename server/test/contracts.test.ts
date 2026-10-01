@@ -17,6 +17,8 @@ import {
   Repo,
   PrDetail,
   PrIntentRecord,
+  BlastRadiusResponse,
+  PrHistoryResponse,
 } from '@devdigest/shared';
 
 /**
@@ -302,5 +304,36 @@ describe('platform DTOs', () => {
         commits: [],
       }),
     ).not.toThrow();
+  });
+});
+
+describe('blast radius responses', () => {
+  const base = {
+    changed_symbols: [{ name: 'f', file: 'src/a.ts', kind: 'function' }],
+    downstream: [
+      {
+        symbol: 'f',
+        callers: [{ name: 'g', file: 'src/b.ts', line: 3 }],
+        endpoints_affected: ['GET /x'],
+        crons_affected: [],
+      },
+    ],
+    summary: '1 symbol · 1 caller · 1 endpoint',
+    degraded: false,
+    reason: null,
+    index_status: 'full',
+    index_sha: 'abc',
+    limits: { max_callers_per_symbol: 20 },
+  };
+
+  it('parses a minimal BlastRadiusResponse and PrHistoryResponse', () => {
+    expect(() => BlastRadiusResponse.parse(base)).not.toThrow();
+    expect(() =>
+      PrHistoryResponse.parse({ history: [], degraded: true, reason: 'no_clone' }),
+    ).not.toThrow();
+  });
+
+  it('rejects an unknown degraded reason', () => {
+    expect(() => BlastRadiusResponse.parse({ ...base, reason: 'bogus' })).toThrow();
   });
 });

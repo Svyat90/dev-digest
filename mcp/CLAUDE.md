@@ -72,6 +72,8 @@ npm start           # node dist/index.js (needs a build first)
 - Read `../server/src/modules/repos/routes.ts` (`/repos/lookup`) and
   `../server/src/modules/reviews/routes.ts` (`/runs/:id`) before changing what
   mcp reads from the API.
+- Read `../server/src/modules/blast/routes.ts` before changing what
+  `get_blast_radius` reads.
 - Read `../TESTING.md` before adding or changing a test.
 - Read `INSIGHTS.md` before starting non-trivial work here.
 
