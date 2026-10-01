@@ -69,7 +69,7 @@ d('blast routes (Testcontainers pg)', () => {
     await pg?.stop();
   });
 
-  async function setup() {
+  async function setup(ownPrNumber?: number) {
     const calls: { repoId: string; files: string[] }[] = [];
     const repoIntel = {
       getBlastRadius: async (repoId: string, files: string[]) => {
@@ -90,6 +90,9 @@ d('blast routes (Testcontainers pg)', () => {
         'sha-old': [
           { number: 11, title: 'Earlier change', author: 'dev', mergedAt: '2026-01-02T00:00:00Z' },
           { number: 12, title: 'Never merged', author: 'dev', mergedAt: null },
+          ...(ownPrNumber == null
+            ? []
+            : [{ number: ownPrNumber, title: 'This PR', author: 'dev', mergedAt: '2026-01-03T00:00:00Z' }]),
         ],
       },
     });
@@ -163,8 +166,8 @@ d('blast routes (Testcontainers pg)', () => {
   });
 
   it('GET /pulls/:id/history: merged prior PRs only; no_clone when the repo has no clone', async () => {
-    const { app } = await setup();
     const { repo, pr } = await addPr(workspaceId);
+    const { app } = await setup(pr.number);
 
     const ok = await app.inject({ method: 'GET', url: `/pulls/${pr.id}/history` });
     expect(ok.statusCode).toBe(200);
