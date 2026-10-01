@@ -48,6 +48,18 @@
       "prompt": "Продовжимо брейншторм, нагадай де ми зупинились.",
       "expected_output": "start mode: reads ideas.md (not ideas.uk.md) down to the Index, then recaps in Ukrainian in chat: counts per status, Current focus, open questions. Notes if the mirror is missing or stale instead of silently using it.",
       "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Brainstorm: let's add a Tree/Graph toggle to the blast-radius view. Compare approaches.",
+      "expected_output": "Searches in the CLAUDE.md order before comparing: client/INSIGHTS.md and root INSIGHTS.md, then client/specs and docs, then code. Finds that a Tree/Graph view already exists (the blast spec documents it) and says so with the file or doc name instead of proposing it as new. Reframes the options around what is actually missing, still includes do-nothing, and does not invent a match it did not find.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "Brainstorm: should the review engine support a plugin hook for custom finding post-processors?",
+      "expected_output": "Searches INSIGHTS, specs, docs and reviewer-core code in order, in proportion to a brainstorm. Reports in a line or two that nothing like it exists (or names what is closest) rather than fabricating overlap. Gives 2-4 options including do-nothing, pros/cons, reversibility, the Consistency check block, strongest case against, recommendation. Does not read the code exhaustively.",
+      "files": []
     }
   ]
 }

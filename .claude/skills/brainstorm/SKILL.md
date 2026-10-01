@@ -50,7 +50,7 @@ Copy this checklist and work through it:
 
 ```
 Compare:
-- [ ] 1. Read the file and the code the idea touches
+- [ ] 1. Read ideas.md, then search what already exists (order below)
 - [ ] 2. Frame: problem, drivers, assumptions, open questions
 - [ ] 3. Options (2-4) including "do nothing / defer"
 - [ ] 4. Pros and cons per option, reversibility tag
@@ -58,6 +58,21 @@ Compare:
 - [ ] 6. Strongest case against the favourite
 - [ ] 7. Recommendation with confidence
 ```
+
+**1. Search order.** Find the package(s) the idea touches, then look in this
+order and stop when you have enough to compare:
+
+1. that package's `INSIGHTS.md` (plus the root one),
+2. its `specs/`,
+3. its `docs/` (and root `docs/`),
+4. the code.
+
+Curated sources come first because they may already answer the question; the
+code settles what they leave open. Keep the search proportional: this is a
+brainstorm, not an audit. In the framing, state in a line or two what already
+exists (`file:line` or doc name) that overlaps or constrains the idea, or that you
+found nothing. Never invent a match. A raw idea with no repo footprint needs no
+search.
 
 **3-4.** Each option gets pros, cons and a reversibility tag: `two-way` (cheap to
 undo) or `one-way` (costly to undo). Give one-way options more scrutiny; keep
@@ -76,8 +91,8 @@ Consistency check vs ideas.md
 - Supersedes:  IDEA-006 | none found
 ```
 
-Also check the idea against what already exists in the code, specs or docs it
-touches, and say so. Silence on a field is a defect.
+Silence on a field is a defect. What exists in the repo is covered by the search
+in step 1, not by an extra field.
 
 **6.** Write the strongest honest argument against the option the user prefers,
 and a one-line pre-mortem: "six months on this failed because...".
