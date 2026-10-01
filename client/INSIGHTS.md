@@ -183,6 +183,16 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of the dependencies this package pins.
 
+- **2026-10-01 — In jsdom tests, `getByText` on an SVG node with a `<title>` matches twice, and the `flex` shorthand is rewritten.**
+  (a) `<g><title>full</title><text>short</text></g>` makes `getByText` hit both the
+  `<text>` and its `<title>` child and throw "multiple elements". (b) jsdom has no
+  layout, so style assertions are all that "no overflow" tests can check, and it
+  expands `flex: "none"` to `0 0 auto`, so `toHaveStyle({ flex: "none" })` fails.
+  Rule: query SVG labels with `getByText(x, { selector: "text" })` (or `"title"`);
+  assert flex behaviour through longhands (`flexShrink`, `flexWrap`, `minWidth`).
+  `.../BlastRadiusCard/_components/BlastGraph/BlastGraph.test.tsx`,
+  `.../BlastRadiusCard/BlastRadiusCard.test.tsx` (long-path test)
+
 - **2026-09-26 — `@testing-library/user-event` is NOT installed; component tests use `fireEvent`.**
   `client/package.json` has only `@testing-library/react` and `@testing-library/jest-dom`,
   and every `*.test.tsx` uses `fireEvent`. The `react-testing-library` skill defaults
