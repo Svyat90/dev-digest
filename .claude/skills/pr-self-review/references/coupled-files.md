@@ -27,6 +27,8 @@ Remove a pair when the duplication is gone.
 - `server/src/modules/repos/service.ts` `LookupResult` <-> `mcp/src/api/schemas.ts` `LookupResult` — mcp re-declares the `GET /repos/lookup` body by hand; a rename on one side passes both typechecks and fails every mcp tool call with `api_shape_mismatch` (pr-self-review, 2026-09-29)
 - `server/src/modules/reviews/repository/run.repo.ts` `RunState` <-> `mcp/src/api/schemas.ts` `RunState` — same for the `GET /runs/:id` body (`RunSummary` + `pr_id`) (pr-self-review, 2026-09-29)
 - `server/src/modules/reviews/repository/run.repo.ts` `activeRunsForPull` <-> `mcp/src/api/schemas.ts` `ActiveRun` — same for `GET /pulls/:id/runs/active`; mcp reads `ran_at` to skip stale runs (pr-self-review, 2026-09-29)
+- `server/src/vendor/shared/contracts/review-api.ts` `BlastRadiusResponse` <-> `mcp/src/api/schemas.ts` `BlastRadiusLite` — mcp re-declares the GET /pulls/:id/blast body by hand; a rename on one side passes both typechecks and fails get_blast_radius with api_shape_mismatch (blast-radius plan, 2026-09-30)
+- `server/src/modules/blast/helpers.ts` `buildSummary` <-> `client/src/app/(shell)/repos/[repoId]/pulls/[number]/_components/OverviewTab/_components/BlastRadiusCard/helpers.ts` `blastCounts` — both count symbols/callers/endpoints/crons with the BR7 rules; one side alone makes the card's summary row disagree with the server summary and the MCP output (blast-radius plan, 2026-09-30)
 
 ## Handled by the script, not listed here
 
