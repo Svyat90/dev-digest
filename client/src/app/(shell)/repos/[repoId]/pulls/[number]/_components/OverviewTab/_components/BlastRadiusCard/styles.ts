@@ -155,26 +155,34 @@ export const s = {
     gap: 4,
     minWidth: 0,
   } satisfies CSSProperties,
+  // Icon and content share one non-wrapping row; the content block takes the remaining width.
   caller: {
     display: "flex",
-    alignItems: "baseline",
-    flexWrap: "wrap",
-    gap: "0 8px",
+    alignItems: "flex-start",
+    flexWrap: "nowrap",
+    gap: 8,
     minWidth: 0,
     fontSize: 13,
     color: "var(--text-muted)",
   } satisfies CSSProperties,
   callerArrow: {
     display: "inline-flex",
-    alignSelf: "center",
     flexShrink: 0,
+    marginTop: 3, // centres the 12px icon on the first 13px text line
     color: "var(--text-muted)",
   } satisfies CSSProperties,
-  // Paths have no spaces, so they only break with `anywhere`.
+  callerContent: {
+    flex: 1,
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+  } satisfies CSSProperties,
+  // Breaks at the <wbr/> after each `/`; only a single over-long segment splits mid-word.
   callerLocation: {
     minWidth: 0,
     maxWidth: "100%",
-    overflowWrap: "anywhere",
+    overflowWrap: "break-word",
+    wordBreak: "normal",
     color: "var(--text-primary)",
   } satisfies CSSProperties,
   callerLink: {

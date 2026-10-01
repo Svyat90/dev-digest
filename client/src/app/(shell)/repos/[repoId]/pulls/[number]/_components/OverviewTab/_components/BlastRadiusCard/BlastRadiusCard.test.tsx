@@ -116,9 +116,19 @@ describe("BlastRadiusCard", () => {
     });
 
     const link = screen.getByRole("link", { name: `Open ${longFile}:7 on GitHub` });
-    expect(link.style.overflowWrap).toBe("anywhere");
+    expect(link.style.overflowWrap).toBe("break-word");
     expect(link.style.minWidth).toBe("0");
     expect(link.parentElement?.style.minWidth).toBe("0");
+    expect(link.querySelectorAll("wbr").length).toBeGreaterThan(10);
+
+    // jsdom has no layout: assert the icon and the link share one non-wrapping flex row.
+    const row = link.closest("li") as HTMLElement;
+    expect(row.style.display).toBe("flex");
+    expect(row.style.flexWrap).toBe("nowrap");
+    const content = link.parentElement as HTMLElement;
+    expect(content.parentElement).toBe(row);
+    expect(content.style.flex).toContain("1");
+    expect(row.querySelector("svg")?.parentElement?.style.flexShrink).toBe("0");
 
     const chip = screen.getByTitle(longEndpoint);
     expect(chip.style.maxWidth).toBe("100%");

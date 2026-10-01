@@ -17,6 +17,13 @@ export interface SymbolGroupProps {
   headSha: string | null | undefined;
 }
 
+/** Offers a line-break opportunity after every `/`, so a long path wraps between folders. */
+function breakablePath(path: string): React.ReactNode[] {
+  return path.split("/").flatMap((part, i, all) =>
+    i < all.length - 1 ? [part, "/", <wbr key={i} />] : [part],
+  );
+}
+
 /** One changed symbol: a collapsible row listing its callers, then endpoint chips, then cron chips. */
 export function SymbolGroup({ group, open, onToggle, repoFullName, indexSha, headSha }: SymbolGroupProps) {
   const t = useTranslations("blast");
@@ -51,23 +58,25 @@ export function SymbolGroup({ group, open, onToggle, repoFullName, indexSha, hea
                   <span style={s.callerArrow} aria-hidden="true">
                     <Icon.CornerDownRight size={12} />
                   </span>
-                  {href ? (
-                    <a
-                      className="mono"
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={t("tree.openOnGithub", { location })}
-                      style={{ ...s.callerLocation, ...s.callerLink }}
-                    >
-                      {location}
-                    </a>
-                  ) : (
-                    <span className="mono" style={s.callerLocation}>
-                      {location}
-                    </span>
-                  )}
-                  <span style={s.callerName}>{c.name}</span>
+                  <div style={s.callerContent}>
+                    {href ? (
+                      <a
+                        className="mono"
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={t("tree.openOnGithub", { location })}
+                        style={{ ...s.callerLocation, ...s.callerLink }}
+                      >
+                        {breakablePath(location)}
+                      </a>
+                    ) : (
+                      <span className="mono" style={s.callerLocation}>
+                        {breakablePath(location)}
+                      </span>
+                    )}
+                    <span style={s.callerName}>{c.name}</span>
+                  </div>
                 </li>
               );
             })}
