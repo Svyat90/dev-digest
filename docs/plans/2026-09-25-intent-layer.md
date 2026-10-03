@@ -1,6 +1,6 @@
 # Intent Layer — Development Plan
 
-Date: 2026-09-25 · Branch: feature/l03-intent-layer · Status: draft
+Date: 2026-09-25 · Branch: feature/l03-intent-layer · Status: done
 
 ## Goal
 A cheap flash model derives each PR's intent and scope from the PR title and
