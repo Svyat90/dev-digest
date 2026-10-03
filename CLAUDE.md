@@ -88,6 +88,8 @@ Only Postgres runs in Docker; server and client run on the host.
 - `<package>/CLAUDE.md` loads automatically when you touch files in that package.
 - Read `<package>/INSIGHTS.md` before starting non-trivial work there.
 - Read `<package>/specs/` when the feature you are implementing has a written spec.
+- Read `specs/` (repo root) when the feature spans more than one package — only
+  cross-package specs live there; write new ones with the `spec-creator` agent.
 - Read `<package>/docs/` when you need a package-local deep dive.
 - Read the `engineering-insights` skill before appending to any `INSIGHTS.md`.
 
