@@ -100,6 +100,9 @@ build a checklist:
 - Requirements R1…Rn, derived from *Goal*, *Context › Request* and *Scope › In*.
 - Tasks T00x, each with its *Files*, *Acceptance criteria* and *Verify* commands.
 - *Scope › Out* items, each turned into a "must not exist" check.
+- Spec `AC<n>` ids the plan cites: one row per `AC`, checked against shipped
+  code or a test and judged `MET` / `NOT MET` on its own wording; an `AC` the
+  plan never assigned to a task is a gap.
 
 ### 2. Collect the change
 
