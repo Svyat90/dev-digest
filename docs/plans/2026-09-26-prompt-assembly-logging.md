@@ -1,6 +1,6 @@
 # Prompt Assembly Logging — Development Plan
 
-Date: 2026-09-26 · Branch: feature/l03-intent-layer · Status: approved (open questions resolved, see the end)
+Date: 2026-09-26 · Branch: feature/l03-intent-layer · Status: done
 
 > Execution note: the main session implements this plan inline. No subagents
 > unless a task turns out to need one.

@@ -1,6 +1,6 @@
 # DevDigest MCP server (`mcp/`) — Development Plan
 
-Date: 2026-09-29 · Branch: `feature/l04-mcp-server` · Status: approved
+Date: 2026-09-29 · Branch: `feature/l04-mcp-server` · Status: done
 
 ## Goal
 
