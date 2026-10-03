@@ -28,7 +28,7 @@
     {
       "id": 5,
       "prompt": "IDEA-007 is ready, turn it into the requirements in server/specs.",
-      "expected_output": "Does not copy the draft into specs on its own authority. Offers a spec as a separate step (planner / doc-writer) and, once the real document exists, records status promoted with the link. States that the draft file is not the source of truth.",
+      "expected_output": "Does not copy the draft into specs on its own authority. Offers a spec as a separate step (implementation-planner / doc-writer) and, once the real document exists, records status promoted with the link. States that the draft file is not the source of truth.",
       "files": []
     },
     {

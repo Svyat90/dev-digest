@@ -1,6 +1,6 @@
 ---
 name: brainstorm
-description: "Compares new feature ideas and records the outcome in one persistent draft file, brainstorm/ideas.md, so work continues across many chats. Gives options with pros and cons (always including do-nothing), checks every idea for conflicts, overlaps and dependencies against ideas already recorded, argues against the user's favourite, and logs decisions with a status lifecycle. Use whenever the user brainstorms, weighs approaches, asks 'should we', 'what if we', 'pros and cons', 'compare', wants to record, check or revisit a feature idea, or says 'continue brainstorming'. Not for writing specs, plans or code (planner, doc-writer) and not for what was learned (engineering-insights)."
+description: "Compares new feature ideas and records the outcome in one persistent draft file, brainstorm/ideas.md, so work continues across many chats. Gives options with pros and cons (always including do-nothing), checks every idea for conflicts, overlaps and dependencies against ideas already recorded, argues against the user's favourite, and logs decisions with a status lifecycle. Use whenever the user brainstorms, weighs approaches, asks 'should we', 'what if we', 'pros and cons', 'compare', wants to record, check or revisit a feature idea, or says 'continue brainstorming'. Not for writing specs, plans or code (implementation-planner, doc-writer) and not for what was learned (engineering-insights)."
 ---
 
 # Brainstorm

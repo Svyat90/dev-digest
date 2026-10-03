@@ -36,7 +36,7 @@ external doc-type standard encodes the README-index / CLAUDE.md pairing).
 | Cross-package overview, review flow end to end | root `README.md` | explanation | keep the existing `flowchart LR` style |
 | How to write reviewer prompts | `docs/agent-prompts/README.md` | how-to | the prompt files themselves (`docs/agent-prompts/general-reviewer.md` and its siblings) are runtime config — the DB is the source of truth, so they are read for context, never edited here |
 | Lasting behaviour from a finished plan | graduates to `<pkg>/specs/` | reference | `docs/plans/README.md` says plans are working documents, not the permanent home |
-| Work plans | `docs/plans/` | — | planner only; doc-writer never writes here |
+| Work plans | `docs/plans/` | — | implementation-planner only; doc-writer never writes here |
 | Traps / learnings | `INSIGHTS.md` | — | never; hand candidates back to the caller for the `engineering-insights` skill |
 | Test policy | `TESTING.md` | — | only when the brief is explicitly about test policy |
 | Agents, skills, settings | `.claude/**` | — | out of scope |
