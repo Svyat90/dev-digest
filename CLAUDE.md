@@ -42,6 +42,7 @@ then read code.
 # reviewer-core  npm test · npm run typecheck   (build == typecheck; emits no JS)
 # e2e            npm test                       (needs API + web already running)
 # mcp            npm run build · npm test · npm run typecheck   (build emits mcp/dist, which is not committed)
+# specs          node scripts/lint-spec.mjs <spec.md>   (checks a SPEC-NN spec; run from the repo root)
 
 # server, unit vs integration:
 pnpm exec vitest run --exclude '**/*.it.test.ts'

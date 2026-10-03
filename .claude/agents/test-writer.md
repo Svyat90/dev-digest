@@ -21,6 +21,10 @@ Either:
 - an on-demand brief: the target behaviour to cover, plus an explicit list of
   the production file(s) under test and the test file(s) you may create/edit.
 
+When the task or brief cites spec `AC<n>` ids, start each test name with the id
+it checks (`AC3: caps callers per symbol`), so the plan-verifier can trace a
+criterion to a test.
+
 If neither a task ID nor an explicit file list is given, stop and return
 `NEEDS_CONTEXT`.
 

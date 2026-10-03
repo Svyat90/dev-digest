@@ -51,13 +51,13 @@ previous one is passed. Agent rules live in
 |---|-----|--------------|---------------------------|
 | 0 | `brainstorm` skill (optional) | Compares the idea's options and records the decision in `brainstorm/ideas.md` | You picked an option |
 | 1 | `researcher` (optional) | Finds facts in the repo or on the web the spec will lean on | You have the facts you need |
-| 2 | `spec-creator` | One run: reads the brief and designs, finds gaps, asks you, writes the spec as `draft`, lints it | Lint exits 0; open questions answered, or accepted as open |
-| 3 | You | Read the spec; answer open questions. For each change, `spec-creator` revises the same file | You say `approved`; the status change asks your permission |
+| 2 | `spec-creator` | One run: reads the brief and designs, finds gaps, writes the spec as `draft` with every undecided point as an open question, and returns up to 4 ready-to-ask questions. A hook lints every write | Lint passes; the questions are back in the main session |
+| 3 | You + main session | The main session asks you the questions (`AskUserQuestion` is not available inside subagents) and runs `spec-creator` again with your answers; it revises the same file. Repeat until no open question is left | You say `approved`; `spec-creator` proposes it and the hook asks your permission |
 | 4 | `implementation-planner` | Reads the approved spec, asks what is unclear, writes the plan in `docs/plans/`; every `AC` is covered by a task | You review the plan and choose single- or multi-agent execution |
 | 5 | `implementer` × N and `test-writer` | Build and test the plan's tasks in waves; tests are named after the `AC` they check | Every task done |
 | 6 | `architecture-reviewer` ∥ `plan-verifier` | Check boundaries and check every plan item and `AC` against the shipped code | Both pass; otherwise fix tasks go back to step 5 |
 | 7 | `spec-creator` | Proposes `approved` → `implemented`, citing the `VERIFIED` report | You allow the status change |
-| 8 | `doc-writer` | Documents the shipped behaviour in the right place | Docs written, indexes updated |
+| 8 | `doc-writer` | Explains how the shipped feature works in `<pkg>/docs/` and links the SPEC; never edits the SPEC or writes a second invariants spec for it | Docs written, indexes updated |
 | 9 | `engineering-insights` | Captures what the work taught; writes nothing when nothing qualifies | Done |
 | 10 | You | Run `/pr-self-review`, then push and open the PR | A verdict other than `BLOCKED` |
 

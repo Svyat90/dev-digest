@@ -9,14 +9,16 @@ live in each agent file — read that file before changing an agent.
 | Agent | Model | Responsibility | Writes | Runs |
 |-------|-------|----------------|--------|------|
 | [researcher](researcher.md) | sonnet | Find facts in the repo or on the web | nothing | alone, on demand |
-| [planner](planner.md) | opus | Turn a feature request into a Development Plan | one plan file | once per feature |
+| [spec-creator](spec-creator.md) | opus | Write a spec (EARS) after a gap analysis of the brief and designs | spec files in `specs/` or `<pkg>/specs/` | once per feature, two phases |
+| [implementation-planner](implementation-planner.md) | opus | Review requirements, ask, recommend, and write an Implementation Plan; asks single- vs multi-agent | one plan file | once per feature |
 | [implementer](implementer.md) | sonnet | Implement one plan task, backend or frontend | the task's own files | many in parallel |
 | [test-writer](test-writer.md) | sonnet | Write tests only for one `Agent: test-writer` task, or an on-demand brief | the task's own test files | inside the waves, alongside implementers |
 | [architecture-reviewer](architecture-reviewer.md) | opus | Read-only onion / layer boundary review with `file:line` evidence | nothing | after a wave, or after the last wave |
 | [plan-verifier](plan-verifier.md) | opus | Read-only check of finished code against every plan item | nothing | after the last wave, in parallel with architecture-reviewer |
 | [doc-writer](doc-writer.md) | sonnet | Turn a shipped feature into documentation in the right place | documentation paths only | after both checks pass |
 
-Flow: `researcher` (optional) → `planner` → user reviews the plan → waves of
+Flow: `researcher` (optional) → `spec-creator` (writes a draft and returns
+questions; the main session asks you and re-runs it until no open question is left) → user approves the spec → `implementation-planner` (clarifies, recommends) → user reviews the plan and picks single- or multi-agent execution → waves of
 `implementer` × N + `test-writer` tasks → `architecture-reviewer` ∥
 `plan-verifier` → fix tasks for implementers when either reports a gap,
 re-dispatch and re-verify → `doc-writer` → `engineering-insights` capture →
@@ -36,24 +38,96 @@ The execution protocol and the plan template: [`docs/plans/README.md`](../../doc
   status `FOUND | PARTIAL | NOT FOUND | NEEDS CLARIFICATION`, confidence,
   findings with `path:line` or URL + date, and an explicit *Not found* list.
 
-## planner
+## spec-creator
 
-- **Responsibility:** read curated knowledge, load the skills, explore the code
-  and write a Development Plan that implementers can run in parallel on one
-  feature branch. Never writes code.
+- **Responsibility:** turn a feature brief into a specification for Spec Driven
+  Development. One run: reads the brief, designs, curated docs and code; finds
+  what they leave out (missing states, uncovered corner cases, cross-module
+  interaction, UX improvements); asks the user; writes the spec as `draft`;
+  lints it. Answers **what** the feature must do and **why**, never **how** or
+  in what order. Never writes code.
+- **Permissions:** `Read, Grep, Glob, Bash, Write, Edit, Skill`. Two hooks in
+  its frontmatter. PreToolUse
+  ([`hooks/spec-creator-scope.mjs`](../hooks/spec-creator-scope.mjs)): Bash only
+  from an allow-list (no pipes, redirects, `;`, `&&`); `Write` only creates a new
+  spec with a valid name, never overwrites; `Edit` only a `draft` spec with a
+  `Spec ID`, the `## Index` of `specs/README.md`, append-only bullets in a
+  package `specs/README.md` and append-only lines in `<pkg>/CLAUDE.md` › *Read
+  when*; a `Status:` change must be a one-line edit and asks the user (verified
+  to reach the user from a subagent); `approved` is blocked while any open
+  question remains. PostToolUse
+  ([`hooks/spec-creator-lint.mjs`](../hooks/spec-creator-lint.mjs)) runs the lint
+  after every spec write and returns errors to the agent. No browser.
+- **Questions:** `AskUserQuestion` is not available inside subagents (verified),
+  so the agent writes undecided points as open questions and returns up to 4
+  ready-to-ask questions; the main session asks the user and runs it again on
+  the same file with the answers.
+- **Skills:** loaded by explicit `Skill` calls — `engineering-insights` (read
+  mode, only the spec's own packages; root file only for a cross-package spec),
+  `onion-architecture` (server / reviewer-core) and `frontend-ui-architecture`
+  (client) for boundaries only, `zod` (read existing contracts so field rules are
+  exact — plain words, never schema code, Zod 3 only), `security` (checklist for
+  *Untrusted inputs*),
+  `mermaid-diagram` (one optional diagram, cross-package specs only). No
+  implementation skills.
+- **Placement:** one package → `<pkg>/specs/<NN>-<slug>-<YYYY-MM-DD>.md`
+  (`e2e` → `e2e/docs/`); two or more packages →
+  [`specs/`](../../specs/README.md). Spec ID `SPEC-<NN>-<slug>`, one repo-wide
+  counter; the file name adds the creation date.
+- **Template:** header (`Spec ID`, `Status`, `Supersedes`, `Packages`,
+  `Depends on`), then problem and user, goals / non-goals, user stories, EARS
+  acceptance criteria, edge cases, non-functional requirements, inputs and
+  provenance, untrusted inputs, open questions. English only. IDs `US`, `AC`,
+  `EC`, `OQ`; `AC` ids are final once approved.
+- **Traceability:** every `AC` names the user story it serves (`[US1]`) and
+  every edge case the `AC` that covers it. The implementation-planner cites `AC`
+  ids in task criteria, the plan-verifier checks each has a task, the
+  test-writer names tests after them.
+- **Status:** `draft | approved | implemented | superseded`. The agent only
+  proposes a change; the hook asks the user. `approved` needs empty open
+  questions and the user's explicit word; `implemented` needs a `plan-verifier`
+  `VERIFIED`; `superseded` follows a new spec's `Supersedes:`.
+- **Self-check:** [`scripts/lint-spec.mjs`](../../scripts/lint-spec.mjs) — headings
+  and header lines, one `shall` per criterion, no vague words, every edge case
+  and untrusted input tied to an `AC`, owners on open questions, a split warning
+  past 25 criteria, and warnings on "how" wording.
+- **Evals:** [`evals/spec-creator.json`](evals/spec-creator.json).
+- **Input:** a brief, optional designs (repo files, prose, caller-supplied
+  screenshots of the live client); for a revision, the draft spec's path and the
+  user's answers.
+- **Output:** one report — spec ID, placement, findings asked / left open, files
+  changed, AC / EC / open-question counts, lint result, index updates.
+
+## implementation-planner
+
+- **Responsibility:** read curated knowledge, load the skills, explore the code,
+  review the requirements (unclear / contradictory / missing), recommend
+  improvements and write an Implementation Plan that implementers can run in
+  parallel (multi-agent) or sequentially (single-agent). Never writes code,
+  specs or tests and executes nothing.
 - **Permissions:** `Read, Grep, Glob, Bash, Skill, Write`. `Write` only for
-  `docs/plans/<YYYY-MM-DD>-<topic>.md`; Bash read-only. No `Edit`, no `Agent`.
+  `docs/plans/<YYYY-MM-DD>-<topic>.md` — a new plan, or a `draft` plan it is
+  revising; a PreToolUse hook
+  ([`hooks/implementation-planner-scope.mjs`](../hooks/implementation-planner-scope.mjs))
+  blocks every other path and any rewrite of an `approved` / `done` plan.
+  Bash read-only by rule (the hook cannot see Bash). No `Edit`, no `Agent`, no
+  `AskUserQuestion`: questions go back to the caller.
 - **Skills:** the same backend and frontend sets as the implementer, loaded by
   explicit `Skill` calls for every area the feature touches; plus
   `engineering-insights` (read) and `mermaid-diagram`.
-- **Input:** a feature request, optionally a researcher report.
+- **Input:** a feature request, optionally a spec and a researcher report;
+  for a revision, a `draft` plan's path and the recommendations or answers the
+  user accepted.
 - **Output:**
   - `docs/plans/<date>-<topic>.md` — goal, context (INSIGHTS / spec entries),
-    scope, design with a Mermaid diagram, contracts, DB, and tasks `T001…`
-    grouped in waves, each with area, exclusive files, dependencies, `[P]`,
-    skills, acceptance criteria and verify commands, plus an ownership table;
-  - a short status to the caller: `PLANNED | NEEDS CLARIFICATION`, wave counts,
-    skills loaded, open questions.
+    requirements review, assumptions, recommendations, scope, design with a
+    Mermaid diagram, contracts, DB, and tasks `T001…` grouped in waves, each
+    with area, exclusive files, dependencies, `[P]`, skills, acceptance
+    criteria and verify commands, plus an ownership table;
+  - a short status to the caller: `PLANNED | REVISED` (both awaiting the
+    execution mode) or `NEEDS CLARIFICATION`, wave counts, skills loaded,
+    assumptions, recommendations, open questions and the single- vs
+    multi-agent question the caller must ask the user.
 
 ## implementer
 
@@ -81,7 +155,7 @@ The execution protocol and the plan template: [`docs/plans/README.md`](../../doc
 ## test-writer
 
 - **Responsibility:** write tests only — backend (`server/`, `reviewer-core/`)
-  or frontend (`client/`, `e2e/`) — for one Development Plan task marked
+  or frontend (`client/`, `e2e/`) — for one Implementation Plan task marked
   `Agent: test-writer`, or for one on-demand brief that names the target
   behaviour and an explicit file list. Fail-first, plus a mutation check per
   test. Never edits production code, never commits.
@@ -127,7 +201,7 @@ The execution protocol and the plan template: [`docs/plans/README.md`](../../doc
 ## plan-verifier
 
 - **Responsibility:** check finished code against every requirement, task and
-  acceptance criterion of one Development Plan, with evidence per verdict, and
+  acceptance criterion of one Implementation Plan, with evidence per verdict, and
   list any code the plan did not ask for. Judges compliance only, never
   quality or architecture.
 - **Permissions:** `Read, Grep, Glob, Bash` — no `Write`, `Edit`, `Skill` or
@@ -190,7 +264,7 @@ The execution protocol and the plan template: [`docs/plans/README.md`](../../doc
 ## Sources
 
 The rules of all seven agents are based on these (per-agent attribution is in
-the Development Plan that introduced each agent, under its *Design* section).
+the plan that introduced each agent, under its *Design* section).
 Community sources are marked; where we deliberately deviate, it is noted.
 
 **Claude Code / Anthropic (official)**
@@ -201,13 +275,13 @@ Community sources are marked; where we deliberately deviate, it is noted.
 - [Extend Claude with skills](https://code.claude.com/docs/en/skills) — how
   subagents reach skills through the `Skill` tool.
 - [Best practices for Claude Code](https://code.claude.com/docs/en/best-practices) —
-  explore → plan → code → verify, split between planner and implementer.
+  explore → plan → code → verify, split between implementation-planner and implementer.
 - [How and when to use subagents in Claude Code](https://claude.com/blog/subagents-in-claude-code) —
   a few well-scoped agents; parallel edits of one file conflict.
 - [How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system) (2025-06) —
   each subagent gets an objective, output format, tools and boundaries.
 - [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) (2024-12) —
-  orchestrator-workers (planner/implementer) and evaluator-optimizer with clear
+  orchestrator-workers (implementation-planner/implementer) and evaluator-optimizer with clear
   criteria (architecture-reviewer, plan-verifier judge against a plan's
   acceptance criteria).
 - [anthropics/claude-code#67251](https://github.com/anthropics/claude-code/issues/67251) —

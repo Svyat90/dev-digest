@@ -2,8 +2,9 @@
 // Deterministic lint for a spec written by the spec-creator agent.
 //   node scripts/lint-spec.mjs <path-to-spec.md>
 // Exit 1 when there is an ERROR; WARN lines never fail the run.
-import { readFileSync } from 'node:fs';
-import { basename } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { basename, dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const file = process.argv[2];
 if (!file) {
@@ -52,6 +53,42 @@ const status = /^Status: (\S+)\s*$/m.exec(text)?.[1];
 if (!STATUSES.includes(status)) err(`Status must be one of ${STATUSES.join(' | ')}`);
 for (const key of ['Supersedes', 'Packages', 'Depends on']) {
   if (!new RegExp(`^${key}: \\S`, 'm').test(text)) err(`missing "${key}:" header line`);
+}
+
+// ---- placement and cross-spec references ---------------------------------
+// Repo root = the folder above scripts/. Every Spec ID in every spec folder.
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const SPEC_FOLDERS = ['specs', 'server/specs', 'client/specs', 'reviewer-core/specs', 'e2e/docs'];
+const PKG_FOLDER = { server: 'server/specs', client: 'client/specs', 'reviewer-core': 'reviewer-core/specs', e2e: 'e2e/docs' };
+const allIds = new Map(); // SPEC-NN-slug → [relative paths]
+for (const folder of SPEC_FOLDERS) {
+  const dir = join(ROOT, folder);
+  if (!existsSync(dir)) continue;
+  for (const f of readdirSync(dir).filter((n) => n.endsWith('.md'))) {
+    const found_ = /^Spec ID: (SPEC-\d{2}-[a-z0-9-]+)$/m.exec(readFileSync(join(dir, f), 'utf8'));
+    if (found_) allIds.set(found_[1], [...(allIds.get(found_[1]) ?? []), `${folder}/${f}`]);
+  }
+}
+const self = relative(ROOT, resolve(file)).split('\\').join('/');
+if (id) {
+  const sameNumber = [...allIds.entries()].filter(
+    ([k, paths]) => k.startsWith(`SPEC-${id[2]}-`) && paths.some((p) => p !== self),
+  );
+  sameNumber.forEach(([k, paths]) =>
+    paths.filter((p) => p !== self).forEach((p) => err(`number ${id[2]} is already used by ${k} (${p})`)),
+  );
+}
+const packages = (/^Packages: (.+)$/m.exec(text)?.[1] ?? '').split(/,\s*/).map((p) => p.trim()).filter(Boolean);
+packages.forEach((p) => !PKG_FOLDER[p] && err(`Packages: unknown package "${p}" (server, client, reviewer-core, e2e)`));
+if (packages.length > 0 && SPEC_FOLDERS.some((f) => self.startsWith(`${f}/`))) {
+  const want = packages.length > 1 ? 'specs' : PKG_FOLDER[packages[0]];
+  if (want && dirname(self) !== want) err(`Packages: ${packages.join(', ')} → the spec belongs in ${want}/, not ${dirname(self)}/`);
+}
+for (const key of ['Supersedes', 'Depends on']) {
+  const value = new RegExp(`^${key}: (.+)$`, 'm').exec(text)?.[1] ?? '';
+  for (const ref of value.match(/SPEC-\d{2}-[a-z0-9-]+/g) ?? []) {
+    if (!allIds.has(ref)) err(`${key}: ${ref} does not exist in any spec folder`);
+  }
 }
 
 // ---- sections ----------------------------------------------------------
