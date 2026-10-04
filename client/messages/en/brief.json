@@ -3,7 +3,8 @@
     "intent": "Intent",
     "blast": "Blast radius",
     "risks": "Risks",
-    "history": "PR history"
+    "history": "PR history",
+    "title": "PR Brief"
   },
   "noRisks": "No notable risks flagged.",
   "noHistory": "No prior PRs overlap these files.",
@@ -15,5 +16,35 @@
     "blame": "blame",
     "noHistory": "No history available for this line.",
     "noCommits": "No commits found for this line."
-  }
+  },
+  "generate": "Generate brief",
+  "generating": "Generating brief",
+  "refresh": "Refresh",
+  "retry": "Retry",
+  "outOfDate": "Out of date",
+  "summary": "Summary",
+  "riskAreas": "Risk areas",
+  "reviewFocus": "Review focus",
+  "reviewFocusHint": "Suggested reading order",
+  "noFocus": "No review focus items.",
+  "notInDiff": "File not in this PR's diff",
+  "missing": {
+    "label": "Missing inputs",
+    "intent": "Intent",
+    "intent_stale": "Intent (from an older commit)",
+    "blast": "Blast radius",
+    "linked_issue": "Linked issue",
+    "documents": "Attached documents"
+  },
+  "severity": {
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  },
+  "errors": {
+    "invalidAnswer": "The model's answer could not be used. Try again.",
+    "providerUnavailable": "The model provider is unavailable. Try again later.",
+    "notConfigured": "No model is configured for the brief. Add an API key in settings."
+  },
+  "generatedAt": "Generated {date}"
 }
