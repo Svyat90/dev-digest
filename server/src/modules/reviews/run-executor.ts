@@ -1,5 +1,5 @@
 import type { Container } from '../../platform/container.js';
-import type { PrIntentRecord, Provider, Review, RunTrace, SkillUsed, UnifiedDiff } from '@devdigest/shared';
+import type { PrIntentRecord, Provider, Review, RunTrace, SkillUsed, SpecUsed, UnifiedDiff } from '@devdigest/shared';
 import { reviewPullRequest, countBlockers } from '@devdigest/reviewer-core';
 import { RunLogger } from '../../platform/run-logger.js';
 import * as schema from '../../db/schema.js';
@@ -8,6 +8,17 @@ import type { ReviewRepository, FindingRow, PullRow, ReviewRow } from './reposit
 import { REVIEW_STRATEGY } from './constants.js';
 import { taskLine } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
+
+/** Live Log wording for a document `resolveForRun` left out (keyed by its reason code). */
+const SKIP_REASON_TEXT = {
+  missing: 'not found',
+  outside_clone: 'outside repository',
+  not_utf8: 'not valid UTF-8',
+  unreadable: 'unreadable',
+  empty: 'empty',
+  not_cloned: 'repository not cloned',
+  over_cap: 'over the 12,000-token project context cap',
+} as const;
 import { createPromptMeasure, logPromptAssembled } from '../../platform/prompt-log.js';
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
@@ -260,6 +271,10 @@ export class ReviewRunExecutor {
       // run; S2: no active skills → prompt is byte-identical to today.
       const skillsResult = await this.buildSkillBlocks(agent.id, runLog);
 
+      // Project context — attached documents read once, at run start (SPEC-02
+      // AC1). Best-effort like the enrichments above: failure → no section.
+      const projectContext = await this.buildProjectContext(workspaceId, agent.id, repo, runLog);
+
       // ---- Engine: assemble → single-pass → grounding -----------------------
       // The pure review pipeline lives in @devdigest/reviewer-core (shared with
       // the CI runner). The service owns only I/O: repo-intel context resolution
@@ -280,6 +295,11 @@ export class ReviewRunExecutor {
         // Skills — one prompt block per active skill; assemblePrompt joins and
         // omits the section when the array is empty/undefined (S2).
         ...(skillsResult ? { skills: skillsResult.blocks } : {}),
+        // Attached documents — untrusted, path-labelled by reviewer-core; the
+        // slot is omitted when nothing was read (prompt stays byte-identical).
+        ...(projectContext
+          ? { specs: projectContext.docs.map(({ path, content }) => ({ path, content })) }
+          : {}),
         // PR author's description/body — untrusted; assemblePrompt wraps +
         // truncates it. Omitted when the PR has no body.
         ...(pull.body ? { prDescription: pull.body } : {}),
@@ -387,6 +407,8 @@ export class ReviewRunExecutor {
           ...outcome.assembly,
           skills_used: skillsResult?.used ?? null,
           skills_tokens: skillsResult?.tokens ?? null,
+          specs_used: projectContext?.used ?? null,
+          specs_tokens: projectContext?.tokens ?? null,
         },
         tool_calls: outcome.chunks.map((c) => ({
           tool: 'review_file',
@@ -396,7 +418,7 @@ export class ReviewRunExecutor {
         })),
         raw_output: outcome.raw,
         memory_pulled: [],
-        specs_read: [],
+        specs_read: projectContext?.docs.map((d) => d.path) ?? [],
         // Persisted log = the run's FULL event buffer (incl. shared pre-work:
         // diff load + intent), not just events recorded inside this method.
         log: runLog.logFor(runId),
@@ -466,6 +488,38 @@ export class ReviewRunExecutor {
       return { blocks, used, tokens: totalTokens };
     } catch (err) {
       runLog.info(`skill blocks: failed — ${(err as Error).message}`);
+      return undefined;
+    }
+  }
+
+  /**
+   * SPEC-02 — read the documents attached to this agent (and its active
+   * skills) from the PR repository's local copy. Returns `undefined` when none
+   * was read, so the prompt stays byte-identical. Best-effort: any failure is
+   * logged (paths and reasons only, never text) and the run proceeds without.
+   */
+  private async buildProjectContext(
+    workspaceId: string,
+    agentId: string,
+    repo: typeof schema.repos.$inferSelect,
+    runLog: RunLogger,
+  ): Promise<{ docs: { path: string; content: string }[]; used: SpecUsed[]; tokens: number } | undefined> {
+    try {
+      const { docs, skipped } = await this.container.projectContext.resolveForRun(
+        workspaceId,
+        agentId,
+        repo,
+      );
+      for (const s of skipped) {
+        runLog.info(`project context: skipped ${s.path} — ${SKIP_REASON_TEXT[s.reason]}`);
+      }
+      if (docs.length === 0) return undefined;
+      const used: SpecUsed[] = docs.map((d) => ({ path: d.path, tokens: d.tokens, truncated: d.truncated }));
+      const tokens = used.reduce((sum, u) => sum + u.tokens, 0);
+      runLog.info(`project context: ${docs.length} document(s) attached (+${tokens} tokens)`);
+      return { docs: docs.map(({ path, content }) => ({ path, content })), used, tokens };
+    } catch (err) {
+      runLog.info(`project context: failed — ${(err as Error).message}`);
       return undefined;
     }
   }
