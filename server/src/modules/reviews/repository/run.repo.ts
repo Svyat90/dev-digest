@@ -221,7 +221,16 @@ export async function saveRunTrace(db: Db, runId: string, trace: RunTrace): Prom
     .onConflictDoUpdate({ target: t.runTraces.runId, set: { trace } });
 }
 
-export async function getRunTrace(db: Db, runId: string): Promise<RunTrace | undefined> {
-  const [row] = await db.select().from(t.runTraces).where(eq(t.runTraces.runId, runId));
+/** Workspace-scoped: the join to agent_runs is the tenancy boundary. */
+export async function getRunTrace(
+  db: Db,
+  workspaceId: string,
+  runId: string,
+): Promise<RunTrace | undefined> {
+  const [row] = await db
+    .select({ trace: t.runTraces.trace })
+    .from(t.runTraces)
+    .innerJoin(t.agentRuns, eq(t.agentRuns.id, t.runTraces.runId))
+    .where(and(eq(t.runTraces.runId, runId), eq(t.agentRuns.workspaceId, workspaceId)));
   return row ? (row.trace as RunTrace) : undefined;
 }

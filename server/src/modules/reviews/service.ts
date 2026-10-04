@@ -187,7 +187,7 @@ export class ReviewService {
     );
   }
 
-  async getRunTrace(runId: string): Promise<RunTrace | undefined> {
-    return this.repo.getRunTrace(runId);
+  async getRunTrace(workspaceId: string, runId: string): Promise<RunTrace | undefined> {
+    return this.repo.getRunTrace(workspaceId, runId);
   }
 }
