@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 import { homedir } from 'node:os';
 import { join, isAbsolute, resolve } from 'node:path';
+import { DEFAULT_ROOTS } from '../modules/project-context/constants.js';
 import { resolvePromptLogMode, type PromptLogMode } from './prompt-log.js';
 
 /**
@@ -50,6 +51,25 @@ const EnvSchema = z.object({
     (v) => (v === '' ? undefined : v),
     z.coerce.number().int().positive().max(2_147_483_647).optional(),
   ),
+  // Project-context search roots: comma-separated plain folder names. Empty →
+  // the default. A name with a path separator or dot-segment is rejected.
+  PROJECT_CONTEXT_ROOTS: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z
+      .string()
+      .default(DEFAULT_ROOTS.join(','))
+      .transform((v) =>
+        v
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0),
+      )
+      .pipe(
+        z
+          .array(z.string().regex(/^[^/\\\0]+$/).refine((s) => s !== '.' && s !== '..'))
+          .min(1),
+      ),
+  ),
 });
 
 export type AppConfig = {
@@ -82,6 +102,8 @@ export type AppConfig = {
   promptLogDowngraded: boolean;
   /** LLM_DEADLINE_MS; undefined keeps reviewer-core's default deadline. */
   llmDeadlineMs?: number;
+  /** PROJECT_CONTEXT_ROOTS: folder names searched for project-context documents. */
+  projectContextRoots: string[];
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -103,6 +125,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     repoIntelEnabled: parsed.REPO_INTEL_ENABLED !== 'false',
     promptLog: promptLog.mode,
     promptLogDowngraded: promptLog.downgraded,
+    projectContextRoots: parsed.PROJECT_CONTEXT_ROOTS,
     ...(parsed.LLM_DEADLINE_MS ? { llmDeadlineMs: parsed.LLM_DEADLINE_MS } : {}),
   };
 }
