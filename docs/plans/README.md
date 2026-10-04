@@ -100,6 +100,8 @@ contradictory or missing". Every spec `AC` id and the task that covers it.>
 - Rules (applied by the agent instead of loading the skills; 5–15 lines):
   - <one concrete, checkable rule for these files> — <skill> §<section>
   - <e.g. the repository owns the transaction; the service never opens one> — onion-architecture §6
+- Interface (only when another task calls what this task exports, or this task calls another's export):
+  - `<name>(<param>: <Type>, …): <ReturnType>` — exported here | (from T00x)
 - Steps:
   1. <test to write, and what it asserts>
   2. <change>

@@ -22,13 +22,19 @@ reason. Read the report, not the agent's whole transcript.
 4. **Verification.** Each line of the task's *Verify* appears with its output:
    the `PASS` / `FAIL` / `SKIP` lines of `verify-task.sh`, `own 0` on every
    step. A bare "passes" is not evidence.
-5. **Foreign errors.** Each file in a `foreign` count is owned by another
+5. **Red run.** A task that adds or changes a test shows `Red run:` with a
+   failing count and the failing line from before the change; `no test` only
+   when the task itself says so. Missing or "skipped" → re-dispatch once with
+   `Previous attempt: no red run`. Still missing → accept the work, then prove
+   the test red yourself in a detached scratch worktree (root `INSIGHTS.md`,
+   2026-10-03) before the commit, and log the result.
+6. **Foreign errors.** Each file in a `foreign` count is owned by another
    task of the running wave. A foreign error in a file nobody in the wave owns is a real
    problem — raise it at the wave gate.
-6. **Extra and designs.** Every `Extra: X<n>` of the dispatch is named in the
+7. **Extra and designs.** Every `Extra: X<n>` of the dispatch is named in the
    report as met, or under *Concerns* with the reason; a task given `Designs:`
    says which design states it built.
-7. **Collect.** Copy *Deviations*, *Concerns*, *Rules gaps* and *Insight
+8. **Collect.** Copy *Deviations*, *Concerns*, *Rules gaps* and *Insight
    candidates* (non-"none" only) to the log, one line each.
 
 ## architecture-reviewer

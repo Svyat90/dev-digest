@@ -111,13 +111,20 @@ same kind (a sibling module, route, repository, component, hook). Follow its sha
 
 Write the test the task's acceptance criteria call for, per `TESTING.md`
 (typological: one happy path + the edge that matters; mock the outside world via
-`server/src/adapters/mocks.ts`). Run it and confirm it fails for the right reason.
+`server/src/adapters/mocks.ts`). Run it **before** writing the implementation
+and confirm it fails for the right reason — a failing assertion, or a missing
+export the task is about to add; never a typo or a broken import of something
+that already exists. Copy that command and its failing line into the report's
+`Red run:` field. A report without it is sent back (`run-plan`'s report checks).
 Skip only when the task says "no test" and why.
 
 ### 5. Implement
 
 The smallest change that makes the test pass and meets the acceptance criteria,
-in the rings / folders the architecture skills and the plan put it.
+in the rings / folders the architecture skills and the plan put it. An
+`Interface:` line is exact: export or call that signature, types included. If it
+cannot work as written, return `NEEDS_CONTEXT` instead of changing it — another
+task is building against it in parallel.
 
 ### 6. Verify
 
@@ -166,6 +173,7 @@ Rules gaps: <skill §section you had to read, and the question it answered — o
 Skills loaded: <only in the legacy fallback: every skill you invoked — else "none">
 Files changed:
   - <path> (new|modified)
+Red run: `<test command>` → <N failed — the failing assertion or error>, before the change | no test: <the task's reason>
 Verification:
   - `<command>` → <pass/fail, key output line>
 Foreign errors: <errors outside my files, or "none">
