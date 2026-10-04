@@ -19,6 +19,7 @@ import {
   PrIntentRecord,
   BlastRadiusResponse,
   PrHistoryResponse,
+  PutContextDocsBody,
 } from '@devdigest/shared';
 
 /**
@@ -190,6 +191,39 @@ describe('AI contracts parse fixtures', () => {
     // written before cost tracking existed. Parsing MUST still succeed, which
     // is why RunStats.cost_usd is nullish rather than required.
     expect(trace.stats.cost_usd).toBeUndefined();
+  });
+
+  it('RunTrace without specs_used parses; with specs_used keeps order (pre-feature traces)', () => {
+    const base = {
+      config: { agent: 'A', model: 'm' },
+      stats: { duration_ms: 1, tokens_in: 1, tokens_out: 1, findings: 0, grounding: 'x' },
+      tool_calls: [],
+      raw_output: '{}',
+      memory_pulled: [],
+      specs_read: ['specs/security-baseline.md'],
+      log: [],
+    };
+    const old = RunTrace.parse({ ...base, prompt_assembly: { system: 's', user: 'u' } });
+    expect(old.prompt_assembly.specs_used).toBeUndefined();
+    const next = RunTrace.parse({
+      ...base,
+      prompt_assembly: {
+        system: 's',
+        user: 'u',
+        specs_used: [
+          { path: 'docs/api.md', tokens: 4000, truncated: true },
+          { path: 'docs/b.md', tokens: 10, truncated: false },
+        ],
+        specs_tokens: 4010,
+      },
+    });
+    expect(next.prompt_assembly.specs_used?.map((d) => d.path)).toEqual(['docs/api.md', 'docs/b.md']);
+  });
+
+  it('PutContextDocsBody rejects 201 paths and an empty path', () => {
+    expect(PutContextDocsBody.safeParse({ paths: Array.from({ length: 201 }, (_, i) => `docs/${i}.md`) }).success).toBe(false);
+    expect(PutContextDocsBody.safeParse({ paths: [''] }).success).toBe(false);
+    expect(PutContextDocsBody.safeParse({ paths: ['docs/a.md'] }).success).toBe(true);
   });
 
   it('RunTrace carries a run cost when one was recorded', () => {

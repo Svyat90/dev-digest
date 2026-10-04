@@ -44,6 +44,13 @@ export const SkillUsed = z.object({
 });
 export type SkillUsed = z.infer<typeof SkillUsed>;
 
+export const SpecUsed = z.object({
+  path: z.string(),
+  tokens: z.number().int(),
+  truncated: z.boolean(),
+});
+export type SpecUsed = z.infer<typeof SpecUsed>;
+
 export const PromptAssembly = z.object({
   system: z.string(),
   skills: z.string().nullish(),
@@ -53,6 +60,10 @@ export const PromptAssembly = z.object({
   skills_tokens: z.number().int().nullish(),
   memory: z.string().nullish(),
   specs: z.string().nullish(),
+  // Per-document record of the project context sent (SPEC-02 AC11). Nullish:
+  // traces written before these fields existed have no key at all.
+  specs_used: z.array(SpecUsed).nullish(),
+  specs_tokens: z.number().int().nullish(),
   /** Callers-of-changed-symbols digest (repo-intel); null when absent. */
   callers: z.string().nullish(),
   /** Repo skeleton / map (repo-intel); null when absent. */
