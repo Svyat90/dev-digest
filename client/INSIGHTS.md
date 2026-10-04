@@ -14,6 +14,15 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-04 — Seeded PR #482's core files have no `patch`, so diff line targeting cannot be checked on them.**
+  `src/middleware/ratelimit.ts`, `webhooks.ts`, `config.ts`, `users.ts` (the files
+  the seeded findings point at) render "No diff text available", and any
+  `?tab=diff&file=…&line=N` on them shows the line-not-found notice. Only the four
+  role files added later carry a patch, and a dev DB seeded before them has none.
+  Rule: check scroll/highlight/sticky arrival in the real app on a synced PR with
+  real patches (e.g. one from the `dev-digest` repo), never on #482's core files.
+  `server/src/db/seed.ts:139-142`
+
 - **2026-09-19 — Mixing the `border` shorthand with a `borderColor` override is a runtime error in dev.**
   A style object with `border: "1px solid transparent"` whose active variant
   overrides only `borderColor` makes React log, the moment the variant turns
