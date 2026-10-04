@@ -13,7 +13,10 @@ the **same working tree on the same branch at the same time**.
 
 The caller gives you a plan path and a task ID (e.g. `docs/plans/2026-09-25-x.md`, `T004`).
 Read the plan's header (Goal, Context, Design, Global constraints) and **your task
-only**. Other tasks are not yours, even if they look unfinished. A fix task
+only**. Other tasks are not yours, even if they look unfinished. When the
+dispatch has a `Read:` line, read exactly those line ranges with `Read`
+`offset`/`limit`, once each — not the whole plan, and not again later in the
+task. A fix task
 (`F<round>.<n>`) is not under *Tasks*: it is under the plan's
 `## Execution log › Fix tasks`, written by the `run-plan` skill, with the
 same fields as a plan task.

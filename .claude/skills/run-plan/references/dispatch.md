@@ -10,6 +10,7 @@ agent's report. Lines in `[…]` are included only when they apply.
 ```
 Plan: <plan path>
 Task: <T00x>
+Read: header lines 1–<line before "## Tasks">, task lines <start>–<end>
 Mode: <multi-agent | single-agent>
 [Designs: <paths of the designs mapped to this task> — match them for the files you own; anything they show outside your Files is not yours]
 [Extra: X<n> — <the requirement, verbatim>   (one line each; treat as an acceptance criterion of this task)]
@@ -20,6 +21,13 @@ Mode: <multi-agent | single-agent>
 
 Multi-agent: say nothing about other tasks; the agent already treats errors in
 files it does not own as *Foreign errors*.
+
+`Read:` ranges come from one `grep -n -E "^#{2,4} " <plan>` per wave: the
+header ends on the line before `## Tasks`; a task runs from its `#### T00x`
+line to the line before the next `##`, `###` or `####` heading (e.g.
+`### Wave 2`, `## Ownership check`). Recompute them each wave — the Execution
+log grows. Fix tasks get no `Read:` line. Without them each implementer reads the whole plan, often 2–3 times
+(retro 2026-10-04: an 857-line plan read by 8 agents).
 
 ## implementer — a fix task
 
