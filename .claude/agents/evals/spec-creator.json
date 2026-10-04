@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Write a spec: PR review should work well on big repositories and not be slow.",
-      "expected_output": "Does not invent numbers. Reads INSIGHTS.md of the touched packages through the engineering-insights skill (read mode) and says in one line what bears on it. Writes a draft whose acceptance criteria are EARS sentences with one 'shall' each and a number or observable result; 'big' and 'slow', the timeout behaviour and the model-unavailable case become open questions with an owner, and the report returns at most 4 of them ready for AskUserQuestion (options, recommended first, effect on the spec). Status is draft; the lint hook is silent.",
+      "expected_output": "Does not invent numbers. Reads INSIGHTS.md of the touched packages through the engineering-insights skill (read mode) and says in one line what bears on it. Writes a draft whose acceptance criteria are EARS sentences with one 'shall' each and a number or observable result; 'big' and 'slow', the timeout behaviour and the model-unavailable case become open questions with an owner, and the report returns every one of them ready for AskUserQuestion, one call each (a concrete example, options with the recommended one first, effect on the spec), and lists low-stakes points under Assumptions to confirm. Status is draft; the lint hook is silent.",
       "files": []
     },
     {

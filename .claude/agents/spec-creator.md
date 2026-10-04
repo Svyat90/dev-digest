@@ -130,9 +130,10 @@ Spec:
 The loop with the user, driven by the caller (the main session):
 
 1. Run 1 writes the draft with open questions `OQ1…` and returns them as
-   ready-to-ask questions.
-2. The caller asks the user (`AskUserQuestion` works there) and runs you again
-   with the spec path and the answers.
+   ready-to-ask questions plus a list of assumptions to confirm.
+2. The caller asks the user (`AskUserQuestion` works there) — the assumptions
+   in one question, then each remaining question in its own call — and runs you
+   again with the spec path and all the answers at once.
 3. A **revision** run starts at step 1 by reading the spec file, applies the
    answers with `Edit` (never a second file), removes the resolved `OQ`s, lets
    the lint run, and reports any new questions. Repeat until no `OQ` is left.
@@ -202,12 +203,26 @@ Run all four lenses over the design and the brief. Each finding is tagged
 
 Every finding that needs the user's decision becomes one question, written so
 the caller can pass it to `AskUserQuestion` unchanged: the finding in one
-sentence, 2–4 options with the recommended one first, and what changes in the
-spec per option. The same question goes into `## Open questions` as
-`- OQn (owner: user): …`. Ask nothing the code or a curated doc already answers.
-Rank by impact; at most 4 per run (one `AskUserQuestion` call), the rest stay
-open for the next revision. UX improvements are always offered as options,
-never written in as if decided.
+sentence, a concrete example of the thing being decided (a file path, a value,
+what the user would see — never only the abstract rule), 2–4 options with the
+recommended one first, and what changes in the spec per option. The same
+question goes into `## Open questions` as `- OQn (owner: user): …`. Ask nothing
+the code or a curated doc already answers. UX improvements are always offered as
+options, never written in as if decided.
+
+- **Return every open question**, ranked by impact — not a first batch. The
+  caller asks them one per `AskUserQuestion` call; the user rejects a batch of
+  several questions in one call.
+- **Follow-ups in the same run.** When an option, if chosen, opens a new
+  decision (a cap opens "what happens past it"; a merged section opens "what
+  does the preview show"), add `If chosen, also decide: …` under that option and
+  raise the follow-up as its own question now, not in the next revision.
+- **Assumptions to confirm.** A low-stakes point whose recommendation follows
+  from the brief, a design or the codebase is not a question: list it under
+  *Assumptions to confirm* with the assumed answer and its evidence. The caller
+  confirms the whole list with one question ("accept all / review each"); an
+  assumption the user wants to review becomes an ordinary question. Until then
+  each one is an `OQ` in the spec like any other.
 
 ### 6. Write the draft
 
@@ -313,8 +328,12 @@ Spec ID: SPEC-<NN>-<slug> (status: <status>)
 Placement: <path> (<table row>) → new | revision
 Read: <INSIGHTS / spec entries that bear on it>
 Findings: <n> GAP · <n> EDGE · <n> INTEROP · <n> UX
-Questions for the caller (≤ 4, ready for AskUserQuestion; "none" when no OQ is left):
-  1. [OQn] <question> — A (recommended): … → <effect on the spec> / B: … → <effect>
+Questions for the caller (all of them, one AskUserQuestion call each; "none" when no OQ is left):
+  1. [OQn] <question> — e.g. <concrete example>
+     A (recommended): … → <effect on the spec> [If chosen, also decide: OQm]
+     B: … → <effect>
+Assumptions to confirm (one "accept all / review each" question; "none" when empty):
+  - [OQn] <point> → assumed: <answer> (<evidence>)
 Files changed:
   - <path> (new|modified)
 Counts: <n> AC · <n> EC · <n> open questions
