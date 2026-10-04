@@ -118,7 +118,12 @@ The plan template: [`docs/plans/README.md`](../../docs/plans/README.md).
   `docs/plans/<YYYY-MM-DD>-<topic>.md` — a new plan, or a `draft` plan it is
   revising; a PreToolUse hook
   ([`hooks/implementation-planner-scope.mjs`](../hooks/implementation-planner-scope.mjs))
-  blocks every other path and any rewrite of an `approved` / `done` plan.
+  blocks every other path and any rewrite of an `approved` / `done` plan; a
+  PostToolUse hook
+  ([`hooks/implementation-planner-lint.mjs`](../hooks/implementation-planner-lint.mjs))
+  runs [`scripts/lint-plan.mjs`](../../scripts/lint-plan.mjs) after every plan
+  write and returns its errors to the agent. A `draft` spec with open `OQ`s is
+  not planned.
   Bash read-only by rule (the hook cannot see Bash). No `Edit`, no `Agent`, no
   `AskUserQuestion`: questions go back to the caller.
 - **Skills:** the same backend and frontend sets as the implementer, loaded by
