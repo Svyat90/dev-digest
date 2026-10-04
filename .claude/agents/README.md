@@ -23,7 +23,10 @@ questions; the main session asks you and re-runs it until no open question is le
 `plan-verifier` → fix tasks for implementers when either reports a gap,
 re-dispatch and re-verify → `doc-writer` → `engineering-insights` capture →
 user runs `/pr-self-review`.
-The execution protocol and the plan template: [`docs/plans/README.md`](../../docs/plans/README.md).
+The main session runs everything from the approved plan onward with the
+[`execute-plan`](../skills/execute-plan/SKILL.md) skill (dispatch, report
+acceptance, wave gates, commits, the capped fix loop, the resumable
+`## Execution log`). The plan template: [`docs/plans/README.md`](../../docs/plans/README.md).
 
 ## researcher
 

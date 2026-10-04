@@ -12,48 +12,30 @@ File name: `YYYY-MM-DD-<kebab-topic>.md`.
 
 ## How a plan is executed
 
-1. The main session runs `implementation-planner` → a `draft` plan file here,
-   or `NEEDS CLARIFICATION` with questions the main session asks the user and
-   then passes back in a new run.
-2. The user reviews the plan and its *Recommendations*. Accepted ones are not
-   edited in by hand: the main session re-runs `implementation-planner` in
-   revision mode with the plan path and the accepted list, and it rewrites the
-   same file. Only a `draft` plan can be revised.
-3. The main session asks the user for the execution mode — the planner's report
-   ends with this question — and sets the plan's `Status: approved`:
-   - **multi-agent** — `[P]` tasks of a wave run in parallel;
-   - **single-agent** — every task runs alone, in task-ID order, one agent at a
-     time. Same agents, same reports, same one commit per task; only the
-     parallelism is gone.
-4. The main session works wave by wave on the **current feature branch, in one
-   working tree** (no worktrees, no per-task branches):
-   - Wave 0 tasks run one at a time.
-   - Multi-agent: `[P]` tasks of a wave are launched as parallel agents in a
-     single message. Single-agent: they are launched one per message, in
-     task-ID order. They never share a file (the implementation-planner
-     guarantees it). A task's `Agent:` field says which agent runs it:
-     `implementer` (default), `test-writer` for a task whose deliverable is
-     tests only, or `doc-writer` for a docs task in the final wave — all are
-     dispatched under the same wave rules (exclusive files, one commit per
-     task).
-   - After a wave, the main session checks each report (status, skills loaded vs.
-     the task's *Skills*, verification output), runs the package typecheck and
-     tests once for the whole wave, and commits **one commit per task**, staging
-     that task's *Files* by explicit path after `git branch --show-current`.
-   - `NEEDS_CONTEXT` / `BLOCKED` → resolve with the user or fix the plan, then
-     re-dispatch that task only.
-5. After the last wave, the main session runs `architecture-reviewer` (scope:
-   base `main`) and `plan-verifier` (this plan) in one message — both are
-   read-only, so they run in parallel. `architecture-reviewer` CRITICAL /
-   MAJOR findings and `plan-verifier` `PARTIAL` / `NOT MET` items become fix
-   tasks for `implementer` agents; re-dispatch and re-verify, then re-run both
-   checks. `UNVERIFIABLE` items are resolved by the main session, not expanded
-   into an open search. Once `architecture-reviewer` reports `PASS` and
-   `plan-verifier` reports `VERIFIED`, the main session runs `doc-writer` for
-   any docs/specs work the plan's final wave carries.
-6. After the last wave: `pnpm run typecheck && pnpm test` in every touched
-   package, insight candidates recorded through the `engineering-insights`
-   skill, then the user runs `/pr-self-review` before any push or PR.
+The main session runs the plan with the `execute-plan` skill
+([`.claude/skills/execute-plan/SKILL.md`](../../.claude/skills/execute-plan/SKILL.md)),
+which holds the full protocol. In short:
+
+1. `implementation-planner` writes a `draft` plan here, or returns
+   `NEEDS CLARIFICATION`; the main session asks the user and re-runs it.
+   Accepted *Recommendations* go in through a planner revision run, never by
+   hand. Only a `draft` plan can be revised.
+2. The user approves the plan and picks the execution mode (multi-agent: `[P]`
+   tasks of a wave in parallel; single-agent: one task at a time, in task-ID
+   order). The main session sets `Status: approved`.
+3. `execute-plan` works wave by wave on the current feature branch, in one
+   working tree: dispatch by each task's `Agent:` field, accept every report,
+   one wave gate, one commit per task. `doc-writer` tasks wait until the
+   checks pass.
+4. After the last wave (tests included): `architecture-reviewer` ∥
+   `plan-verifier`, then at most two fix rounds that re-check only what failed.
+5. Close: full typecheck and tests, `engineering-insights` capture,
+   `Status: done`, the spec moved to `implemented` with the user's consent, and
+   the user runs `/pr-self-review` before any push or PR.
+
+While a plan runs, its last section is an `## Execution log` kept by
+`execute-plan` (mode, base commit, task results and commits, decisions, check
+rounds, fix tasks). A fresh session resumes from it.
 
 ## Template
 

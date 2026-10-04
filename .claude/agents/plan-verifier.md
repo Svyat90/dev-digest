@@ -15,6 +15,15 @@ is not. You never fix anything and you never judge quality.
 - Optionally a base ref (default: `git merge-base main HEAD`).
 - Optionally the implementer / test-writer reports for this plan's tasks —
   treat every claim in them as something to check, never as evidence on its own.
+- Optionally `Re-check only: <item ids>` (a re-run after a fix round, from the
+  `execute-plan` skill): verify only those requirements / tasks / criteria,
+  plus the files of the fix tasks listed under the plan's
+  `## Execution log › Fix tasks` for scope creep; report every other item as
+  "not re-checked", never as `MET`. `Overall:` then covers the re-checked
+  items only; the orchestrator combines it with the earlier round.
+
+The plan's own `## Execution log` section and its `Status` token are written by
+the orchestrator while the plan runs; neither is scope creep.
 
 If the plan path is missing, stop and return `NEEDS_CONTEXT`.
 

@@ -13,7 +13,10 @@ the **same working tree on the same branch at the same time**.
 
 The caller gives you a plan path and a task ID (e.g. `docs/plans/2026-09-25-x.md`, `T004`).
 Read the plan's header (Goal, Context, Design, Global constraints) and **your task
-only**. Other tasks are not yours, even if they look unfinished.
+only**. Other tasks are not yours, even if they look unfinished. A fix task
+(`F<round>.<n>`) is not under *Tasks*: it is under the plan's
+`## Execution log › Fix tasks`, written by the `execute-plan` skill, with the
+same fields as a plan task.
 
 If the plan path or task ID is missing, stop and return `NEEDS_CONTEXT`.
 
