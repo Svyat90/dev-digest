@@ -64,6 +64,9 @@ function readJsonl(path) {
 function resolveSession(args, projectDir) {
   if (args.session?.endsWith('.jsonl')) return resolve(args.session);
   if (args.session) return join(projectDir, `${args.session}.jsonl`);
+  // The newest transcript by mtime can be another session running concurrently.
+  const current = process.env.CLAUDE_CODE_SESSION_ID;
+  if (current && existsSync(join(projectDir, `${current}.jsonl`))) return join(projectDir, `${current}.jsonl`);
   if (!existsSync(projectDir)) fail(`no transcript folder at ${projectDir}`);
   const newest = readdirSync(projectDir)
     .filter((f) => f.endsWith('.jsonl'))
@@ -222,7 +225,7 @@ function msBetween(a, b) {
   return a && b ? new Date(b) - new Date(a) : null;
 }
 
-function collectAgent(dir, file, window) {
+function collectAgent(dir, file, window, resumesById) {
   const agentId = basename(file, '.jsonl').replace(/^agent-/, '');
   const metaPath = join(dir, `agent-${agentId}.meta.json`);
   const meta = existsSync(metaPath) ? JSON.parse(readFileSync(metaPath, 'utf8')) : {};
@@ -230,16 +233,20 @@ function collectAgent(dir, file, window) {
   const events = all.filter((e) => inWindow(e.timestamp, window));
   if (!events.length) return null;
 
-  // Each dispatch (the first brief, then every SendMessage resume) has its own promptId.
+  // A dispatch is the Agent launch plus each main-session SendMessage to this agent.
+  // promptId is not used: it changes with the main session's turns, not with resumes.
+  const resumeTimes = (resumesById.get(agentId) ?? []).sort();
   const segments = [];
+  let nextResume = 0;
   for (const e of events) {
     if (!e.timestamp) continue;
-    const last = segments.at(-1);
-    if (!last || (e.promptId && e.promptId !== last.promptId)) {
-      segments.push({ promptId: e.promptId, start: e.timestamp, end: e.timestamp });
-    } else {
-      last.end = e.timestamp;
+    let startsNew = segments.length === 0;
+    while (nextResume < resumeTimes.length && resumeTimes[nextResume] <= e.timestamp) {
+      nextResume++;
+      startsNew = true;
     }
+    if (startsNew) segments.push({ start: e.timestamp, end: e.timestamp });
+    else segments.at(-1).end = e.timestamp;
   }
 
   const uses = toolUses(events);
@@ -327,11 +334,16 @@ function main() {
   const mainErrors = toolErrors(events, mainNameById);
   const mainTokens = tokensOf(events);
 
+  const resumesById = new Map();
+  for (const u of mainUses.filter((u) => u.name === 'SendMessage' && u.input.to)) {
+    (resumesById.get(u.input.to) ?? resumesById.set(u.input.to, []).get(u.input.to)).push(u.ts);
+  }
+
   const subDir = join(projectDir, sessionId, 'subagents');
   const agents = existsSync(subDir)
     ? readdirSync(subDir)
         .filter((f) => f.startsWith('agent-') && f.endsWith('.jsonl'))
-        .map((f) => collectAgent(subDir, f, window))
+        .map((f) => collectAgent(subDir, f, window, resumesById))
         .filter(Boolean)
         .sort((a, b) => (a.start < b.start ? -1 : 1))
     : [];

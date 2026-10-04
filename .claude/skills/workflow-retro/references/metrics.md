@@ -13,10 +13,10 @@ per agent). It writes nothing.
 | `tokens.total` / `.main` / `.agents` | input, output, cacheRead, cacheWrite, thinking, turns | `message.usage`, one count per API message id (a response split across lines is counted once) |
 | `tokens.cacheHitRatio` | cacheRead / (input + cacheRead + cacheWrite) | — |
 | `tokens.agentShare` | agents' tokens / all tokens | all four token kinds summed |
-| `costUsd` | dollars | tokens × `prices.json`; `null` when any model's price is missing |
+| `costUsd` | dollars at API list prices (an API-equivalent figure on a subscription) | tokens × `prices.json`; `null` when any model's price is missing |
 | `agents.list[].type` | agent type | `meta.agentType` |
 | `agents.list[].order` | launch order | sorted by first event |
-| `agents.list[].dispatches` / `resumes` | first brief plus each `SendMessage` | distinct `promptId` runs in the agent transcript |
+| `agents.list[].dispatches` / `resumes` | first brief plus each `SendMessage` | the `Agent` launch plus each main-session `SendMessage` whose `to` is this agent's id; a dispatch spans the agent's events between those calls |
 | `agents.list[].activeMs` | sum of dispatch durations | first to last event per dispatch |
 | `agents.list[].briefChars` | size of the first brief | — |
 | `agents.list[].toolCallsBeforeFirstWrite` | ramp-up before the first Write/Edit | `null` for read-only agents |

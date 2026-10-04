@@ -44,7 +44,8 @@ another skill or agent.
 /workflow-retro [session=<id|path>] [since=<ISO>] [until=<ISO>] [topic=<kebab-slug>] [prices=<path>]
 ```
 
-- `session` — default: the current session (the newest transcript of this project).
+- `session` — default: the current session (`$CLAUDE_CODE_SESSION_ID`; the newest
+  transcript of this project only when that variable is unset).
 - `since` / `until` — narrow a long session to one workflow (for example, from
   the first agent launch of a `run-plan`).
 - `topic` — names the report file; default: the branch name without `feature/`.

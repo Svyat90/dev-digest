@@ -16,7 +16,7 @@ Workflow: <e.g. spec-creator × 3 rounds, run-plan on docs/plans/…>
 ## Summary
 
 - Tokens: <display.tokens.total.output> out · <display.tokens.total.cacheRead> cache read · <display.tokens.total.cacheWrite> cache write · cache hit <ratio> · agents <agentShare>
-- Cost: $<costUsd> (or "not measured: no price for <model>")
+- Cost: $<costUsd> API-equivalent (or "not measured: no price for <model>")
 - Agents: <count> (<byType>) · <dispatches> dispatches · max <maxConcurrent> in parallel
 - Wall time: <display.wall> · main session active <display.mainActive>
 - Verdict: <one sentence — what to change first>
