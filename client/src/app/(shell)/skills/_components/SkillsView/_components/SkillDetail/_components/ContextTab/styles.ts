@@ -1,0 +1,34 @@
+import type { CSSProperties } from "react";
+
+export const s = {
+  wrap: { maxWidth: 780, display: "flex", flexDirection: "column", gap: 14 } satisfies CSSProperties,
+  title: { fontSize: 14, fontWeight: 600, margin: 0 } satisfies CSSProperties,
+  note: { fontSize: 12, color: "var(--text-muted)", margin: 0 } satisfies CSSProperties,
+  toolbar: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" } satisfies CSSProperties,
+  filter: {
+    flex: 1,
+    minWidth: 160,
+    padding: "6px 10px",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "var(--border)",
+    background: "var(--bg-elevated)",
+    color: "inherit",
+  } satisfies CSSProperties,
+  link: { fontSize: 12, color: "var(--accent)" } satisfies CSSProperties,
+  meta: { fontSize: 12, color: "var(--text-muted)" } satisfies CSSProperties,
+  serializesLabel: { fontSize: 12, fontWeight: 600, color: "var(--text-muted)" } satisfies CSSProperties,
+  serializes: {
+    margin: 0,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "var(--border)",
+    background: "var(--bg-elevated)",
+    fontFamily: "var(--font-mono, monospace)",
+    fontSize: 12,
+    whiteSpace: "pre-wrap",
+  } satisfies CSSProperties,
+};

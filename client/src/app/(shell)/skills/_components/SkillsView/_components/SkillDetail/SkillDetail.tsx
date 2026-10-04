@@ -10,6 +10,7 @@ import { ConfigTab } from "./_components/ConfigTab";
 import { PreviewTab } from "./_components/PreviewTab";
 import { StatsTab } from "./_components/StatsTab";
 import { VersionsTab } from "./_components/VersionsTab";
+import { ContextTab } from "./_components/ContextTab";
 import { TABS, VALID_TABS } from "./constants";
 import { s } from "./styles";
 
@@ -42,6 +43,7 @@ export function SkillDetail({ skill }: { skill: Skill }) {
         {tab === "preview" && <PreviewTab skill={skill} />}
         {tab === "stats" && <StatsTab skillId={skill.id} />}
         {tab === "versions" && <VersionsTab skill={skill} />}
+        {tab === "context" && <ContextTab key={skill.id} skillId={skill.id} />}
       </div>
     </div>
   );
