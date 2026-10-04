@@ -34,6 +34,18 @@ export class ExternalServiceError extends AppError {
   }
 }
 
+/**
+ * The provider answered, but its structured output never matched the schema.
+ * Same code and status as ExternalServiceError, so existing callers are unchanged;
+ * callers that must tell it apart from a provider failure use `instanceof`.
+ */
+export class InvalidModelOutputError extends ExternalServiceError {
+  constructor(message: string, details?: unknown) {
+    super(message, details);
+    this.name = 'InvalidModelOutputError';
+  }
+}
+
 export class ConfigError extends AppError {
   constructor(message: string, details?: unknown) {
     super('config_error', message, 500, details);

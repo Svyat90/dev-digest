@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { OpenRouterProvider } from '../src/llm/openrouter.js';
+import { InvalidStructuredOutputError, OpenRouterProvider } from '../src/llm/openrouter.js';
 
 // A loopback stand-in for OpenRouter's non-streaming behaviour when an upstream
 // provider stalls: headers go out at once, then keep-alive padding, never a body.
@@ -71,4 +71,33 @@ describe('OpenRouterProvider.completeStructured', () => {
 
     await expect(call).rejects.toThrow(/Probe exceeded the 300ms deadline/);
   }, 5_000);
+
+  it('rejects with InvalidStructuredOutputError when the answer is not valid JSON', async () => {
+    server = createServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          id: 'gen-2',
+          object: 'chat.completion',
+          created: 0,
+          model: 'test/model',
+          choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: 'not json' } }],
+          usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5 },
+        }),
+      );
+    });
+    await new Promise<void>((resolve) => server!.listen(0, '127.0.0.1', resolve));
+    const baseURL = `http://127.0.0.1:${(server.address() as AddressInfo).port}/v1`;
+    const llm = new OpenRouterProvider('test-key', { baseURL, deadlineMs: 2_000, maxRetries: 0 });
+
+    const call = llm.completeStructured({
+      model: 'test/model',
+      schema: z.object({ ok: z.boolean() }),
+      schemaName: 'Probe',
+      messages: [{ role: 'user', content: 'hi' }],
+      maxRetries: 0,
+    });
+
+    await expect(call).rejects.toBeInstanceOf(InvalidStructuredOutputError);
+  });
 });
