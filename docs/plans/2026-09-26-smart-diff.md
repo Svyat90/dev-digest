@@ -1,6 +1,6 @@
 # Smart Diff — Development Plan
 
-Date: 2026-09-26 · Branch: feature/l03-smart-diff (from feature/l03-intent-layer) · Status: draft
+Date: 2026-09-26 · Branch: feature/l03-smart-diff (from feature/l03-intent-layer) · Status: done
 
 ## Goal
 The **Files changed** tab of a PR orders files the way a reviewer should read them:

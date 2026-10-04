@@ -29,6 +29,7 @@ external doc-type standard encodes the README-index / CLAUDE.md pairing).
 
 | Content | Goes to | Diátaxis type | Notes |
 |---|---|---|---|
+| Anything about a feature that has a numbered spec (`Spec ID: SPEC-NN-…`, written by `spec-creator`) | `<pkg>/docs/<topic>.md` of the package that owns most of the behaviour | explanation | **The SPEC is the single source of requirements.** Never edit a file with a `Spec ID`, and never create a second invariants spec for the same feature; write only the how-it-works explanation and link the SPEC. Its status (`implemented`) is changed by `spec-creator`, not here. This row wins over the two `<pkg>/specs/` rows below. |
 | Invariants / contract of a shipped feature (numbered IDs, breaking if changed) | `<pkg>/specs/<feature>.md` | reference | continue the file's existing ID scheme (e.g. `server/specs/conventions.md`'s C1–C10); changing an existing invariant is flagged in the report, never done silently |
 | e2e feature spec | `e2e/docs/` | reference | exception: `e2e/specs/` holds flow JSON (`*.flow.json`); `e2e/specs/behaviour-spec.md` is only a pointer back to `e2e/docs/` (`e2e/CLAUDE.md` › Read when) |
 | How a subsystem works, deep-dive, architecture | `<pkg>/docs/<topic>.md` | explanation | narrative, no invariant IDs |
@@ -36,7 +37,7 @@ external doc-type standard encodes the README-index / CLAUDE.md pairing).
 | Cross-package overview, review flow end to end | root `README.md` | explanation | keep the existing `flowchart LR` style |
 | How to write reviewer prompts | `docs/agent-prompts/README.md` | how-to | the prompt files themselves (`docs/agent-prompts/general-reviewer.md` and its siblings) are runtime config — the DB is the source of truth, so they are read for context, never edited here |
 | Lasting behaviour from a finished plan | graduates to `<pkg>/specs/` | reference | `docs/plans/README.md` says plans are working documents, not the permanent home |
-| Work plans | `docs/plans/` | — | planner only; doc-writer never writes here |
+| Work plans | `docs/plans/` | — | implementation-planner only; doc-writer never writes here |
 | Traps / learnings | `INSIGHTS.md` | — | never; hand candidates back to the caller for the `engineering-insights` skill |
 | Test policy | `TESTING.md` | — | only when the brief is explicitly about test policy |
 | Agents, skills, settings | `.claude/**` | — | out of scope |
@@ -48,7 +49,8 @@ a new one, however small the addition — see Hard rule 1.
 
 `Edit`/`Write` are limited to:
 
-- `<pkg>/specs/*.md` (reference docs with invariant IDs);
+- `<pkg>/specs/*.md` (reference docs with invariant IDs) — except any file with a
+  `Spec ID:` line, which belongs to `spec-creator` and is read-only here;
 - `<pkg>/docs/**/*.md` (deep-dives); the e2e exception is `e2e/docs/*.md`;
 - `<pkg>/README.md` and root `README.md`;
 - `docs/agent-prompts/README.md` (the how-to only — never the prompt files under

@@ -20,6 +20,17 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-10-03 — A plan's `Status:` line does not say whether it shipped.**
+  `docs/plans/2026-09-25-intent-layer.md`, `2026-09-26-smart-diff.md` and
+  `2026-09-30-blast-radius.md` still read `Status: draft` although their branches
+  were merged (PRs #10, #12, #15); nobody moved them to `approved` / `done`.
+  Anything keyed on that line misreads them as open — notably
+  `.claude/hooks/implementation-planner-scope.mjs`, which lets the planner
+  rewrite any `draft` plan.
+  Rule: when a plan's branch merges, set its `Status: done` in the same PR; never
+  treat `Status: draft` alone as proof that a plan is still in progress.
+  `grep -m1 "Status:" docs/plans/2026-*.md`
+
 - **2026-09-20 — "Which reviews does the PR-list FINDINGS column count?" is defined TWICE.**
   The server picks them for the chips (`pickLatestReviewIds`: each agent's newest
   `kind='review'` review, per PR), and the client re-derives the same set for the
@@ -46,6 +57,30 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 ## Tool & Library Notes
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
+
+- **2026-10-03 — Edits to an agent's frontmatter do not reach that agent until the session restarts.**
+  Adding a `Bash` matcher and a `PostToolUse` hook to `.claude/agents/spec-creator.md`
+  mid-session had no effect on the next run of that agent: `echo test > /tmp/…`
+  was not blocked and the lint hook never fired. The changed hook *script*
+  (read fresh on every call) did take effect, and the session's agent list still
+  showed the file's first-version description.
+  After a session restart the same run blocked the redirect ("spec-creator
+  blocked: Bash is read-only for this agent") and returned the lint errors.
+  Rule: after changing `tools:`, `hooks:` or `description` in `.claude/agents/*.md`,
+  restart the session before testing the agent; changes inside a hook script do
+  not need a restart.
+  `.claude/agents/spec-creator.md` (frontmatter) · `.claude/hooks/spec-creator-scope.mjs`
+
+- **2026-10-03 — A subagent cannot ask the user anything; only a hook's `ask` reaches the user.**
+  Inside a subagent `AskUserQuestion` fails with "AskUserQuestion is not available
+  inside subagents. Complete the task with the tools provided and return findings
+  to the orchestrator." A PreToolUse hook declared in the agent's frontmatter that
+  returns `permissionDecision: "ask"` does show the user a permission prompt, and
+  an exit-2 denial returns its stderr text to the agent.
+  Rule: design every agent in `.claude/agents/` to return its questions to the
+  main session (which asks the user and re-runs it); use a frontmatter hook with
+  `ask` only for a yes/no permission gate, never for an open question.
+  `.claude/agents/spec-creator.md` · `.claude/hooks/spec-creator-scope.mjs`
 
 - **2026-09-29 — `rg` (ripgrep) is not installed on the dev machine; gate commands written with it fail.**
   The MCP plan's verification gates used `rg -n …`; every implementer had to

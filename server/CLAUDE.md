@@ -68,6 +68,9 @@ then read code.
 - Read `specs/smart-diff.md` before touching the Smart Diff module or the
   Files-changed role grouping — the classification precedence, the contested
   cases, and the `finding_lines` rule.
+- Read `specs/blast-radius.md` before touching the blast module, the Prior PRs
+  route or `repoIntel.getBlastRadius` — the caller grouping, the per-symbol cap,
+  honest degradation and the GitHub-link sha rule.
 - Read `src/modules/repo-intel/README.md` before working on the indexer.
 - Read `../TESTING.md` before adding or changing a test.
 - Read `../docs/agent-prompts/` before editing reviewer system prompts.

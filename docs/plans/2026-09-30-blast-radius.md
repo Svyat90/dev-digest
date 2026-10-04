@@ -1,6 +1,6 @@
 # Blast Radius — Development Plan
 
-Date: 2026-09-30 · Branch: `feature/l04-blast-radius` · Status: draft
+Date: 2026-09-30 · Branch: `feature/l04-blast-radius` · Status: done
 
 ## Goal
 A reviewer opening a PR's **Overview** tab sees a **Blast radius** card next to the
