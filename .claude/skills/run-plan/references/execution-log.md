@@ -24,6 +24,15 @@ Maintained by the `run-plan` skill. Not part of the plan's design.
 - Environment: Postgres up | down · stack up | down
 - Next: <the one step a resumed session runs first>
 
+### Inputs
+- Spec: <path, status> | none
+- Designs: <path> → T004, T005 | none
+- Extra requirements:
+  | X | Requirement (verbatim) | Class | Task | Verdict |
+  |---|---|---|---|---|
+  | X1 | <…> | refines | T004 | MET (round 0) |
+  | X2 | <…> | new scope → planner | — | dropped by user |
+
 ### Tasks
 | Task | Wave | Agent | Result | Commit | Note |
 |---|---|---|---|---|---|
@@ -66,7 +75,9 @@ Maintained by the `run-plan` skill. Not part of the plan's design.
   are filled in place as the task moves on; everything else is append-only.
 - A task row with Commit `—` was accepted but is not committed yet; whether its
   wave gate passed is in *Wave gates*.
-- Round 0 is the first check run; fix rounds are 1 and 2 (`SKILL.md` rule 5).
+- Round 0 is the first check run; fix rounds 1 and 2 run automatically, any
+  further round only after the user asked for it (`SKILL.md` rule 5). A MINOR /
+  NIT finding the user did not pick is recorded under *Decisions* as declined.
 - A fix task carries the same fields as a plan task, `Rules:` and
   `Constraints:` included (copied from the plan task that owns its files, plus
   the rule the finding cites), so the implementer runs it without loading

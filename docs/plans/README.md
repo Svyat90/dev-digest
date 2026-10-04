@@ -12,30 +12,31 @@ File name: `YYYY-MM-DD-<kebab-topic>.md`.
 
 ## How a plan is executed
 
-The main session runs the plan with the `run-plan` skill
-([`.claude/skills/run-plan/SKILL.md`](../../.claude/skills/run-plan/SKILL.md)),
-which holds the full protocol. In short:
+Three steps, each started by the user:
 
-1. `implementation-planner` writes a `draft` plan here, or returns
-   `NEEDS CLARIFICATION`; the main session asks the user and re-runs it.
-   Accepted *Recommendations* go in through a planner revision run, never by
-   hand. Only a `draft` plan can be revised.
-2. The user approves the plan and picks the execution mode (multi-agent: `[P]`
-   tasks of a wave in parallel; single-agent: one task at a time, in task-ID
-   order). The main session sets `Status: approved`.
-3. `run-plan` works wave by wave on the current feature branch, in one
-   working tree: dispatch by each task's `Agent:` field, accept every report,
-   one wave gate, one commit per task. `doc-writer` tasks wait until the
-   checks pass.
-4. After the last wave (tests included): `architecture-reviewer` ∥
-   `plan-verifier`, then at most two fix rounds that re-check only what failed.
-5. Close: full typecheck and tests, `engineering-insights` capture,
-   `Status: done`, the spec moved to `implemented` with the user's consent, and
-   the user runs `/pr-self-review` before any push or PR.
+1. **Spec** — the user runs `spec-creator` (answers its questions, approves the
+   spec).
+2. **Plan** — the user runs `implementation-planner` with the spec. It writes a
+   `draft` plan here, or returns `NEEDS CLARIFICATION`; accepted
+   *Recommendations* go in through a planner revision run, never by hand. Only
+   a `draft` plan can be revised. `node scripts/lint-plan.mjs <plan>` runs on
+   every plan write.
+3. **Build** — the user runs
+   `/run-plan <plan> [spec=…] [designs=…] [mode=multi|single] [extra requirements]`
+   ([`.claude/skills/run-plan/SKILL.md`](../../.claude/skills/run-plan/SKILL.md)
+   holds the full protocol): preflight, waves of `implementer` agents (one
+   wave gate and one commit per task), `architecture-reviewer` ∥
+   `plan-verifier`, fix rounds (two automatic, then the user decides),
+   `doc-writer`, insights, `Status: done`. It never runs `spec-creator` or the
+   planner; it tells the user when one must be re-run. Moving the spec to
+   `implemented` and `/pr-self-review` stay with the user.
+
+`test-writer` is paused: implementers write the acceptance test of their own
+task, and plans contain no `Agent: test-writer` task.
 
 While a plan runs, its last section is an `## Execution log` kept by
-`run-plan` (mode, base commit, task results and commits, decisions, check
-rounds, fix tasks). A fresh session resumes from it.
+`run-plan` (inputs, mode, base commit, task results and commits, decisions,
+check rounds, fix tasks). A fresh session resumes from it.
 
 ## Template
 
@@ -90,7 +91,7 @@ contradictory or missing". Every spec `AC` id and the task that covers it.>
 
 #### T001 — <title>
 - Area: backend | frontend
-- Agent: implementer | test-writer | doc-writer (default `implementer` when omitted)
+- Agent: implementer | doc-writer (default `implementer` when omitted; `test-writer` is paused)
 - Depends on: —
 - Files (exclusive):
   - `server/src/vendor/shared/contracts/x.ts` (modified)

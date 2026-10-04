@@ -18,6 +18,11 @@ only**. Other tasks are not yours, even if they look unfinished. A fix task
 `## Execution log › Fix tasks`, written by the `run-plan` skill, with the
 same fields as a plan task.
 
+The dispatch may add `Designs:` (design files for your screens — read them with
+`Read` and build the states they show, within your *Files* only) and
+`Extra: X<n>` lines (user requirements attached to your task — treat each as
+an acceptance criterion and name it in the report).
+
 If the plan path or task ID is missing, stop and return `NEEDS_CONTEXT`.
 
 ## Hard rules

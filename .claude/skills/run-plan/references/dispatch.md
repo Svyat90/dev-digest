@@ -3,18 +3,19 @@
 One prompt per agent. Fill the `<…>` slots; add nothing else. Each agent reads
 its own rules from `.claude/agents/<name>.md` and the plan from disk, so the
 prompt carries **paths and decisions**, never pasted plan text or another
-agent's report.
+agent's report. Lines in `[…]` are included only when they apply.
 
-## implementer / test-writer — a plan task
+## implementer — a plan task
 
 ```
 Plan: <plan path>
 Task: <T00x>
 Mode: <multi-agent | single-agent>
-<only when re-dispatching:>
-Previous attempt: <status> — <the one-line reason>
-Answer / decision from the user: <text>
-Gate failure to fix: <failing command + the 1–10 output lines that name your files>
+[Designs: <paths of the designs mapped to this task> — match them for the files you own; anything they show outside your Files is not yours]
+[Extra: X<n> — <the requirement, verbatim>   (one line each; treat as an acceptance criterion of this task)]
+[Previous attempt: <status> — <the one-line reason>]
+[Answer / decision from the user: <text>]
+[Gate failure to fix: <failing command + the lines that name your files>]
 ```
 
 Multi-agent: say nothing about other tasks; the agent already treats errors in
@@ -29,27 +30,19 @@ Plan: <plan path>
 Task: <F1.2> — read it under "## Execution log › Fix tasks"; the plan header
 (Goal, Context, Design, Global constraints) still applies.
 Source: <architecture-reviewer finding | plan-verifier item> — <rule or criterion, file:line>
-```
-
-## test-writer — an on-demand brief
-
-```
-Brief: cover <behaviour>, spec <AC ids>.
-Production files under test: <paths>
-Test files you may create/edit: <paths>
-Plan (context only): <plan path>
+[Designs: <paths>, when the item is a UI criterion]
 ```
 
 ## architecture-reviewer
 
-First run:
+Round 0:
 
 ```
 Scope: base ref <Base sha from the log>
 Plan: <plan path>
 ```
 
-Re-check after a fix round:
+Fix rounds:
 
 ```
 Scope: paths <files of the fix tasks of this round>
@@ -58,24 +51,29 @@ Plan: <plan path>
 
 ## plan-verifier
 
-First run:
+Round 0:
 
 ```
 Plan: <plan path>
 Base: <Base sha from the log>
+[Spec: <spec path> — check every AC against the shipped code, not only through the plan's tasks]
+[Designs: <paths> — the UI criteria are checked against them]
+[Extra requirements (part of the scope, attached to tasks):
+- X1 → T004: <verbatim>]
 Report claims to check:
-- T00x: Deviations: <…> · Concerns: <…> · Defects found: <…>   (only non-"none" lines)
+- T00x: Deviations: <…> · Concerns: <…>   (only non-"none" lines)
 Note: the plan file's own "## Execution log" and Status token are the
 orchestrator's; they are not scope creep.
 ```
 
-Re-check after a fix round:
+Fix rounds:
 
 ```
 Plan: <plan path>
 Base: <Base sha from the log>
-Re-check only: <R2, T003 · AC2, …>   (the items that were PARTIAL / NOT MET / UNVERIFIABLE)
+Re-check only: <R2, T003 · AC2, X1, …>   (the items that were PARTIAL / NOT MET / UNVERIFIABLE)
 Fix tasks applied: <F1.1, F1.2> — see "## Execution log › Fix tasks"
+[Spec / Designs: as in round 0, when a re-checked item comes from them]
 ```
 
 ## doc-writer
@@ -85,12 +83,4 @@ Mode: write
 Plan: <plan path>
 Task: <T00x>
 Shipped: plan-verifier VERIFIED (round <n>), architecture-reviewer PASS
-```
-
-## spec-creator — status to implemented
-
-```
-Revision: <spec path>
-Brief: plan-verifier reported Overall: VERIFIED for <plan path> (round <n>).
-Propose the status change approved → implemented. Change nothing else.
 ```

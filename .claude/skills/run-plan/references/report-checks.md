@@ -4,7 +4,7 @@ A report is a claim (`SKILL.md` rule 3). Accept it only when every check of its
 agent passes; a failed check means re-dispatching the same task with the
 reason. Read the report, not the agent's whole transcript.
 
-## implementer / test-writer
+## implementer
 
 1. **Shape.** All fields of the agent's report template are present and
    `Status:` holds exactly one value.
@@ -25,9 +25,9 @@ reason. Read the report, not the agent's whole transcript.
 5. **Foreign errors.** Each file in a `foreign` count is owned by another
    task of the running wave. A foreign error in a file nobody in the wave owns is a real
    problem — raise it at the wave gate.
-6. **Test-writer extras.** *Fail-first evidence* has a failing assertion line
-   per test; *Mutation check* has at least one `executed` entry, or says why
-   none was permitted. `Defects found` other than "none" → a fix task.
+6. **Extra and designs.** Every `Extra: X<n>` of the dispatch is named in the
+   report as met, or under *Concerns* with the reason; a task given `Designs:`
+   says which design states it built.
 7. **Collect.** Copy *Deviations*, *Concerns*, *Rules gaps* and *Insight
    candidates* (non-"none" only) to the log, one line each.
 

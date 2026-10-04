@@ -3,32 +3,38 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Execute docs/plans/2026-10-05-pr-chat.md, multi-agent.",
-      "expected_output": "Preflight before any dispatch: reads root and touched packages' INSIGHTS.md and says which entries bear on it; checks the branch against the plan's Branch:, git status, plan Status (asks to approve if draft), the cited spec's Status, blocking open questions, reviewer-core/node_modules when server is touched. Creates ## Execution log with Mode and Base sha. Wave 0 dispatched one task per message; wave 1 [P] tasks in ONE message as parallel Agent calls, prompts carry plan path + task ID only. Runs the wave gate once with --reporter=dot --silent, then one commit per task after git branch --show-current, staging explicit paths. Never edits production code itself.",
+      "prompt": "/run-plan docs/plans/2026-10-05-pr-chat.md spec=specs/08-pr-chat-2026-10-04.md designs=docs/designs/pr-chat.png mode=multi Also the send button must be disabled while a reply streams.",
+      "expected_output": "Preflight first: INSIGHTS one-liner, node scripts/lint-plan.mjs on the plan with --spec, plan and spec status, branch, tree, environment. Records Inputs in the Execution log: spec path, the design mapped to the frontend tasks that own the chat screen, and X1 (send button disabled while streaming) classified as 'refines' and attached to the task that owns the composer component; shows that classification table before wave 0. Wave 1 [P] tasks dispatched in ONE message; the composer task's prompt carries Designs: and Extra: X1. Never runs spec-creator, implementation-planner or test-writer.",
       "files": []
     },
     {
       "id": 2,
-      "prompt": "Continue the plan docs/plans/2026-10-05-pr-chat.md — I cleared the chat after wave 1.",
-      "expected_output": "Resume: reads the plan's Execution log, not the conversation; compares git log <Base>..HEAD with the log's commits and reports any mismatch before continuing; does not re-dispatch accepted tasks; runs the step named in Next:.",
+      "prompt": "/run-plan docs/plans/2026-10-05-pr-chat.md — and add a new endpoint that exports the chat as markdown.",
+      "expected_output": "Classifies the export endpoint as new scope (new route, new contract) and does not attach it to any task or write a fix task for it. Stops before dispatch and asks: re-run implementation-planner (plan must be draft), drop it, or keep it for a later plan. Records the decision in the log.",
       "files": []
     },
     {
       "id": 3,
-      "prompt": "T004's implementer says DONE but its report lists client/src/lib/api.ts, which belongs to T005 in the same wave. What now?",
-      "expected_output": "Does not accept the report and does not commit api.ts with T004: the file is outside T004's Files. Re-dispatches T004 (or asks the user) and leaves T005's ownership intact; records the decision in the log. Does not edit api.ts itself.",
+      "prompt": "Continue the plan docs/plans/2026-10-05-pr-chat.md — I cleared the chat after wave 1.",
+      "expected_output": "Resume: reads the plan's Execution log (including Inputs), not the conversation; compares git log <Base>..HEAD with the log's commits and reports any mismatch before continuing; does not re-dispatch accepted tasks; runs the step named in Next:.",
       "files": []
     },
     {
       "id": 4,
-      "prompt": "plan-verifier still reports T003 · AC2 NOT MET after the second fix round. Just fix it yourself quickly and mark the plan done.",
-      "expected_output": "Refuses to edit code in the main session and refuses a third automatic round (cap is 2). Presents the remaining item with options: fix by hand by the user, change the plan, or accept as a known gap recorded in the log. Does not set Status: done while the item is open unless the user explicitly accepts the gap.",
+      "prompt": "architecture-reviewer returned 1 MAJOR and 3 MINOR findings; plan-verifier is VERIFIED. Go on.",
+      "expected_output": "Round 1: the MAJOR becomes a fix task automatically; the 3 MINOR findings are shown as a numbered multi-select question and only the picked ones become fix tasks, the rest are logged as declined. Fix tasks carry Rules and Constraints from the owning task. After the fix wave, re-runs architecture-reviewer on the fix tasks' files only.",
       "files": []
     },
     {
       "id": 5,
+      "prompt": "After fix round 2, plan-verifier still says T003 · AC2 NOT MET. Just fix it yourself and mark the plan done.",
+      "expected_output": "Refuses to edit code in the main session and does not start round 3 on its own. Asks: one more round, accept as a known gap (recorded in the log and the hand-off), or stop. Does not set Status: done while the item is open unless the user accepts the gap.",
+      "files": []
+    },
+    {
+      "id": 6,
       "prompt": "All waves are done and both checks passed. Wrap up.",
-      "expected_output": "Runs held doc-writer tasks; runs pnpm run typecheck && pnpm test in every touched package; invokes engineering-insights capture with the log's insight candidates; sets plan Status: done and commits the plan file alone; asks whether to move the spec to implemented and, on yes, dispatches spec-creator; asks the user to run /pr-self-review and does not push or open a PR.",
+      "expected_output": "Runs held doc-writer tasks; pnpm run typecheck && pnpm test in every touched package; engineering-insights capture with the log's candidates; sets plan Status: done and commits the plan file alone. Hand-off reminds the user to run spec-creator themselves to move the spec to implemented and to run /pr-self-review; does not dispatch spec-creator and does not push.",
       "files": []
     }
   ]
