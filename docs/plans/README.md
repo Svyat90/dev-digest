@@ -96,6 +96,9 @@ contradictory or missing". Every spec `AC` id and the task that covers it.>
   - `server/src/vendor/shared/contracts/x.ts` (modified)
   - `client/src/vendor/shared/contracts/x.ts` (modified)
 - Skills: <skill → sections, from routing.md>
+- Rules (applied by the agent instead of loading the skills; 5–15 lines):
+  - <one concrete, checkable rule for these files> — <skill> §<section>
+  - <e.g. the repository owns the transaction; the service never opens one> — onion-architecture §6
 - Steps:
   1. <test to write, and what it asserts>
   2. <change>
@@ -104,7 +107,9 @@ contradictory or missing". Every spec `AC` id and the task that covers it.>
 - Verify:
   - `cd server && pnpm run typecheck`
   - `cd client && pnpm run typecheck`
-- Constraints: <INSIGHTS / spec entries this task must respect>
+- Constraints (quoted, not just referenced — the agent does not read the whole INSIGHTS file):
+  - <INSIGHTS entry title> — Rule: <its rule line> — `<package>/INSIGHTS.md` (<date>)
+  - <spec invariant / AC id and its wording>
 
 ### Wave 1 — parallel
 

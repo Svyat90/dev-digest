@@ -183,6 +183,23 @@ a lockfile or `package.json`, the DB schema + its generated migration, each
 
 Each task follows the template in `docs/plans/README.md`.
 
+**Rules and Constraints — the implementer's only skill input.** Implementer and
+test-writer tasks do not load skills; they apply what you write here. So you
+distil, from the skills you loaded in step 2, the rules that decide **these
+files**:
+
+- `Rules:` — 5–15 lines, each one concrete and checkable against the diff
+  ("the repository owns the transaction; the service never opens one"), each
+  ending with its source `— <skill> §<section>`. Take them from the routing.md
+  rows that match the task's *Files*. Never a generic line ("follow best
+  practices"), never a rule the skill does not say, never a Zod-4-only rule.
+  More than 15 means the task is too big — split it.
+- `Constraints:` — every INSIGHTS entry and spec invariant that bears on the
+  task, **quoted**: the entry title, its `Rule:` line, the file and date. The
+  agent reads no INSIGHTS file in full, so an entry you only link is lost.
+
+A `doc-writer` task needs neither field.
+
 ### 7. Self-check
 
 Fix the plan until every answer is yes:
@@ -194,7 +211,10 @@ Fix the plan until every answer is yes:
 - Every contract change lists both `vendor/shared` copies (or says why the client
   copy must not change).
 - No task edits a do-not-touch path; migrations only come from `db:generate`.
-- Every relevant INSIGHTS entry / spec invariant is attached to the task it constrains.
+- Every relevant INSIGHTS entry / spec invariant is quoted in the *Constraints*
+  of the task it constrains.
+- Every implementer / test-writer task has `Rules:` (5–15 lines); every rule
+  names a skill section, and you re-read that section to confirm it says so.
 - Tests follow `TESTING.md` (typological: one happy path + the edge that matters).
 - The plan is proportional: no task, file or abstraction the request does not need.
 - The plan has a *Requirements review* line (rule 9), *Assumptions* and
