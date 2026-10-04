@@ -25,7 +25,10 @@ another skill or agent.
    `INSIGHTS.md`; recommendations are proposed diffs the user applies.
 2. **Numbers come from the script.** Every count, token figure, duration and
    order in the report is copied from `collect.mjs` output. Never estimate a
-   number the script can produce; if it cannot, say "not measured".
+   number the script can produce; if it cannot, say "not measured". Token
+   counts and durations in the report use the script's `display` strings
+   (`4.2k`, `86k`, `1.4M`; `45 s`, `1 min`, `2 min 11 s`, `12 h 37 min`),
+   never raw figures; `metrics.csv` keeps the raw numbers.
 3. **Reports are claims.** An agent's "tests pass" or "lint clean" is checked
    against the tree (step 4) before the report calls it a strength.
 4. **Evidence for every judgement.** Each finding cites an agent (`type#order`),

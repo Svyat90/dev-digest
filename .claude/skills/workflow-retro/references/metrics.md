@@ -31,6 +31,7 @@ per agent). It writes nothing.
 | `human.questionsAsked` / `questionCalls` | questions / `AskUserQuestion` calls | — |
 | `human.rejectedToolCalls` | tool calls the user declined | main-session errors of kind `rejected_by_user` |
 | `sharedReads` | files read by two or more actors | main session counts as an actor |
+| `display` / `agents.list[].display` | human-readable wall, main active, agent active time and token counts for the report | tokens: `512`, `4.2k`, `86k`, `1.4M` (one decimal below 10); durations: `45 s`, `2 min 11 s`, `12 h 37 min` |
 
 ## Known limits
 

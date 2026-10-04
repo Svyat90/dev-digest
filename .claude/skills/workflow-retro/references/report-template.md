@@ -1,7 +1,10 @@
 # Retro report template
 
 Copy into `docs/retros/<YYYY-MM-DD>-<topic>.md`. Every number comes from
-`collect.mjs`; write "not measured" rather than estimating. Delete a section's
+`collect.mjs`; write "not measured" rather than estimating. Token counts and
+durations are written in the human form from the script's `display` fields —
+`86k`, `1.4M`, `45 s`, `2 min 11 s`, `12 h 37 min` — never as raw figures
+like `31,009,828` or `756.6 min`. Gantt times stay `HH:mm:ss`. Delete a section's
 placeholder line only when the section is genuinely empty, and say "none".
 
 ````markdown
@@ -12,10 +15,10 @@ Workflow: <e.g. spec-creator × 3 rounds, run-plan on docs/plans/…>
 
 ## Summary
 
-- Tokens: <output> out · <cacheRead> cache read · <cacheWrite> cache write · cache hit <ratio> · agents <agentShare>
+- Tokens: <display.tokens.total.output> out · <display.tokens.total.cacheRead> cache read · <display.tokens.total.cacheWrite> cache write · cache hit <ratio> · agents <agentShare>
 - Cost: $<costUsd> (or "not measured: no price for <model>")
 - Agents: <count> (<byType>) · <dispatches> dispatches · max <maxConcurrent> in parallel
-- Wall time: <wall> · main session active <mainActive>
+- Wall time: <display.wall> · main session active <display.mainActive>
 - Verdict: <one sentence — what to change first>
 
 ## Timeline
@@ -30,7 +33,7 @@ gantt
 
 ## Agents
 
-| # | Agent | Dispatches | Active | Tool calls | Ramp-up | Errors | Status | Tokens out |
+| # | Agent | Dispatches | Active (`display.active`) | Tool calls | Ramp-up | Errors | Status | Tokens out (`display.tokens.output`) |
 |---|-------|-----------|--------|-----------|---------|--------|--------|------------|
 
 ### <type#order> — <description>

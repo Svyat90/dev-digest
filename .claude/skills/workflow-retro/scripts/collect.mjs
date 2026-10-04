@@ -134,6 +134,38 @@ function round(n, digits) {
   return Math.round(n * f) / f;
 }
 
+// Human-readable forms for the report: 4.2k / 86k / 1.4M tokens, 45 s / 2 min 11 s / 12 h 37 min.
+function compact(n, unit) {
+  const v = n / unit;
+  return v < 10 ? String(round(v, 1)) : String(Math.round(v));
+}
+
+function formatTokens(n) {
+  if (n == null) return null;
+  if (n < 1e3) return String(n);
+  if (n < 1e6) return compact(n, 1e3) === '1000' ? '1M' : `${compact(n, 1e3)}k`;
+  return `${compact(n, 1e6)}M`;
+}
+
+function formatDuration(ms) {
+  if (ms == null) return null;
+  const totalSec = Math.round(ms / 1000);
+  if (totalSec < 60) return `${totalSec} s`;
+  if (totalSec < 3600) {
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    return sec ? `${min} min ${sec} s` : `${min} min`;
+  }
+  const totalMin = Math.round(totalSec / 60);
+  const h = Math.floor(totalMin / 60);
+  const min = totalMin % 60;
+  return min ? `${h} h ${min} min` : `${h} h`;
+}
+
+function displayTokens(t) {
+  return Object.fromEntries(Object.entries(t).filter(([k]) => k !== 'turns').map(([k, v]) => [k, formatTokens(v)]));
+}
+
 function toolUses(events) {
   const uses = [];
   for (const e of events) {
@@ -250,6 +282,10 @@ function collectAgent(dir, file, window) {
     repeatedReads: Object.fromEntries(Object.entries(reads).filter(([, n]) => n > 1)),
     statuses: finalText.map(statusOf),
     reports: finalText.map((r) => r.slice(0, 4000)),
+    display: {
+      active: formatDuration(segments.reduce((sum, s) => sum + msBetween(s.start, s.end), 0)),
+      tokens: displayTokens(total),
+    },
   };
 }
 
@@ -378,6 +414,16 @@ function main() {
       rejectedToolCalls: mainErrors.filter((e) => e.kind === 'rejected_by_user').length,
     },
     sharedReads,
+    // Pre-formatted strings for the report; metrics.csv keeps the raw numbers above.
+    display: {
+      wall: formatDuration(msBetween(stamps[0], stamps.at(-1))),
+      mainActive: formatDuration(turnDurations.reduce((sum, e) => sum + (e.durationMs ?? 0), 0)),
+      tokens: {
+        total: displayTokens(total),
+        main: displayTokens(mainTokens.total),
+        agents: displayTokens(agentTokens),
+      },
+    },
   };
 
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
