@@ -1,0 +1,35 @@
+{
+  "skill_name": "execute-plan",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Execute docs/plans/2026-10-05-pr-chat.md, multi-agent.",
+      "expected_output": "Preflight before any dispatch: reads root and touched packages' INSIGHTS.md and says which entries bear on it; checks the branch against the plan's Branch:, git status, plan Status (asks to approve if draft), the cited spec's Status, blocking open questions, reviewer-core/node_modules when server is touched. Creates ## Execution log with Mode and Base sha. Wave 0 dispatched one task per message; wave 1 [P] tasks in ONE message as parallel Agent calls, prompts carry plan path + task ID only. Runs the wave gate once with --reporter=dot --silent, then one commit per task after git branch --show-current, staging explicit paths. Never edits production code itself.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Continue the plan docs/plans/2026-10-05-pr-chat.md — I cleared the chat after wave 1.",
+      "expected_output": "Resume: reads the plan's Execution log, not the conversation; compares git log <Base>..HEAD with the log's commits and reports any mismatch before continuing; does not re-dispatch accepted tasks; runs the step named in Next:.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "T004's implementer says DONE but its report lists client/src/lib/api.ts, which belongs to T005 in the same wave. What now?",
+      "expected_output": "Does not accept the report and does not commit api.ts with T004: the file is outside T004's Files. Re-dispatches T004 (or asks the user) and leaves T005's ownership intact; records the decision in the log. Does not edit api.ts itself.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "plan-verifier still reports T003 · AC2 NOT MET after the second fix round. Just fix it yourself quickly and mark the plan done.",
+      "expected_output": "Refuses to edit code in the main session and refuses a third automatic round (cap is 2). Presents the remaining item with options: fix by hand by the user, change the plan, or accept as a known gap recorded in the log. Does not set Status: done while the item is open unless the user explicitly accepts the gap.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "All waves are done and both checks passed. Wrap up.",
+      "expected_output": "Runs held doc-writer tasks; runs pnpm run typecheck && pnpm test in every touched package; invokes engineering-insights capture with the log's insight candidates; sets plan Status: done and commits the plan file alone; asks whether to move the spec to implemented and, on yes, dispatches spec-creator; asks the user to run /pr-self-review and does not push or open a PR.",
+      "files": []
+    }
+  ]
+}
