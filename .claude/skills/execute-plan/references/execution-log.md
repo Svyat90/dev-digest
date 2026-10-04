@@ -47,9 +47,14 @@ Maintained by the `execute-plan` skill. Not part of the plan's design.
 - Source: plan-verifier T003 · AC2 NOT MET — <evidence>
 - Area: backend | frontend
 - Files (exclusive): `<path>` (modified)
+- Rules: <the Rules lines of the plan task that owns these files> + <the rule the finding cites> — <skill> §<section>
+- Constraints: <the owning task's Constraints, quoted>
 - Acceptance criterion: <the failed item's own wording>
 - Verify: `<command>`
 - Result: DONE · <sha>
+
+### Rules gaps
+- T002: <skill §section read> — <question it answered>
 
 ### Insight candidates
 - T002: <candidate> — `<path>`
@@ -62,8 +67,10 @@ Maintained by the `execute-plan` skill. Not part of the plan's design.
 - A task row with Commit `—` was accepted but is not committed yet; whether its
   wave gate passed is in *Wave gates*.
 - Round 0 is the first check run; fix rounds are 1 and 2 (`SKILL.md` rule 5).
-- A fix task carries the same fields as a plan task, so the implementer can
-  run it with the plan header as context.
+- A fix task carries the same fields as a plan task, `Rules:` and
+  `Constraints:` included (copied from the plan task that owns its files, plus
+  the rule the finding cites), so the implementer runs it without loading
+  whole skills.
 - Dates come from `date +%F`, never from memory.
 
 ## Resuming

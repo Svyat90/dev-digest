@@ -142,7 +142,12 @@ acceptance, wave gates, commits, the capped fix loop, the resumable
   (the main session commits), no installs, no `db:migrate` / `db:seed` /
   docker; `db:generate` only when the task owns the schema. No `Agent`. Does not
   write `INSIGHTS.md`.
-- **Skills (all mandatory for the area, loaded before any code):**
+- **Skills:** none loaded by default. The task's `Rules:` field (5–15 rules the
+  planner distilled from the area's skills, each citing `<skill> §<section>`)
+  is the skill input; a question it does not answer → `Read` of that one
+  section, reported as a `Rules gap`. INSIGHTS come from the task's quoted
+  *Constraints* plus a `grep` on its files. A legacy task without `Rules:`
+  loads the full area set:
   - backend — `onion-architecture`, `fastify-best-practices`,
     `drizzle-orm-patterns`, `postgresql-table-design`, `zod`,
     `typescript-expert`, `security`;
@@ -151,8 +156,8 @@ acceptance, wave gates, commits, the capped fix loop, the resumable
     `typescript-expert`, `security`.
 - **Input:** a plan path and a task ID.
 - **Output:** the task's files changed in the working tree (uncommitted) and a
-  report: status `DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED`, skills
-  loaded, routing rows applied, files changed, verification commands with
+  report: status `DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED`, rules
+  applied, rules gaps, files changed, verification commands with
   results, foreign errors, deviations, insight candidates.
 
 ## test-writer
@@ -167,9 +172,11 @@ acceptance, wave gates, commits, the capped fix loop, the resumable
   `client/src/**/*.test.ts(x)`, `reviewer-core/**/*.test.ts`,
   `e2e/specs/*.flow.json`), plus shared test infrastructure only when the task
   lists it explicitly. No git writes, no installs, no shared-state commands.
-- **Skills:** the same backend and frontend sets as the implementer, loaded by
-  explicit `Skill` calls, applying the union of `routing.md` rows for the test
-  files and the production files under test.
+- **Skills:** a plan task applies its `Rules:` field like the implementer
+  (no `Skill` calls; `Read` of one section per `Rules gap`). An on-demand brief
+  or a legacy task loads the implementer's full area set by explicit `Skill`
+  calls and applies the union of `routing.md` rows for the test files and the
+  production files under test.
 - **Input:** a plan path and a task ID marked `Agent: test-writer`, or a brief
   with the target behaviour and file list.
 - **Output:** the task's test files (uncommitted) and a report: status
@@ -247,7 +254,10 @@ acceptance, wave gates, commits, the capped fix loop, the resumable
   Planner, implementer and `pr-self-review` all read it, so the plan, the code
   and the review follow the same rules. Change the mapping there, not in the agents.
 - **Skills are loaded by explicit `Skill` calls**, not by the `skills:`
-  frontmatter field (see sources below).
+  frontmatter field (see sources below) — by the planner, the reviewers and
+  `pr-self-review`. Implementer and test-writer get the planner's distilled
+  `Rules:` per task instead, so the full skill text is read once per plan, not
+  once per task.
 - **Parallel safety comes from the plan:** tasks in one wave never share a
   file; lockfiles, the DB schema + migration, `coupled-files.md` pairs and
   i18n message files are each owned by one task.

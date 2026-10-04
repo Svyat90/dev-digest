@@ -178,8 +178,9 @@ step 8. Otherwise → step 7.
 
 1. Turn each `architecture-reviewer` CRITICAL / MAJOR finding and each
    plan-verifier `PARTIAL` / `NOT MET` item into a **fix task** `F<round>.<n>`
-   in the log (same fields as a plan task: area, files, acceptance criterion,
-   verify). Group findings that touch the same files into one fix task; two
+   in the log (same fields as a plan task: area, files, `Rules:` and
+   `Constraints:` copied from the task that owns the files plus the finding's
+   cited rule, acceptance criterion, verify). Group findings that touch the same files into one fix task; two
    fix tasks never share a file. MINOR / NIT findings are shown to the user,
    not fixed automatically.
 2. `UNVERIFIABLE` items are resolved here: run the check the verifier said is

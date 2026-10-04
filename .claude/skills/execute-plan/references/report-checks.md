@@ -12,8 +12,13 @@ reason. Read the report, not the agent's whole transcript.
    report lists, and *Files changed* ⊆ the task's *Files*. Any other path
    changed since the wave started that no task of the wave owns → ask the
    agent's owner (re-dispatch) or the user; never commit it.
-3. **Skills.** *Skills loaded* covers every skill named in the task's
-   *Skills* field. A missing one → re-dispatch with "load <skill> first".
+3. **Rules.** *Rules applied* is `all`, or each skipped `Rules:` line has a
+   reason you accept; a skipped line without one → re-dispatch. *Skills
+   loaded* is `none` for a task that has `Rules:` (a whole-skill load there
+   means the agent ignored the field — accept the work, note it in the log).
+   A task without `Rules:` (legacy) must list every skill of its area.
+   Copy each *Rules gap* to the log's *Rules gaps* list — they tell the next
+   plan what its Rules missed.
 4. **Verification.** Each command of the task's *Verify* appears with an output
    line (`pass` / the summary line). A bare "passes" is not evidence.
 5. **Foreign errors.** Each one names a file owned by another task of the
@@ -22,8 +27,8 @@ reason. Read the report, not the agent's whole transcript.
 6. **Test-writer extras.** *Fail-first evidence* has a failing assertion line
    per test; *Mutation check* has at least one `executed` entry, or says why
    none was permitted. `Defects found` other than "none" → a fix task.
-7. **Collect.** Copy *Deviations*, *Concerns* and *Insight candidates* (non-
-   "none" only) to the log, one line each.
+7. **Collect.** Copy *Deviations*, *Concerns*, *Rules gaps* and *Insight
+   candidates* (non-"none" only) to the log, one line each.
 
 ## architecture-reviewer
 
