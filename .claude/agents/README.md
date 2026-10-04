@@ -12,21 +12,27 @@ live in each agent file — read that file before changing an agent.
 | [spec-creator](spec-creator.md) | opus | Write a spec (EARS) after a gap analysis of the brief and designs | spec files in `specs/` or `<pkg>/specs/` | once per feature, two phases |
 | [implementation-planner](implementation-planner.md) | opus | Review requirements, ask, recommend, and write an Implementation Plan; asks single- vs multi-agent | one plan file | once per feature |
 | [implementer](implementer.md) | sonnet | Implement one plan task, backend or frontend | the task's own files | many in parallel |
-| [test-writer](test-writer.md) | sonnet | Write tests only for one `Agent: test-writer` task, or an on-demand brief | the task's own test files | inside the waves, alongside implementers |
+| [test-writer](test-writer.md) | sonnet | **Paused.** Write tests only for one `Agent: test-writer` task, or an on-demand brief | the task's own test files | not dispatched while paused; implementers write their own tests |
 | [architecture-reviewer](architecture-reviewer.md) | opus | Read-only onion / layer boundary review with `file:line` evidence | nothing | after a wave, or after the last wave |
 | [plan-verifier](plan-verifier.md) | opus | Read-only check of finished code against every plan item | nothing | after the last wave, in parallel with architecture-reviewer |
 | [doc-writer](doc-writer.md) | sonnet | Turn a shipped feature into documentation in the right place | documentation paths only | after both checks pass |
 
-Flow: `researcher` (optional) → `spec-creator` (writes a draft and returns
-questions; the main session asks you and re-runs it until no open question is left) → user approves the spec → `implementation-planner` (clarifies, recommends) → user reviews the plan and picks single- or multi-agent execution → waves of
-`implementer` × N + `test-writer` tasks → `architecture-reviewer` ∥
-`plan-verifier` → fix tasks for implementers when either reports a gap,
-re-dispatch and re-verify → `doc-writer` → `engineering-insights` capture →
-user runs `/pr-self-review`.
-The main session runs everything from the approved plan onward with the
-[`run-plan`](../skills/run-plan/SKILL.md) skill (dispatch, report
-acceptance, wave gates, commits, the capped fix loop, the resumable
-`## Execution log`). The plan template: [`docs/plans/README.md`](../../docs/plans/README.md).
+Flow, three steps the user starts by hand:
+
+1. `researcher` (optional) → `spec-creator` (writes a draft and returns
+   questions; the main session asks you and re-runs it until no open question
+   is left) → you approve the spec.
+2. `implementation-planner` (clarifies, recommends; `scripts/lint-plan.mjs`
+   checks every plan write) → you review the plan.
+3. `/run-plan <plan> [spec=…] [designs=…] [mode=…] [extra requirements]` —
+   the [`run-plan`](../skills/run-plan/SKILL.md) skill: waves of
+   `implementer` × N → `architecture-reviewer` ∥ `plan-verifier` → fix rounds
+   (two automatic, then you decide) → `doc-writer` → `engineering-insights`
+   capture → you move the spec to `implemented` and run `/pr-self-review`.
+
+`test-writer` is paused to save tokens: implementers write their own
+acceptance tests and plans carry no `Agent: test-writer` task.
+The plan template: [`docs/plans/README.md`](../../docs/plans/README.md).
 
 ## researcher
 
@@ -161,6 +167,10 @@ acceptance, wave gates, commits, the capped fix loop, the resumable
   results, foreign errors, deviations, insight candidates.
 
 ## test-writer
+
+> **Paused.** Not dispatched by `/run-plan`; `implementation-planner` writes no
+> `Agent: test-writer` task and `scripts/lint-plan.mjs` rejects one. The file
+> stays so the agent can be switched back on.
 
 - **Responsibility:** write tests only — backend (`server/`, `reviewer-core/`)
   or frontend (`client/`, `e2e/`) — for one Implementation Plan task marked

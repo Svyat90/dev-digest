@@ -183,6 +183,12 @@ a lockfile or `package.json`, the DB schema + its generated migration, each
 
 Each task follows the template in `docs/plans/README.md`.
 
+**No test-writer tasks.** `test-writer` is paused to save tokens: every
+implementer task writes its own acceptance test (its *Steps* start with the
+test), and no task has `Agent: test-writer`. A cross-task test (an
+`*.it.test.ts`, an e2e flow) becomes an implementer task in the wave after the
+code it covers. `scripts/lint-plan.mjs` rejects `Agent: test-writer`.
+
 **Rules and Constraints — the implementer's only skill input.** Implementer and
 test-writer tasks do not load skills; they apply what you write here. So you
 distil, from the skills you loaded in step 2, the rules that decide **these
