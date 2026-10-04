@@ -13,8 +13,8 @@ live in each agent file — read that file before changing an agent.
 | [implementation-planner](implementation-planner.md) | opus | Review requirements, ask, recommend, and write an Implementation Plan; asks single- vs multi-agent | one plan file | once per feature |
 | [implementer](implementer.md) | sonnet | Implement one plan task, backend or frontend | the task's own files | many in parallel |
 | [test-writer](test-writer.md) | sonnet | **Paused.** Write tests only for one `Agent: test-writer` task, or an on-demand brief | the task's own test files | not dispatched while paused; implementers write their own tests |
-| [architecture-reviewer](architecture-reviewer.md) | opus | Read-only onion / layer boundary review with `file:line` evidence | nothing | after a wave, or after the last wave |
-| [plan-verifier](plan-verifier.md) | opus | Read-only check of finished code against every plan item | nothing | after the last wave, in parallel with architecture-reviewer |
+| [architecture-reviewer](architecture-reviewer.md) | sonnet | Read-only onion / layer boundary review with `file:line` evidence | nothing | after a wave, or after the last wave |
+| [plan-verifier](plan-verifier.md) | sonnet | Read-only check of finished code against every plan item | nothing | after the last wave, in parallel with architecture-reviewer |
 | [doc-writer](doc-writer.md) | sonnet | Turn a shipped feature into documentation in the right place | documentation paths only | after both checks pass |
 
 Flow, three steps the user starts by hand:
