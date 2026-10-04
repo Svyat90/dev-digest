@@ -1,7 +1,9 @@
 # Routing: which skill reviews which file
 
 A reviewer loads **only the sections listed** for the files it actually got, not
-whole skills. Paths are relative to the repo root. When a file matches several
+whole skills. The implementation-planner uses the same rows to write each plan
+task's `Rules:` field; implementer and test-writer apply those Rules and come
+back here only to `Read` one section for a question the Rules did not answer. Paths are relative to the repo root. When a file matches several
 rows, it gets the union. Always-on rows apply to every file of that area.
 
 Files with kind `doc`, `lockfile` or `other` in `collect-diff.sh` output are not

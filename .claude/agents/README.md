@@ -12,18 +12,27 @@ live in each agent file — read that file before changing an agent.
 | [spec-creator](spec-creator.md) | opus | Write a spec (EARS) after a gap analysis of the brief and designs | spec files in `specs/` or `<pkg>/specs/` | once per feature, two phases |
 | [implementation-planner](implementation-planner.md) | opus | Review requirements, ask, recommend, and write an Implementation Plan; asks single- vs multi-agent | one plan file | once per feature |
 | [implementer](implementer.md) | sonnet | Implement one plan task, backend or frontend | the task's own files | many in parallel |
-| [test-writer](test-writer.md) | sonnet | Write tests only for one `Agent: test-writer` task, or an on-demand brief | the task's own test files | inside the waves, alongside implementers |
-| [architecture-reviewer](architecture-reviewer.md) | opus | Read-only onion / layer boundary review with `file:line` evidence | nothing | after a wave, or after the last wave |
-| [plan-verifier](plan-verifier.md) | opus | Read-only check of finished code against every plan item | nothing | after the last wave, in parallel with architecture-reviewer |
+| [test-writer](test-writer.md) | sonnet | **Paused.** Write tests only for one `Agent: test-writer` task, or an on-demand brief | the task's own test files | not dispatched while paused; implementers write their own tests |
+| [architecture-reviewer](architecture-reviewer.md) | sonnet | Read-only onion / layer boundary review with `file:line` evidence | nothing | after a wave, or after the last wave |
+| [plan-verifier](plan-verifier.md) | sonnet | Read-only check of finished code against every plan item | nothing | after the last wave, in parallel with architecture-reviewer |
 | [doc-writer](doc-writer.md) | sonnet | Turn a shipped feature into documentation in the right place | documentation paths only | after both checks pass |
 
-Flow: `researcher` (optional) → `spec-creator` (writes a draft and returns
-questions; the main session asks you and re-runs it until no open question is left) → user approves the spec → `implementation-planner` (clarifies, recommends) → user reviews the plan and picks single- or multi-agent execution → waves of
-`implementer` × N + `test-writer` tasks → `architecture-reviewer` ∥
-`plan-verifier` → fix tasks for implementers when either reports a gap,
-re-dispatch and re-verify → `doc-writer` → `engineering-insights` capture →
-user runs `/pr-self-review`.
-The execution protocol and the plan template: [`docs/plans/README.md`](../../docs/plans/README.md).
+Flow, three steps the user starts by hand:
+
+1. `researcher` (optional) → `spec-creator` (writes a draft and returns
+   questions; the main session asks you and re-runs it until no open question
+   is left) → you approve the spec.
+2. `implementation-planner` (clarifies, recommends; `scripts/lint-plan.mjs`
+   checks every plan write) → you review the plan.
+3. `/run-plan <plan> [spec=…] [designs=…] [mode=…] [extra requirements]` —
+   the [`run-plan`](../skills/run-plan/SKILL.md) skill: waves of
+   `implementer` × N → `architecture-reviewer` ∥ `plan-verifier` → fix rounds
+   (two automatic, then you decide) → `doc-writer` → `engineering-insights`
+   capture → you move the spec to `implemented` and run `/pr-self-review`.
+
+`test-writer` is paused to save tokens: implementers write their own
+acceptance tests and plans carry no `Agent: test-writer` task.
+The plan template: [`docs/plans/README.md`](../../docs/plans/README.md).
 
 ## researcher
 
@@ -109,7 +118,12 @@ The execution protocol and the plan template: [`docs/plans/README.md`](../../doc
   `docs/plans/<YYYY-MM-DD>-<topic>.md` — a new plan, or a `draft` plan it is
   revising; a PreToolUse hook
   ([`hooks/implementation-planner-scope.mjs`](../hooks/implementation-planner-scope.mjs))
-  blocks every other path and any rewrite of an `approved` / `done` plan.
+  blocks every other path and any rewrite of an `approved` / `done` plan; a
+  PostToolUse hook
+  ([`hooks/implementation-planner-lint.mjs`](../hooks/implementation-planner-lint.mjs))
+  runs [`scripts/lint-plan.mjs`](../../scripts/lint-plan.mjs) after every plan
+  write and returns its errors to the agent. A `draft` spec with open `OQ`s is
+  not planned.
   Bash read-only by rule (the hook cannot see Bash). No `Edit`, no `Agent`, no
   `AskUserQuestion`: questions go back to the caller.
 - **Skills:** the same backend and frontend sets as the implementer, loaded by
@@ -139,7 +153,12 @@ The execution protocol and the plan template: [`docs/plans/README.md`](../../doc
   (the main session commits), no installs, no `db:migrate` / `db:seed` /
   docker; `db:generate` only when the task owns the schema. No `Agent`. Does not
   write `INSIGHTS.md`.
-- **Skills (all mandatory for the area, loaded before any code):**
+- **Skills:** none loaded by default. The task's `Rules:` field (5–15 rules the
+  planner distilled from the area's skills, each citing `<skill> §<section>`)
+  is the skill input; a question it does not answer → `Read` of that one
+  section, reported as a `Rules gap`. INSIGHTS come from the task's quoted
+  *Constraints* plus a `grep` on its files. A legacy task without `Rules:`
+  loads the full area set:
   - backend — `onion-architecture`, `fastify-best-practices`,
     `drizzle-orm-patterns`, `postgresql-table-design`, `zod`,
     `typescript-expert`, `security`;
@@ -148,11 +167,15 @@ The execution protocol and the plan template: [`docs/plans/README.md`](../../doc
     `typescript-expert`, `security`.
 - **Input:** a plan path and a task ID.
 - **Output:** the task's files changed in the working tree (uncommitted) and a
-  report: status `DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED`, skills
-  loaded, routing rows applied, files changed, verification commands with
+  report: status `DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED`, rules
+  applied, rules gaps, files changed, verification commands with
   results, foreign errors, deviations, insight candidates.
 
 ## test-writer
+
+> **Paused.** Not dispatched by `/run-plan`; `implementation-planner` writes no
+> `Agent: test-writer` task and `scripts/lint-plan.mjs` rejects one. The file
+> stays so the agent can be switched back on.
 
 - **Responsibility:** write tests only — backend (`server/`, `reviewer-core/`)
   or frontend (`client/`, `e2e/`) — for one Implementation Plan task marked
@@ -164,9 +187,11 @@ The execution protocol and the plan template: [`docs/plans/README.md`](../../doc
   `client/src/**/*.test.ts(x)`, `reviewer-core/**/*.test.ts`,
   `e2e/specs/*.flow.json`), plus shared test infrastructure only when the task
   lists it explicitly. No git writes, no installs, no shared-state commands.
-- **Skills:** the same backend and frontend sets as the implementer, loaded by
-  explicit `Skill` calls, applying the union of `routing.md` rows for the test
-  files and the production files under test.
+- **Skills:** a plan task applies its `Rules:` field like the implementer
+  (no `Skill` calls; `Read` of one section per `Rules gap`). An on-demand brief
+  or a legacy task loads the implementer's full area set by explicit `Skill`
+  calls and applies the union of `routing.md` rows for the test files and the
+  production files under test.
 - **Input:** a plan path and a task ID marked `Agent: test-writer`, or a brief
   with the target behaviour and file list.
 - **Output:** the task's test files (uncommitted) and a report: status
@@ -244,7 +269,10 @@ The execution protocol and the plan template: [`docs/plans/README.md`](../../doc
   Planner, implementer and `pr-self-review` all read it, so the plan, the code
   and the review follow the same rules. Change the mapping there, not in the agents.
 - **Skills are loaded by explicit `Skill` calls**, not by the `skills:`
-  frontmatter field (see sources below).
+  frontmatter field (see sources below) — by the planner, the reviewers and
+  `pr-self-review`. Implementer and test-writer get the planner's distilled
+  `Rules:` per task instead, so the full skill text is read once per plan, not
+  once per task.
 - **Parallel safety comes from the plan:** tasks in one wave never share a
   file; lockfiles, the DB schema + migration, `coupled-files.md` pairs and
   i18n message files are each owned by one task.

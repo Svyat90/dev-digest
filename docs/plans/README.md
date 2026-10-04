@@ -12,48 +12,31 @@ File name: `YYYY-MM-DD-<kebab-topic>.md`.
 
 ## How a plan is executed
 
-1. The main session runs `implementation-planner` → a `draft` plan file here,
-   or `NEEDS CLARIFICATION` with questions the main session asks the user and
-   then passes back in a new run.
-2. The user reviews the plan and its *Recommendations*. Accepted ones are not
-   edited in by hand: the main session re-runs `implementation-planner` in
-   revision mode with the plan path and the accepted list, and it rewrites the
-   same file. Only a `draft` plan can be revised.
-3. The main session asks the user for the execution mode — the planner's report
-   ends with this question — and sets the plan's `Status: approved`:
-   - **multi-agent** — `[P]` tasks of a wave run in parallel;
-   - **single-agent** — every task runs alone, in task-ID order, one agent at a
-     time. Same agents, same reports, same one commit per task; only the
-     parallelism is gone.
-4. The main session works wave by wave on the **current feature branch, in one
-   working tree** (no worktrees, no per-task branches):
-   - Wave 0 tasks run one at a time.
-   - Multi-agent: `[P]` tasks of a wave are launched as parallel agents in a
-     single message. Single-agent: they are launched one per message, in
-     task-ID order. They never share a file (the implementation-planner
-     guarantees it). A task's `Agent:` field says which agent runs it:
-     `implementer` (default), `test-writer` for a task whose deliverable is
-     tests only, or `doc-writer` for a docs task in the final wave — all are
-     dispatched under the same wave rules (exclusive files, one commit per
-     task).
-   - After a wave, the main session checks each report (status, skills loaded vs.
-     the task's *Skills*, verification output), runs the package typecheck and
-     tests once for the whole wave, and commits **one commit per task**, staging
-     that task's *Files* by explicit path after `git branch --show-current`.
-   - `NEEDS_CONTEXT` / `BLOCKED` → resolve with the user or fix the plan, then
-     re-dispatch that task only.
-5. After the last wave, the main session runs `architecture-reviewer` (scope:
-   base `main`) and `plan-verifier` (this plan) in one message — both are
-   read-only, so they run in parallel. `architecture-reviewer` CRITICAL /
-   MAJOR findings and `plan-verifier` `PARTIAL` / `NOT MET` items become fix
-   tasks for `implementer` agents; re-dispatch and re-verify, then re-run both
-   checks. `UNVERIFIABLE` items are resolved by the main session, not expanded
-   into an open search. Once `architecture-reviewer` reports `PASS` and
-   `plan-verifier` reports `VERIFIED`, the main session runs `doc-writer` for
-   any docs/specs work the plan's final wave carries.
-6. After the last wave: `pnpm run typecheck && pnpm test` in every touched
-   package, insight candidates recorded through the `engineering-insights`
-   skill, then the user runs `/pr-self-review` before any push or PR.
+Three steps, each started by the user:
+
+1. **Spec** — the user runs `spec-creator` (answers its questions, approves the
+   spec).
+2. **Plan** — the user runs `implementation-planner` with the spec. It writes a
+   `draft` plan here, or returns `NEEDS CLARIFICATION`; accepted
+   *Recommendations* go in through a planner revision run, never by hand. Only
+   a `draft` plan can be revised. `node scripts/lint-plan.mjs <plan>` runs on
+   every plan write.
+3. **Build** — the user runs
+   `/run-plan <plan> [spec=…] [designs=…] [mode=multi|single] [extra requirements]`
+   ([`.claude/skills/run-plan/SKILL.md`](../../.claude/skills/run-plan/SKILL.md)
+   holds the full protocol): preflight, waves of `implementer` agents (one
+   wave gate and one commit per task), `architecture-reviewer` ∥
+   `plan-verifier`, fix rounds (two automatic, then the user decides),
+   `doc-writer`, insights, `Status: done`. It never runs `spec-creator` or the
+   planner; it tells the user when one must be re-run. Moving the spec to
+   `implemented` and `/pr-self-review` stay with the user.
+
+`test-writer` is paused: implementers write the acceptance test of their own
+task, and plans contain no `Agent: test-writer` task.
+
+While a plan runs, its last section is an `## Execution log` kept by
+`run-plan` (inputs, mode, base commit, task results and commits, decisions,
+check rounds, fix tasks). A fresh session resumes from it.
 
 ## Template
 
@@ -108,21 +91,26 @@ contradictory or missing". Every spec `AC` id and the task that covers it.>
 
 #### T001 — <title>
 - Area: backend | frontend
-- Agent: implementer | test-writer | doc-writer (default `implementer` when omitted)
+- Agent: implementer | doc-writer (default `implementer` when omitted; `test-writer` is paused)
 - Depends on: —
 - Files (exclusive):
   - `server/src/vendor/shared/contracts/x.ts` (modified)
   - `client/src/vendor/shared/contracts/x.ts` (modified)
 - Skills: <skill → sections, from routing.md>
+- Rules (applied by the agent instead of loading the skills; 5–15 lines):
+  - <one concrete, checkable rule for these files> — <skill> §<section>
+  - <e.g. the repository owns the transaction; the service never opens one> — onion-architecture §6
 - Steps:
   1. <test to write, and what it asserts>
   2. <change>
 - Acceptance criteria:
   - <observable behaviour / shape>
-- Verify:
-  - `cd server && pnpm run typecheck`
-  - `cd client && pnpm run typecheck`
-- Constraints: <INSIGHTS / spec entries this task must respect>
+- Verify (one line per touched package; add task-specific checks below it):
+  - `scripts/verify-task.sh server server/src/vendor/shared/contracts/x.ts`
+  - `scripts/verify-task.sh client client/src/vendor/shared/contracts/x.ts`
+- Constraints (quoted, not just referenced — the agent does not read the whole INSIGHTS file):
+  - <INSIGHTS entry title> — Rule: <its rule line> — `<package>/INSIGHTS.md` (<date>)
+  - <spec invariant / AC id and its wording>
 
 ### Wave 1 — parallel
 

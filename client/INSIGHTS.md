@@ -183,6 +183,14 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of the dependencies this package pins.
 
+- **2026-10-03 — A green client vitest run is mostly noise with the default reporter.**
+  The full suite (37 files, 136 tests, all passing) prints 147 lines / 17.2 KB
+  with the default reporter and 49 lines / 4.6 KB with `--reporter=dot --silent`;
+  the difference is per-test lines and captured console output, not failures.
+  Rule: in agent verification steps run `pnpm exec vitest run <files> --reporter=dot --silent`
+  and read the summary; re-run without the flags only for a failing file.
+  `cd client && pnpm exec vitest run --reporter=dot --silent 2>&1 | wc -lc` → `49 4629`
+
 - **2026-10-01 — In jsdom tests, `getByText` on an SVG node with a `<title>` matches twice, and the `flex` shorthand is rewritten.**
   (a) `<g><title>full</title><text>short</text></g>` makes `getByText` hit both the
   `<text>` and its `<title>` child and throw "multiple elements". (b) jsdom has no
