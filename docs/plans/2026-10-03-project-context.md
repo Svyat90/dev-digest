@@ -1,6 +1,6 @@
 # Project Context (discovery, attachment, run-time injection, trace) — Implementation Plan
 
-Date: 2026-10-03 · Branch: feature/l05-project-context · Status: draft
+Date: 2026-10-03 · Branch: feature/l05-project-context · Status: done
 
 ## Goal
 Authors can browse every markdown document under the configured spec/docs/insights
@@ -855,3 +855,94 @@ Singletons: lockfiles and `package.json` — none touched (no new dependency); D
 
 ## Open questions
 - none
+
+## Execution log
+
+Maintained by the `run-plan` skill. Not part of the plan's design.
+
+- Mode: multi-agent
+- Base: 3a5133d (HEAD before the first task)
+- Started: 2026-10-03
+- Environment: Postgres up · stack down
+- Next: none — done
+
+### Inputs
+- Spec: specs/01-project-context-2026-10-03.md (approved); specs/02-context-injection-2026-10-03.md (approved)
+- Designs: none
+- Extra requirements: none
+
+### Tasks
+| Task | Wave | Agent | Result | Commit | Note |
+|---|---|---|---|---|---|
+| T001 | 0 | implementer | DONE | 5061607 | — |
+| T002 | 0 | implementer | DONE | e61740a | migration 0016_quick_iron_patriot.sql |
+| T003 | 1 | implementer | DONE | 408b44f | PromptParts.specs is ProjectSpec[]; label escapes & " < > |
+| T004 | 1 | implementer | DONE | 1095ef2 | added RepoDocReadResult/RepoDocReadFailure types to adapters.ts |
+| T005 | 1 | implementer | DONE | 9e1ebc0 | planSection({tokens}[]) → {kept, leftOut}; docTypeFor → string |
+| T006 | 1 | implementer | DONE | 3c81d1a | trace query inner-joins agent_runs on workspace_id |
+| T007 | 1 | implementer | DONE | fcf7ed5 | skill invalidation via inline prefix key; optimistic update on skill hook too |
+| T008 | 1 | implementer | DONE | 8117828 | API: mergeRows, AttachableDocList{rows,onChange,onPreview}, DocPreview, TokenEstimate, DocTypeTag from @/components/project-context; drag path untested |
+| T009 | 2 | implementer | DONE | 8472964 | config.ts imports DEFAULT_ROOTS from modules/project-context/constants (platform→module; arch:check passes — reviewer to judge); resolveForRun → {docs, skipped} |
+| T010 | 2 | implementer | DONE_WITH_CONCERNS | 79f4ec1 | concern (orchestrator): DocDetail AttachRunner fires the attach mutation from a mount effect — double-post risk under StrictMode; reviewers to judge |
+| T011 | 2 | implementer | DONE | 7c07473 | second unfiltered useContextDocs call for M; not-found attached rows stay visible |
+| T012 | 2 | implementer | DONE | e14c7c2 | foreign typecheck errors in T011 files at report time (T011 in progress) |
+| T013 | 2 | implementer | DONE | 69747dc | runs.json: trace.prompt.specs changed, specsMeta/specTokens/truncated added |
+| T014 | 3 | implementer | DONE | d621fcb | — |
+| T015 | 3 | implementer | DONE | 63669b8 | appWith gains optional repoDocs (default empty MockRepoDocsReader) |
+| T016 | 4 | doc-writer | DONE_WITH_CONCERNS | 039f5cd | unverified PROJECT_CONTEXT_ROOTS rejection claim checked by orchestrator (config.ts regex + refine) — true; spec lag R2 stays with user |
+
+### Wave gates
+- W0 — pass (server typecheck, 245 unit tests, arch:check; client typecheck, 136 tests; contracts.test.ts type-checked via scratch tsconfig)
+- W1 — pass (reviewer-core 36 tests; client 146 tests; server 341 tests incl. it, arch:check; test files type-checked via scratch tsconfig — 7 errors in server/test/prompt-callers.test.ts are baseline debt (same 7 at Base, `as const` fixture), not T003)
+- W2 — pass (client 165 tests; server 348 tests incl. it, arch:check; project-context-service.test.ts type-checked clean). Untracked docs/retros/ appeared — not a plan file, never staged
+- W3 — pass (server 354 tests incl. it, arch:check; project-context.it.test.ts and reviews.it.test.ts type-checked clean)
+- Close — full check pass: server typecheck + 48 files / 354 tests (incl. it); client typecheck + 43 files / 168 tests; reviewer-core typecheck + 36 tests
+- Insights — 2 entries appended to root INSIGHTS.md (fail-first proof via worktree; scratch tsconfig rootDir); T010 hook pattern and T016 type note dropped at the gate
+
+### Decisions
+- 2026-10-03 — Approve the draft plan as is? → approved; R2/R3/R4/R6 stay out of scope
+- 2026-10-03 — Mode? → multi-agent · Postgres up (integration tests run in gates)
+
+### Checks
+| Round | architecture-reviewer | plan-verifier | Open items |
+|---|---|---|---|
+| 0 | PASS (0 findings; contract-copy adapters.ts dismissed as expected; T009 config import dismissed — composition root; T010 AttachRunner → out of arch scope, for /pr-self-review React reviewer) | GAPS (MET 57 · PARTIAL 5 · NOT MET 2 · UNVERIFIABLE 1) | SPEC-01 AC4 (skill tab), SPEC-01 AC21 (both tabs), T011, T012, R1 → F1.1; T016 NOT MET = held for step 7; UNVERIFIABLE T002 db:generate + AC15 mutation → run by orchestrator in a scratch worktree: both MET |
+| 1 | PASS (F1.1 paths, 0 findings) | VERIFIED (re-check: SPEC-01 AC4, AC21, T011, T012, R1 — MET 5) | none |
+
+### Fix tasks
+#### F1.1 — Attached rows honour the server's `found` flag; skill tab filters by path
+- Source: plan-verifier round 0 — SPEC-01 AC21 PARTIAL (`client/src/components/project-context/helpers.ts` `mergeRows` ignores the server's `found` and marks any attached path absent from the capped/filtered listing "not found"; EC5) · SPEC-01 AC4 PARTIAL (skill `ContextTab.tsx:33` has no render-level path filter, so non-matching attached rows stay listed and show "not found")
+- Area: frontend
+- Files (exclusive):
+  - `client/src/components/project-context/helpers.ts` (modified)
+  - `client/src/components/project-context/helpers.test.ts` (modified)
+  - `client/src/app/(shell)/agents/[id]/_components/AgentEditor/_components/ContextTab/ContextTab.tsx` (modified)
+  - `client/src/app/(shell)/agents/[id]/_components/AgentEditor/_components/ContextTab/ContextTab.test.tsx` (modified)
+  - `client/src/app/(shell)/skills/_components/SkillsView/_components/SkillDetail/_components/ContextTab/ContextTab.tsx` (modified)
+  - `client/src/app/(shell)/skills/_components/SkillsView/_components/SkillDetail/_components/ContextTab/ContextTab.test.tsx` (modified)
+- Rules (copied from T008 / T011 / T012, plus the finding):
+  - `mergeRows(docs, own)` takes the attached entries as `AttachedDoc[]` (the server view's `own`), attached first in saved order; an attached row's `found` / `type` / `tokens` / `truncated` come from the listing row when the path is in the listing, otherwise from the server's `AttachedDoc` — never inferred as "not found" from absence in a capped or filtered listing (SPEC-01 AC21, EC5) — frontend-ui-architecture §4 Where business logic lives
+  - Pure list logic stays in `helpers.ts` with no React import; consumers import from `@/components/project-context` — frontend-ui-architecture §6 Import rules
+  - Rows come from `mergeRows(listing.documents, own)`; nothing derived is put in `useState` — react-best-practices §Derive, Don't Store
+  - The skill tab applies the same case-insensitive path filter in render as the agent tab, so attached rows that do not match the filter are hidden, not labelled "not found" (SPEC-01 AC4) — react-best-practices §Derive, Don't Store
+  - The list reuses `AttachableDocList` and `mergeRows`; no duplicated list logic — frontend-ui-architecture §6 Import rules
+  - List keys are the document path — react-best-practices §Key Prop Patterns
+  - Tests mock hooks and repo context by alias; messages via `@messages/…`; interactions with `fireEvent`; query by role and label — react-testing-library §Mocking Strategies, §Query Priority
+- Constraints: touch only the six files above; no contract, hook, server or i18n change; keep every existing behaviour the T008/T011/T012 tests pin (not-found row can be unticked; "N of M attached"; inherited rows read-only; "Serializes as" box).
+- Acceptance criteria:
+  - SPEC-01 AC21: an attached path the server reports `found: true` but that is beyond the 500-row listing (or hidden by the filter) is NOT shown as "not found"; a path the server reports `found: false` shows "not found" and can be detached — on both tabs.
+  - SPEC-01 AC4: on the skill tab, the filter narrows the list by path, ignoring case, attached rows included.
+  - Tests fail first: run the new/changed tests against the current code and record the failing output before fixing.
+- Verify: `scripts/verify-task.sh client <the six files>`
+- Result: DONE_WITH_CONCERNS · 263cd45 — agent skipped fail-first; orchestrator ran the new tests against the pre-fix code in a scratch worktree: 4 failed (one per gap), so fail-first is proven. Gate: client 168 tests pass
+
+- T003–T007, T009–T015 — fail-first step skipped (tests written with or after the code); TESTING.md asks for fail-first → plan-verifier to mutation-check T006 AC15 test
+
+### Rules gaps
+
+### Insight candidates
+- T016: PromptParts.specs is now {path, content}[] (ProjectSpec), not string[]; docs saying "spec chunks" were stale — `reviewer-core/src/prompt.ts`
+- orchestrator: a scratch tsconfig that adds server/test/** must set rootDir ".." — server compiles ../reviewer-core sources, so rootDir "." yields TS6059 noise — `server/tsconfig.json`
+- orchestrator: implementers skipped fail-first on 14 of 15 code tasks, even when the fix task listed it as an acceptance criterion; running new tests against pre-change code in a scratch git worktree (node_modules symlinked) proves it without touching the tree — `.claude/agents/implementer.md`
+- orchestrator: plan-verifier is read-only and cannot run mutation checks or db:generate; the orchestrator can, in a detached scratch worktree — `.claude/agents/plan-verifier.md`
+- T010: owner-bound mutation hooks (useAttachDocToAgent(id)) cannot serve a "pick any owner" select; needs per-pick child or mutate-time id — `client/src/app/(shell)/repos/[repoId]/context/_components/ProjectContextView/_components/DocDetail/DocDetail.tsx`
