@@ -19,10 +19,11 @@ reason. Read the report, not the agent's whole transcript.
    A task without `Rules:` (legacy) must list every skill of its area.
    Copy each *Rules gap* to the log's *Rules gaps* list — they tell the next
    plan what its Rules missed.
-4. **Verification.** Each command of the task's *Verify* appears with an output
-   line (`pass` / the summary line). A bare "passes" is not evidence.
-5. **Foreign errors.** Each one names a file owned by another task of the
-   running wave. A foreign error in a file nobody in the wave owns is a real
+4. **Verification.** Each line of the task's *Verify* appears with its output:
+   the `PASS` / `FAIL` / `SKIP` lines of `verify-task.sh`, `own 0` on every
+   step. A bare "passes" is not evidence.
+5. **Foreign errors.** Each file in a `foreign` count is owned by another
+   task of the running wave. A foreign error in a file nobody in the wave owns is a real
    problem — raise it at the wave gate.
 6. **Test-writer extras.** *Fail-first evidence* has a failing assertion line
    per test; *Mutation check* has at least one `executed` entry, or says why
@@ -56,20 +57,20 @@ reason. Read the report, not the agent's whole transcript.
 # Wave gate
 
 Run once per wave, in each package the wave touched, **after** all its tasks
-are accepted and **before** any commit. Quiet reporters keep the output small
-(client `INSIGHTS.md`, 2026-10-03); re-run a failing file without them to read
-the failure.
+are accepted and **before** any commit, from the repo root:
 
-| Package | Commands (inside the package) |
-|---|---|
-| `server` | `pnpm run typecheck` · `pnpm exec vitest run --exclude '**/*.it.test.ts' --reporter=dot --silent` · `pnpm run arch:check` |
-| `client` | `pnpm run typecheck` · `pnpm exec vitest run --reporter=dot --silent` |
-| `reviewer-core` | `npm run typecheck` · `npm test -- --reporter=dot --silent` |
-| `mcp` | `npm run typecheck` · `npm test` |
-| `e2e` | only the flow the wave added, and only when the stack is up (preflight answer) |
+```
+scripts/verify-task.sh <server|client|reviewer-core|mcp> --gate   # add --it when a task of the wave owns *.it.test.ts and Postgres is up
+```
 
-`*.it.test.ts` run here only when a task of the wave owns one and Postgres is
-up: `pnpm exec vitest run .it.test --reporter=dot --silent`.
+`--gate` counts every error as a failure (no own/foreign split): the whole
+wave is in the tree now. The script prints one line per step and at most 40
+failure lines; re-run a single failing file without it to read the failure in
+full. `e2e`: only the flow the wave added, and only when the stack is up
+(preflight answer).
+
+Attributing a failure: the file in the error line belongs to exactly one task
+of the wave (the ownership table) — re-dispatch that task with those lines.
 
 `typecheck` in `server/` and `reviewer-core/` does not cover `test/`
 (root `INSIGHTS.md`, 2026-09-26). When the wave added or changed test files

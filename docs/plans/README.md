@@ -104,9 +104,9 @@ contradictory or missing". Every spec `AC` id and the task that covers it.>
   2. <change>
 - Acceptance criteria:
   - <observable behaviour / shape>
-- Verify:
-  - `cd server && pnpm run typecheck`
-  - `cd client && pnpm run typecheck`
+- Verify (one line per touched package; add task-specific checks below it):
+  - `scripts/verify-task.sh server server/src/vendor/shared/contracts/x.ts`
+  - `scripts/verify-task.sh client client/src/vendor/shared/contracts/x.ts`
 - Constraints (quoted, not just referenced — the agent does not read the whole INSIGHTS file):
   - <INSIGHTS entry title> — Rule: <its rule line> — `<package>/INSIGHTS.md` (<date>)
   - <spec invariant / AC id and its wording>

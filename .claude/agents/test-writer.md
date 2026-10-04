@@ -198,25 +198,29 @@ probe is not permitted on that file.
 
 ### 8. Verify
 
-Run the task's verification commands **fresh** and read the full output. At
-minimum:
+Run the task's verification **fresh**, from the repo root, with one command
+per touched package — `<files>` are your task's *Files* (production and test):
 
-| Package | Commands (run inside the package) |
-|---|---|
-| `server` | `pnpm run typecheck` · `pnpm exec vitest run <your test files>` · `pnpm run arch:check` |
-| `client` | `pnpm run typecheck` · `pnpm exec vitest run <your test files>` |
-| `reviewer-core` | `npm run typecheck` · `npm test` |
-| `e2e` | the flow check the task names (needs a running stack — if none, say so) |
+```
+scripts/verify-task.sh <server|client|reviewer-core|mcp> <files>
+```
 
-Invoke every package script as `pnpm run <script>`. Integration tests
-(`*.it.test.ts`) only if the task asks and Postgres is up.
+It runs typecheck, your test files (dot reporter, silent) and, for `server`,
+`arch:check`, and prints one line per step (`PASS` / `FAIL — own N · foreign M`
+/ `SKIP`) plus at most 40 lines of **your** errors. Read all of it. Add `--it`
+only if the task asks for `*.it.test.ts` and Postgres is up. To see a failure
+in full, re-run just that file without the script
+(`cd <pkg> && ./node_modules/.bin/vitest run <file>`); never re-run the whole
+suite for it. `e2e`: the flow check the task names (needs a running stack — if
+none, say so). A plan *Verify* line that names other commands → run those too.
 
-**Parallel noise:** other implementers and test-writers are mid-edit in the
-same tree. A typecheck or test error in a file **outside** your *Files* is not
-yours — do not fix it; re-run once, and if it persists, list it under
-*Foreign errors*. Errors in your own files must be zero.
+**Parallel noise:** other implementers and test-writers are mid-edit in the same tree. The script
+counts errors in files outside your *Files* as `foreign` and does not fail on
+them — do not fix them and do not re-run for them; copy the `foreign` line into
+*Foreign errors*. `own` must be 0.
 
 No claim without evidence: never write "should work" or "probably passes".
+Quote the script's `PASS` / `FAIL` lines in *Verification*.
 
 ### 9. Report
 

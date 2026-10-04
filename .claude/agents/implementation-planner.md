@@ -207,7 +207,9 @@ Fix the plan until every answer is yes:
 - Every requirement in the request maps to at least one task.
 - No file appears in two tasks of the same wave; singletons above are owned once.
 - Every task names its area, its skills (with sections from routing.md), its
-  acceptance criteria and its exact verification commands.
+  acceptance criteria and its exact verification commands — one
+  `scripts/verify-task.sh <pkg> <the task's Files>` line per touched package,
+  plus any check the script does not cover (an e2e flow, an `--it` run).
 - Every contract change lists both `vendor/shared` copies (or says why the client
   copy must not change).
 - No task edits a do-not-touch path; migrations only come from `db:generate`.

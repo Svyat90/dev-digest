@@ -43,6 +43,7 @@ then read code.
 # e2e            npm test                       (needs API + web already running)
 # mcp            npm run build · npm test · npm run typecheck   (build emits mcp/dist, which is not committed)
 # specs          node scripts/lint-spec.mjs <spec.md>   (checks a SPEC-NN spec; run from the repo root)
+# verify         scripts/verify-task.sh <pkg> <files…> | <pkg> --gate   (typecheck + tests + arch:check, low output; agents and wave gates)
 
 # server, unit vs integration:
 pnpm exec vitest run --exclude '**/*.it.test.ts'
