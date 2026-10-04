@@ -74,4 +74,5 @@ Rules of the flow:
 
 | ID | Spec | Status | Packages |
 |----|------|--------|----------|
-| — | _none yet_ | — | — |
+| SPEC-01-project-context | [Project Context — discovery and attachment](01-project-context-2026-10-03.md) | approved | server, client |
+| SPEC-02-context-injection | [Project Context — run-time injection and trace](02-context-injection-2026-10-03.md) | approved | server, reviewer-core, client |
