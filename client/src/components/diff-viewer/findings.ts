@@ -16,6 +16,12 @@ export interface DiffFindingApi {
   headSha?: string | null;
 }
 
+/** A file (and optionally a RIGHT-side line) the viewer should open and scroll to. */
+export interface DiffTarget {
+  path: string;
+  line: number | null;
+}
+
 /** A finding counts as "open" until it is dismissed (accepted ones still show). */
 export function isOpenFinding(finding: FindingRecord): boolean {
   return !finding.dismissed_at;
