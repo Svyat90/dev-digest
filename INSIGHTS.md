@@ -30,6 +30,18 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-10-03 — The do-not-touch list is enforced in five places that do not read each other.**
+  Root `CLAUDE.md`, `client/CLAUDE.md`, `.claude/agents/implementer.md` (rule 4),
+  `scripts/lint-plan.mjs` (`DO_NOT_TOUCH`, plus the `TOUCHABLE` exceptions) and
+  `.claude/skills/pr-self-review/scripts/collect-diff.sh` (`kind_of` → `protected`)
+  each keep their own copy. If you add an exception (here `client/src/vendor/ui/nav.ts`)
+  in one place only, the planner lint, the implementer or `/pr-self-review` still
+  blocks or flags the file.
+  Rule: change a do-not-touch path or exception in all five places in the same
+  commit, then check the result with
+  `grep -rn "vendor/ui" CLAUDE.md client/CLAUDE.md .claude/agents .claude/skills/pr-self-review scripts`.
+  Edits to `.claude/agents/*.md` take effect only after a session restart.
+
 - **2026-10-03 — A plan's `Status:` line does not say whether it shipped.**
   `docs/plans/2026-09-25-intent-layer.md`, `2026-09-26-smart-diff.md` and
   `2026-09-30-blast-radius.md` still read `Status: draft` although their branches

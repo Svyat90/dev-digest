@@ -2,7 +2,8 @@
 // Deterministic lint for an Implementation Plan (docs/plans/*.md).
 //   node scripts/lint-plan.mjs <plan.md> [--spec <spec.md>] [--all]
 // A plan whose Status is `done` is skipped unless --all is given.
-// The spec is --spec, or the SPEC-NN-slug the plan cites (looked up by Spec ID).
+// The spec is --spec, or every SPEC-NN-slug the plan cites (looked up by Spec ID).
+// A plan citing several specs prefixes its AC ids: `SPEC-02 AC8`.
 // Exit 1 when there is an ERROR; WARN lines never fail the run.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -36,6 +37,9 @@ const DO_NOT_TOUCH = [
   'client/src/vendor/ui/',
   'e2e/test-results/',
 ];
+// Exceptions inside a do-not-touch prefix: nav.ts is a data registry the kit
+// expects later lessons to edit (client/INSIGHTS.md, 2026-09-22).
+const TOUCHABLE = ['client/src/vendor/ui/nav.ts'];
 const PAUSED_AGENTS = ['test-writer'];
 const AGENTS = ['implementer', 'doc-writer', ...PAUSED_AGENTS];
 const RULES_MIN = 5;
@@ -156,7 +160,7 @@ for (const t of tasks) {
     if (!isNew && !pattern && !existsSync(join(ROOT, f.path))) {
       err(`${where}: ${f.path} does not exist and is not marked (new)`);
     }
-    const blocked = DO_NOT_TOUCH.find((p) => f.path.startsWith(p));
+    const blocked = !TOUCHABLE.includes(f.path) && DO_NOT_TOUCH.find((p) => f.path.startsWith(p));
     if (blocked) {
       const generated = blocked === 'server/src/db/migrations/' && /generated|db:generate/.test(f.text);
       if (!generated) err(`${where}: ${f.path} is a do-not-touch path`);
@@ -198,37 +202,72 @@ else {
 
 // ---- spec coverage -------------------------------------------------------
 const specDirs = ['specs', 'server/specs', 'client/specs', 'reviewer-core/specs', 'e2e/docs'];
-let specPath = option('--spec');
-if (!specPath) {
-  const cited = /\bSPEC-\d{2}-[a-z0-9-]+\b/.exec(text)?.[0];
-  if (cited) {
-    for (const dir of specDirs) {
-      const abs = join(ROOT, dir);
-      if (!existsSync(abs)) continue;
-      const hit = readdirSync(abs)
-        .filter((n) => n.endsWith('.md'))
-        .find((n) => new RegExp(`^Spec ID: ${cited}$`, 'm').test(readFileSync(join(abs, n), 'utf8')));
-      if (hit) specPath = join(dir, hit);
+// A plan may cite several specs. Their AC numbers overlap, so such a plan
+// prefixes each citation with the spec's short id: `SPEC-02 AC8`. A bare `ACn`
+// belongs to the nearest `SPEC-NN` before it on the same line
+// (`SPEC-01 AC4, AC5`). A bare `ACn` with no prefix on its line counts only
+// when the plan cites one spec.
+const shortId = (id) => /^SPEC-\d{2}/.exec(id)?.[0];
+const citedSpecs = [...new Set((text.match(/\bSPEC-\d{2}-[a-z0-9-]+\b/g) ?? []).map(shortId))];
+const multiSpec = citedSpecs.length > 1;
+
+/** `[{ spec: 'SPEC-02' | null, ac: 'AC8' }]` for every AC citation in `src`. */
+function acCitations(src) {
+  const out = [];
+  for (const line of src.split('\n')) {
+    let spec = null;
+    for (const m of line.matchAll(/\b(SPEC-\d{2})(?:-[a-z0-9-]+)?\b|\b(AC\d+)\b/g)) {
+      if (m[1]) spec = m[1];
+      else out.push({ spec, ac: m[2] });
     }
-    if (!specPath) err(`plan cites ${cited}, but no spec file has that Spec ID`);
+  }
+  return out;
+}
+const belongsTo = (c, id) => c.spec === id || (c.spec === null && !multiSpec);
+
+function findSpec(cited) {
+  for (const dir of specDirs) {
+    const abs = join(ROOT, dir);
+    if (!existsSync(abs)) continue;
+    const hit = readdirSync(abs)
+      .filter((n) => n.endsWith('.md'))
+      .find((n) => new RegExp(`^Spec ID: ${cited}$`, 'm').test(readFileSync(join(abs, n), 'utf8')));
+    if (hit) return join(dir, hit);
+  }
+  return undefined;
+}
+
+let specPaths = [];
+if (option('--spec')) specPaths = [option('--spec')];
+else {
+  for (const cited of new Set(text.match(/\bSPEC-\d{2}-[a-z0-9-]+\b/g) ?? [])) {
+    const found = findSpec(cited);
+    if (found) specPaths.push(found);
+    else err(`plan cites ${cited}, but no spec file has that Spec ID`);
   }
 }
-let acCount = 0;
-if (specPath) {
+
+const taskCitations = acCitations(tasks.map((t) => t.body).join('\n'));
+const planCitations = acCitations(text);
+const specSummaries = [];
+for (const specPath of specPaths) {
   const spec = readFileSync(resolve(ROOT, specPath), 'utf8');
+  const name = basename(specPath);
+  const id = shortId(/^Spec ID: (\S+)/m.exec(spec)?.[1] ?? '');
   const specStatus = /^Status: (\S+)/m.exec(spec)?.[1];
   const oq = (/## Open questions\n([\s\S]*?)(\n## |$)/.exec(spec)?.[1] ?? '').match(/^- OQ\d+/gm) ?? [];
-  if (specStatus === 'draft' && oq.length) err(`spec ${basename(specPath)} is draft with ${oq.length} open question(s) — finish it with spec-creator first`);
-  else if (specStatus !== 'approved') warn(`spec ${basename(specPath)} is ${specStatus}, not approved`);
+  if (specStatus === 'draft' && oq.length) err(`spec ${name} is draft with ${oq.length} open question(s) — finish it with spec-creator first`);
+  else if (specStatus !== 'approved') warn(`spec ${name} is ${specStatus}, not approved`);
 
   const specAcs = [...spec.matchAll(/^- (AC\d+)\b/gm)].map((m) => m[1]);
-  acCount = specAcs.length;
-  const taskText = tasks.map((t) => t.body).join('\n');
+  specSummaries.push(`spec ${name} (${specAcs.length} AC)`);
+  const label = multiSpec && id ? `${id} ` : '';
+  const covered = new Set(taskCitations.filter((c) => belongsTo(c, id)).map((c) => c.ac));
   for (const ac of specAcs) {
-    if (!new RegExp(`\\b${ac}\\b`).test(taskText)) err(`${ac} of the spec is not covered by any task`);
+    if (!covered.has(ac)) err(`${label}${ac} of the spec is not covered by any task`);
   }
-  for (const ac of new Set(text.match(/\bAC\d+\b/g) ?? [])) {
-    if (!specAcs.includes(ac)) err(`${ac} is cited by the plan but not defined in the spec`);
+  for (const ac of new Set(planCitations.filter((c) => belongsTo(c, id)).map((c) => c.ac))) {
+    if (!specAcs.includes(ac)) err(`${label}${ac} is cited by the plan but not defined in ${name}`);
   }
 }
 
@@ -238,7 +277,7 @@ errors.forEach((e) => console.log(`ERROR ${e}`));
 const waves = new Set(tasks.map((t) => t.wave).filter((w) => w !== null)).size;
 console.log(
   `${basename(file)}: ${tasks.length} task(s) · ${waves} wave(s)` +
-    `${specPath ? ` · spec ${basename(specPath)} (${acCount} AC)` : ' · no spec'}` +
+    `${specSummaries.length ? ` · ${specSummaries.join(' · ')}` : ' · no spec'}` +
     ` — ${errors.length} error(s), ${warns.length} warning(s)`,
 );
 process.exit(errors.length ? 1 : 0);

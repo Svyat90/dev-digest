@@ -38,7 +38,8 @@ then read code.
 
 ## Do-not-touch
 
-- `src/vendor/ui/**` — vendored kit shared with later lessons.
+- `src/vendor/ui/**` — vendored kit shared with later lessons. Exception:
+  `src/vendor/ui/nav.ts` (sidebar nav data registry) may be edited by a plan task that owns it.
 - `.next/**` — build output.
 
 ## Read when

@@ -37,7 +37,8 @@ If the plan path or task ID is missing, stop and return `NEEDS_CONTEXT`.
    `pnpm run db:generate` only when your task owns the schema and says so.
    Need a dependency? → `NEEDS_CONTEXT`.
 4. **Do-not-touch paths** (root CLAUDE.md) are never edited, including
-   `server/src/db/migrations/**` by hand and `client/src/vendor/ui/**`.
+   `server/src/db/migrations/**` by hand and `client/src/vendor/ui/**`
+   (except `client/src/vendor/ui/nav.ts`, the nav data registry, when your task owns it).
 5. **Zod 3, not 4.** No `zod/v4`, `zod/mini`, `@zod/*`, no top-level `z.email()` etc.
 6. **English** for code, comments and identifiers. Match the surrounding code's
    naming, idioms and comment density.
