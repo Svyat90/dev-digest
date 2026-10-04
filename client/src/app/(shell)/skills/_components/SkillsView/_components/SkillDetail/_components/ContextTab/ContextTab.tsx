@@ -30,7 +30,10 @@ export function ContextTab({ skillId }: { skillId: string }) {
 
   const own = attached.data?.own ?? [];
   const savedPaths = own.map((d) => d.path);
-  const rows = mergeRows(docs.data?.documents ?? [], savedPaths);
+  const needle = q.trim().toLowerCase();
+  const rows = mergeRows(docs.data?.documents ?? [], own).filter(
+    (r) => !needle || r.path.toLowerCase().includes(needle),
+  );
   const serialized = ["## Project context", ...savedPaths].join("\n");
 
   return (

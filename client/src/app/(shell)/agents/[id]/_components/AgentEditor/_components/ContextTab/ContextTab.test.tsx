@@ -81,6 +81,12 @@ describe("Agent ContextTab", () => {
     expect(setMutate).toHaveBeenCalledWith([]);
   });
 
+  it("does not label an attached path beyond the listing as not found when the server found it", () => {
+    renderTab({ own: [att("docs/far.md")] });
+    expect(screen.getByRole("checkbox", { name: "Attach docs/far.md" })).toBeChecked();
+    expect(screen.queryByText("not found")).toBeNull();
+  });
+
   it("lists inherited documents read-only with the skill name", () => {
     renderTab({ inherited: [{ ...att("docs/s.md"), skill_id: "s1", skill_name: "Security Rubric" }] });
     expect(screen.getByText("from Security Rubric")).toBeInTheDocument();

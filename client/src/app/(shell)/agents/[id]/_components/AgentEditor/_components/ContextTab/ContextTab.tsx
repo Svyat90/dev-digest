@@ -38,10 +38,9 @@ export function ContextTab({ agentId }: { agentId: string }) {
   const data = agentDocs.data;
   const own = data?.own ?? [];
   const needle = q.trim().toLowerCase();
-  const attachedPaths = own.map((d) => d.path);
-  // The filter narrows the list, but attached rows missing from the listing
-  // (not found) stay visible so they can be detached.
-  const rows = mergeRows(listing.data?.documents ?? [], attachedPaths).filter(
+  // The filter narrows the list, attached rows included; an attached row's
+  // "not found" state comes from the server, not from absence in the listing.
+  const rows = mergeRows(listing.data?.documents ?? [], own).filter(
     (r) => !needle || r.path.toLowerCase().includes(needle),
   );
   const total = unfiltered.data?.total ?? listing.data?.total ?? 0;

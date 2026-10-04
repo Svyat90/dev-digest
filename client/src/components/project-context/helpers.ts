@@ -1,4 +1,4 @@
-import type { ContextDoc } from "@devdigest/shared";
+import type { AttachedDoc, ContextDoc } from "@devdigest/shared";
 
 /** One row of the attachable list: a found document or an attached path that is gone. */
 export interface DocRow {
@@ -11,18 +11,19 @@ export interface DocRow {
 }
 
 /**
- * Attached rows first, in saved order (a path no longer in `docs` stays as a
- * `found: false` row so it can still be unticked), then the remaining
- * documents in the order given.
+ * Attached rows first, in saved order, then the remaining documents in the
+ * order given. An attached row takes its state from the listing when the path
+ * is there, otherwise from the server's own `found` flag: absence from a
+ * capped or filtered listing never means "not found".
  */
-export function mergeRows(docs: ContextDoc[], attached: string[]): DocRow[] {
+export function mergeRows(docs: ContextDoc[], own: AttachedDoc[]): DocRow[] {
   const byPath = new Map(docs.map((d) => [d.path, d]));
-  const attachedSet = new Set(attached);
-  const head: DocRow[] = attached.map((path) => {
-    const d = byPath.get(path);
+  const attachedSet = new Set(own.map((a) => a.path));
+  const head: DocRow[] = own.map((a) => {
+    const d = byPath.get(a.path);
     return d
-      ? { path, type: d.type, found: true, tokens: d.tokens, truncated: d.truncated, attached: true }
-      : { path, type: null, found: false, tokens: null, truncated: false, attached: true };
+      ? { path: a.path, type: d.type, found: true, tokens: d.tokens, truncated: d.truncated, attached: true }
+      : { path: a.path, type: a.type, found: a.found, tokens: a.tokens, truncated: a.truncated, attached: true };
   });
   const tail: DocRow[] = docs
     .filter((d) => !attachedSet.has(d.path))

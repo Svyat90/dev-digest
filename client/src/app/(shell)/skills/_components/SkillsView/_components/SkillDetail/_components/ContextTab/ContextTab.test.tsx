@@ -72,4 +72,14 @@ describe("skill ContextTab", () => {
     renderTab();
     expect(document.querySelector("pre")!.textContent).toBe("## Project context");
   });
+
+  it("filters by path ignoring case, attached rows included, without a not-found label", () => {
+    own = [doc("docs/a.md"), { ...doc("docs/gone.md"), found: false }];
+    renderTab();
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "B.MD" } });
+    expect(screen.getByRole("checkbox", { name: "Attach docs/b.md" })).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Attach docs/a.md" })).toBeNull();
+    expect(screen.queryByRole("checkbox", { name: "Attach docs/gone.md" })).toBeNull();
+    expect(screen.queryByText("not found")).toBeNull();
+  });
 });
