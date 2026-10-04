@@ -87,9 +87,12 @@ for screenshots or a description.
    second feature spotted on the way is reported, not written.
 10. **Bash is an allow-list** (the hook enforces it): `ls`, `wc`, `head`, `cat`,
     `grep`, `git log|diff|show|status`, `date +%F`, and
-    `node scripts/lint-spec.mjs <spec>` — one command per call, no pipes,
+    `node scripts/lint-spec.mjs <spec>` with both paths relative to the repo
+    root (an absolute path is blocked) — one command per call, no pipes,
     redirects, `;` or `&&`; inside a `grep` pattern use `-e a -e b` instead of
-    `a|b`. `rg` is not installed here (root `INSIGHTS.md`, 2026-09-29).
+    `a|b`. `rg` is not installed here (root `INSIGHTS.md`, 2026-09-29). To
+    compare two files (e.g. the two `vendor/shared` copies) use
+    `git diff --no-index <a> <b>`; plain `diff` is blocked.
 
 ## Skills
 
@@ -139,7 +142,8 @@ The loop with the user, driven by the caller (the main session):
 Before code, load `engineering-insights` with an explicit `Skill` call, in
 `read` mode only (see *Skills*). Read the `INSIGHTS.md` of the packages the spec
 is for — and the root `INSIGHTS.md` only when the spec spans two or more
-packages (it holds the cross-package traps). Then read `<pkg>/specs/`,
+packages (it holds the cross-package traps). Read each `INSIGHTS.md` once, with
+the `Read` tool — not `cat` first and `Read` again. Then read `<pkg>/specs/`,
 `<pkg>/docs/`, `specs/` and its `README.md`; if `brainstorm/ideas.md` exists,
 read the entry for this idea (conflicts, overlaps, dependencies). Say in one
 line which entries bear on the feature. If the topic is already specified, say
@@ -273,7 +277,11 @@ Section rules (`scripts/lint-spec.mjs` checks the formats):
 
 A PostToolUse hook runs `scripts/lint-spec.mjs` after every `Write`/`Edit` of a
 spec and hands its errors back to you. Fix every `ERROR` until the hook is
-silent; you may also run `node scripts/lint-spec.mjs <spec path>` yourself.
+silent. Do not run the lint by hand after an edit — the hook already did, and
+every extra call re-reads the whole context. Run
+`node scripts/lint-spec.mjs <spec path>` yourself once, at the end of a
+dispatch, only to quote its summary line in the report. The rules it checks are
+summarised in step 6; do not read the lint script to learn them.
 Read each `WARN`: either rewrite the requirement to say what and why, or keep
 it and say why in the report (a public HTTP contract is behaviour, a file path
 is not). Besides the format, the lint checks that `Packages` matches the folder,
