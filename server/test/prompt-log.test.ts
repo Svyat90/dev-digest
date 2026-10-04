@@ -37,7 +37,7 @@ const reviewerParts = {
   skills: ['CANARY_SKILL_BODY: never log secrets'],
   memory: ['CANARY_MEMORY_ITEM'],
   repoMap: 'src/config.ts: CANARY_REPO_MAP',
-  specs: ['CANARY_SPEC_TEXT (private spec)'],
+  specs: [{ path: 'specs/security-baseline.md', content: 'CANARY_SPEC_TEXT (private spec)' }],
   callers: 'src/server.ts:12 CANARY_CALLERS',
   diff: [
     'diff --git a/src/config.ts b/src/config.ts',

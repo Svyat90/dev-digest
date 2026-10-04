@@ -9,6 +9,7 @@ import type {
 import { Review as ReviewSchema } from '@devdigest/shared';
 import {
   assemblePrompt,
+  type ProjectSpec,
   type PromptIntent,
   type PromptMeasure,
   type PromptSectionMeta,
@@ -73,8 +74,8 @@ export interface ReviewInput {
   skills?: string[];
   /** Curated memory items. */
   memory?: string[];
-  /** Project-context spec chunks (untrusted; delimiter-wrapped downstream). */
-  specs?: string[];
+  /** Project-context documents (path + resolved text; untrusted, delimiter-wrapped downstream). */
+  specs?: ProjectSpec[];
   /**
    * Optional callers-of-changed-symbols digest (T1.3). Untrusted; rendered
    * before the diff section. Empty/undefined → section omitted.
