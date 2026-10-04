@@ -16,6 +16,16 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-03 — An unquoted vitest glob in a shell script silently shrinks the server suite.**
+  `TESTS="--exclude **/*.it.test.ts"; vitest run $TESTS` lets macOS bash 3.2
+  (no globstar) expand the pattern to `test/*.it.test.ts` file names; vitest
+  takes them as positional filters and the "unit" run went green with 80 of
+  243 tests — nothing failed, nothing warned.
+  Rule: in `scripts/*.sh` that pass globs or file lists through a variable,
+  `set -f` (as `scripts/verify-task.sh` does) or quote the glob; check the
+  `Tests N passed` count against a direct run after any change to the command.
+  `cd server && ./node_modules/.bin/vitest run --exclude '**/*.it.test.ts' --reporter=dot --silent` → `Tests 243 passed`
+
 ## Codebase Patterns
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
