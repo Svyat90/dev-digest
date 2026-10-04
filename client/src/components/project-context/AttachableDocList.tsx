@@ -11,10 +11,12 @@ interface Props {
   rows: DocRow[];
   onChange: (paths: string[]) => void;
   onPreview?: (path: string) => void;
+  /** The row whose document is open in the preview; it gets the accent border. */
+  selectedPath?: string | null;
 }
 
 /** Presentational list: tick to attach, drag or up/down to reorder attached rows. */
-export function AttachableDocList({ rows, onChange, onPreview }: Props) {
+export function AttachableDocList({ rows, onChange, onPreview, selectedPath }: Props) {
   const t = useTranslations("context");
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [overPath, setOverPath] = useState<string | null>(null);
@@ -44,7 +46,8 @@ export function AttachableDocList({ rows, onChange, onPreview }: Props) {
               setDragFrom(null);
               setOverPath(null);
             }}
-            style={s.row(overPath === r.path)}
+            aria-current={r.path === selectedPath ? "true" : undefined}
+            style={s.row(overPath === r.path || r.path === selectedPath)}
           >
             <input
               type="checkbox"

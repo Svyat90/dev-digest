@@ -38,6 +38,7 @@
     "preview": "Document preview",
     "closePreview": "Close preview",
     "selectPrompt": "Select a document to preview it",
+    "previewRegion": "Document preview",
     "usedBy": "Used by {agents} agents · {skills} skills",
     "attachTo": "Attach to…",
     "attachAgents": "Agents",

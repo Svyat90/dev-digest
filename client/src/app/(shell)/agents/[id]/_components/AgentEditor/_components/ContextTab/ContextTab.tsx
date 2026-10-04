@@ -13,6 +13,7 @@ import {
 import { formatTokenCount } from "@/lib/format";
 import {
   AttachableDocList,
+  ContextSplit,
   DocPreview,
   DocTypeTag,
   TokenEstimate,
@@ -48,7 +49,7 @@ export function ContextTab({ agentId }: { agentId: string }) {
   const notCloned = listing.data?.status === "not_cloned";
 
   return (
-    <div style={s.wrap}>
+    <div>
       <div style={s.header}>
         <h2 style={s.h2}>{t("docs.tab.title")}</h2>
         <span style={s.meta}>{t("docs.tab.repoLabel", { repo: repoName })}</span>
@@ -68,53 +69,64 @@ export function ContextTab({ agentId }: { agentId: string }) {
         </div>
       ) : null}
 
-      {notCloned ? (
-        <div style={s.message}>{t("docs.notCloned")}</div>
-      ) : (
-        <>
-          <input
-            type="search"
-            style={s.filter}
-            value={q}
-            placeholder={t("docs.filterPlaceholder")}
-            aria-label={t("docs.filterPlaceholder")}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          {listing.isError ? (
-            <div style={s.message}>{t("docs.loadError")}</div>
-          ) : rows.length === 0 && !listing.isLoading ? (
-            <div style={s.message}>
-              {q ? t("docs.noMatches") : t("docs.empty", { roots: (listing.data?.roots ?? []).join(", ") })}
-            </div>
-          ) : (
-            <AttachableDocList rows={rows} onChange={(paths) => setDocs.mutate(paths)} onPreview={setPreviewPath} />
-          )}
-        </>
-      )}
+      <ContextSplit
+        preview={
+          previewPath && preview.data ? (
+            <DocPreview path={preview.data.path} content={preview.data.content} onClose={() => setPreviewPath(null)} />
+          ) : null
+        }
+      >
+        {notCloned ? (
+          <div style={s.message}>{t("docs.notCloned")}</div>
+        ) : (
+          <>
+            <input
+              type="search"
+              style={s.filter}
+              value={q}
+              placeholder={t("docs.filterPlaceholder")}
+              aria-label={t("docs.filterPlaceholder")}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            {listing.isError ? (
+              <div style={s.message}>{t("docs.loadError")}</div>
+            ) : rows.length === 0 && !listing.isLoading ? (
+              <div style={s.message}>
+                {q ? t("docs.noMatches") : t("docs.empty", { roots: (listing.data?.roots ?? []).join(", ") })}
+              </div>
+            ) : (
+              <AttachableDocList
+                rows={rows}
+                onChange={(paths) => setDocs.mutate(paths)}
+                onPreview={setPreviewPath}
+                selectedPath={previewPath}
+              />
+            )}
+          </>
+        )}
 
-      {data && data.inherited.length > 0 ? (
-        <>
-          <h3 style={s.inheritedTitle}>{t("docs.tab.inheritedTitle")}</h3>
-          <ul style={s.inheritedList}>
-            {data.inherited.map((d) => (
-              <li key={`${d.skill_id}:${d.path}`} style={s.inheritedRow}>
-                <button type="button" style={{ ...s.mono, background: "none", border: "none", padding: 0, textAlign: "left", color: "inherit", cursor: "pointer" }} disabled={!d.found} onClick={() => setPreviewPath(d.path)}>
-                  {d.path}
-                </button>
-                <DocTypeTag type={d.type} />
-                {d.found ? <TokenEstimate tokens={d.tokens} truncated={d.truncated} /> : <span>{t("docs.notFound")}</span>}
-                <span style={s.from}>{t("docs.tab.inheritedFrom", { skill: d.skill_name })}</span>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : null}
-
-      {previewPath && preview.data ? (
-        <div style={s.previewBox}>
-          <DocPreview path={preview.data.path} content={preview.data.content} onClose={() => setPreviewPath(null)} />
-        </div>
-      ) : null}
+        {data && data.inherited.length > 0 ? (
+          <>
+            <h3 style={s.inheritedTitle}>{t("docs.tab.inheritedTitle")}</h3>
+            <ul style={s.inheritedList}>
+              {data.inherited.map((d) => (
+                <li
+                  key={`${d.skill_id}:${d.path}`}
+                  aria-current={d.path === previewPath ? "true" : undefined}
+                  style={s.inheritedRow(d.path === previewPath)}
+                >
+                  <button type="button" style={s.inheritedBtn} disabled={!d.found} onClick={() => setPreviewPath(d.path)}>
+                    {d.path}
+                  </button>
+                  <DocTypeTag type={d.type} />
+                  {d.found ? <TokenEstimate tokens={d.tokens} truncated={d.truncated} /> : <span>{t("docs.notFound")}</span>}
+                  <span style={s.from}>{t("docs.tab.inheritedFrom", { skill: d.skill_name })}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+      </ContextSplit>
     </div>
   );
 }

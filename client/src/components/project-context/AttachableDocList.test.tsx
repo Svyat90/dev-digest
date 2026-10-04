@@ -17,10 +17,10 @@ const row = (path: string, over: Partial<DocRow> = {}): DocRow => ({
   ...over,
 });
 
-function renderList(rows: DocRow[], onChange = vi.fn()) {
+function renderList(rows: DocRow[], onChange = vi.fn(), selectedPath?: string | null) {
   render(
     <NextIntlClientProvider locale="en" messages={{ context: messages }}>
-      <AttachableDocList rows={rows} onChange={onChange} />
+      <AttachableDocList rows={rows} onChange={onChange} selectedPath={selectedPath} />
     </NextIntlClientProvider>,
   );
   return onChange;
@@ -47,5 +47,12 @@ describe("AttachableDocList", () => {
     expect(screen.getByText("not found")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("checkbox", { name: "Attach docs/gone.md" }));
     expect(onChange).toHaveBeenCalledWith([]);
+  });
+
+  it("marks the previewed row as current", () => {
+    renderList([row("docs/a.md"), row("docs/b.md")], vi.fn(), "docs/b.md");
+    const current = screen.getAllByRole("listitem").filter((li) => li.getAttribute("aria-current") === "true");
+    expect(current).toHaveLength(1);
+    expect(current[0]).toHaveTextContent("docs/b.md");
   });
 });

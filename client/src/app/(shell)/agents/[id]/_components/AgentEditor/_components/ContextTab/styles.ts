@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 
 export const s = {
-  wrap: { maxWidth: 780 } satisfies CSSProperties,
   header: { display: "flex", alignItems: "center", flexWrap: "wrap", gap: 14, marginBottom: 6 } satisfies CSSProperties,
   h2: { fontSize: 18, fontWeight: 700 } satisfies CSSProperties,
   meta: { fontSize: 12.5, color: "var(--text-muted)" } satisfies CSSProperties,
@@ -28,17 +27,28 @@ export const s = {
   message: { fontSize: 13, color: "var(--text-muted)", padding: "12px 0" } satisfies CSSProperties,
   inheritedTitle: { fontSize: 13, fontWeight: 600, margin: "18px 0 8px" } satisfies CSSProperties,
   inheritedList: { listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 4 } satisfies CSSProperties,
-  inheritedRow: {
+  // Longhand border only: the selected variant changes one facet.
+  inheritedRow: (selected: boolean): CSSProperties => ({
     display: "flex",
     alignItems: "center",
     gap: 8,
     padding: "6px 10px",
     borderRadius: 8,
-    border: "1px solid var(--border)",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: selected ? "var(--accent)" : "var(--border)",
     background: "var(--bg-elevated)",
     fontSize: 12,
+  }),
+  inheritedBtn: {
+    flex: 1,
+    fontFamily: "var(--font-mono, monospace)",
+    background: "none",
+    border: "none",
+    padding: 0,
+    textAlign: "left",
+    color: "inherit",
+    cursor: "pointer",
   } satisfies CSSProperties,
-  mono: { fontFamily: "var(--font-mono, monospace)", flex: 1 } satisfies CSSProperties,
   from: { fontSize: 11, color: "var(--text-muted)" } satisfies CSSProperties,
-  previewBox: { marginTop: 16 } satisfies CSSProperties,
 };

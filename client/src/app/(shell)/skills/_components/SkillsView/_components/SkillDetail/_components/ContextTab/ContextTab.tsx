@@ -11,7 +11,7 @@ import {
   useSetSkillContextDocs,
   useSkillContextDocs,
 } from "@/lib/hooks/project-context";
-import { AttachableDocList, DocPreview, mergeRows } from "@/components/project-context";
+import { AttachableDocList, ContextSplit, DocPreview, mergeRows } from "@/components/project-context";
 import { s } from "./styles";
 
 /** Skill detail "Context" tab: attach repository documents to the skill. */
@@ -40,36 +40,49 @@ export function ContextTab({ skillId }: { skillId: string }) {
     <div style={s.wrap}>
       <h2 style={s.title}>{t("docs.skillTab.title")}</h2>
       <p style={s.note}>{t("docs.skillTab.inheritNote")}</p>
-      <div style={s.toolbar}>
-        <input
-          type="search"
-          style={s.filter}
-          value={q}
-          placeholder={t("docs.filterPlaceholder")}
-          aria-label={t("docs.filterPlaceholder")}
-          onChange={(e) => setQ(e.target.value)}
-        />
-        <Link href={`/repos/${repoId}/context`} style={s.link}>
-          {t("docs.tab.openPage")}
-        </Link>
-      </div>
-      <span style={s.meta}>
-        {t("docs.tab.repoLabel", { repo: attached.data?.repo.full_name ?? activeRepo?.full_name ?? "" })}
-        {" · "}
-        {t("docs.tab.total", { tokens: formatTokenCount(attached.data?.total_tokens ?? 0) })}
-      </span>
-      {docs.data?.status === "not_cloned" ? <p style={s.note}>{t("docs.notCloned")}</p> : null}
-      {docs.isError ? <p style={s.note}>{t("docs.loadError")}</p> : null}
-      {docs.data && rows.length === 0 && docs.data.status === "ok" ? (
-        <p style={s.note}>{q ? t("docs.noMatches") : t("docs.empty", { roots: docs.data.roots.join(", ") })}</p>
-      ) : null}
-      <AttachableDocList rows={rows} onChange={(paths) => setDocs.mutate(paths)} onPreview={setPreviewPath} />
-      {previewPath && preview.data ? (
-        <DocPreview path={previewPath} content={preview.data.content} onClose={() => setPreviewPath(null)} />
-      ) : null}
-      {previewPath && preview.isError ? <p style={s.note}>{t("docs.previewError")}</p> : null}
-      <span style={s.serializesLabel}>{t("docs.skillTab.serializesAs")}</span>
-      <pre style={s.serializes}>{serialized}</pre>
+      <ContextSplit
+        preview={
+          previewPath && preview.data ? (
+            <DocPreview path={previewPath} content={preview.data.content} onClose={() => setPreviewPath(null)} />
+          ) : previewPath && preview.isError ? (
+            <p style={s.note}>{t("docs.previewError")}</p>
+          ) : null
+        }
+      >
+        <div style={s.column}>
+          <div style={s.toolbar}>
+            <input
+              type="search"
+              style={s.filter}
+              value={q}
+              placeholder={t("docs.filterPlaceholder")}
+              aria-label={t("docs.filterPlaceholder")}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <Link href={`/repos/${repoId}/context`} style={s.link}>
+              {t("docs.tab.openPage")}
+            </Link>
+          </div>
+          <span style={s.meta}>
+            {t("docs.tab.repoLabel", { repo: attached.data?.repo.full_name ?? activeRepo?.full_name ?? "" })}
+            {" · "}
+            {t("docs.tab.total", { tokens: formatTokenCount(attached.data?.total_tokens ?? 0) })}
+          </span>
+          {docs.data?.status === "not_cloned" ? <p style={s.note}>{t("docs.notCloned")}</p> : null}
+          {docs.isError ? <p style={s.note}>{t("docs.loadError")}</p> : null}
+          {docs.data && rows.length === 0 && docs.data.status === "ok" ? (
+            <p style={s.note}>{q ? t("docs.noMatches") : t("docs.empty", { roots: docs.data.roots.join(", ") })}</p>
+          ) : null}
+          <AttachableDocList
+            rows={rows}
+            onChange={(paths) => setDocs.mutate(paths)}
+            onPreview={setPreviewPath}
+            selectedPath={previewPath}
+          />
+          <span style={s.serializesLabel}>{t("docs.skillTab.serializesAs")}</span>
+          <pre style={s.serializes}>{serialized}</pre>
+        </div>
+      </ContextSplit>
     </div>
   );
 }

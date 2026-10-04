@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import contextMessages from "@messages/en/context.json";
 
@@ -25,7 +25,10 @@ vi.mock("@/lib/hooks/project-context", () => ({
     data: { repo: { id: "r1", full_name: "acme/app", cloned: true }, own, total_tokens: 200 },
   }),
   useSetSkillContextDocs: () => ({ mutate }),
-  useContextDoc: () => ({ data: undefined, isError: false }),
+  useContextDoc: (_repoId: string, path: string | null) => ({
+    data: path ? { path, content: `# Preview of ${path}` } : undefined,
+    isError: false,
+  }),
 }));
 
 import { ContextTab } from "./ContextTab";
@@ -81,5 +84,18 @@ describe("skill ContextTab", () => {
     expect(screen.queryByRole("checkbox", { name: "Attach docs/a.md" })).toBeNull();
     expect(screen.queryByRole("checkbox", { name: "Attach docs/gone.md" })).toBeNull();
     expect(screen.queryByText("not found")).toBeNull();
+  });
+
+  it("opens the clicked document in the right-hand preview column and marks its row", () => {
+    own = [];
+    renderTab();
+    const region = screen.getByRole("complementary", { name: "Document preview" });
+    expect(within(region).getByText("Select a document to preview it")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "docs/c.md" }));
+    expect(within(region).getByRole("heading", { name: "Preview of docs/c.md" })).toBeInTheDocument();
+    const current = screen.getAllByRole("listitem").filter((li) => li.getAttribute("aria-current") === "true");
+    expect(current).toHaveLength(1);
+    expect(current[0]).toHaveTextContent("docs/c.md");
   });
 });

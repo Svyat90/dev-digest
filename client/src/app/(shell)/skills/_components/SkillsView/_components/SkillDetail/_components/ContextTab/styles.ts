@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 
 export const s = {
-  wrap: { maxWidth: 780, display: "flex", flexDirection: "column", gap: 14 } satisfies CSSProperties,
+  wrap: { display: "flex", flexDirection: "column", gap: 14 } satisfies CSSProperties,
+  column: { display: "flex", flexDirection: "column", gap: 14 } satisfies CSSProperties,
   title: { fontSize: 14, fontWeight: 600, margin: 0 } satisfies CSSProperties,
   note: { fontSize: 12, color: "var(--text-muted)", margin: 0 } satisfies CSSProperties,
   toolbar: { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" } satisfies CSSProperties,

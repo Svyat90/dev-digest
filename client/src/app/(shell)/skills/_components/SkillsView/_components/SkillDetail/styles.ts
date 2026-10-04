@@ -11,7 +11,9 @@ export const s = {
     flexShrink: 0,
   } satisfies CSSProperties,
   h1: { fontSize: 18, fontWeight: 700 } satisfies CSSProperties,
-  wrap: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0 } satisfies CSSProperties,
+  // minHeight 0 keeps `body` the scroll container (sticky children such as
+  // the Context tab preview bind to it).
+  wrap: { flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 } satisfies CSSProperties,
   tabsBar: { marginTop: 14 } satisfies CSSProperties,
-  body: { flex: 1, overflow: "auto", padding: 28 } satisfies CSSProperties,
+  body: { flex: 1, minHeight: 0, overflow: "auto", padding: 28 } satisfies CSSProperties,
 } as const;

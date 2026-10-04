@@ -110,7 +110,7 @@ export function AgentEditorView() {
                 </Button>
               </div>
             </div>
-            <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+            <div style={{ flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" }}>
               <AgentEditor agent={agent} tab={tab} onTab={setTab} />
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import agentsMessages from "@messages/en/agents.json";
 import contextMessages from "@messages/en/context.json";
@@ -26,7 +26,9 @@ vi.mock("@/lib/hooks/project-context", () => ({
     isLoading: false,
     isError: false,
   }),
-  useContextDoc: () => ({ data: undefined }),
+  useContextDoc: (_repoId: string, path: string | null) => ({
+    data: path ? { path, content: `# Preview of ${path}` } : undefined,
+  }),
   useAgentContextDocs: () => ({ data: agentData, isLoading: false, isError: false }),
   useSetAgentContextDocs: () => ({ mutate: setMutate }),
 }));
@@ -101,5 +103,24 @@ describe("Agent ContextTab", () => {
   it("shows no warning when nothing is left out", () => {
     renderTab();
     expect(screen.queryByText(/left out of the prompt/)).toBeNull();
+  });
+
+  it("opens the clicked document in the right-hand preview column and marks its row", () => {
+    renderTab();
+    const region = screen.getByRole("complementary", { name: "Document preview" });
+    expect(within(region).getByText("Select a document to preview it")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "docs/b.md" }));
+    expect(within(region).getByRole("heading", { name: "Preview of docs/b.md" })).toBeInTheDocument();
+    const current = screen.getAllByRole("listitem").filter((li) => li.getAttribute("aria-current") === "true");
+    expect(current).toHaveLength(1);
+    expect(current[0]).toHaveTextContent("docs/b.md");
+  });
+
+  it("marks a previewed inherited row too", () => {
+    renderTab({ inherited: [{ ...att("docs/rubric.md"), skill_id: "s1", skill_name: "Security Rubric" }] });
+    fireEvent.click(screen.getByRole("button", { name: "docs/rubric.md" }));
+    const current = screen.getAllByRole("listitem").filter((li) => li.getAttribute("aria-current") === "true");
+    expect(current.map((li) => li.textContent)).toEqual(expect.arrayContaining([expect.stringContaining("Security Rubric")]));
   });
 });
