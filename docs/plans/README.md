@@ -12,8 +12,8 @@ File name: `YYYY-MM-DD-<kebab-topic>.md`.
 
 ## How a plan is executed
 
-The main session runs the plan with the `execute-plan` skill
-([`.claude/skills/execute-plan/SKILL.md`](../../.claude/skills/execute-plan/SKILL.md)),
+The main session runs the plan with the `run-plan` skill
+([`.claude/skills/run-plan/SKILL.md`](../../.claude/skills/run-plan/SKILL.md)),
 which holds the full protocol. In short:
 
 1. `implementation-planner` writes a `draft` plan here, or returns
@@ -23,7 +23,7 @@ which holds the full protocol. In short:
 2. The user approves the plan and picks the execution mode (multi-agent: `[P]`
    tasks of a wave in parallel; single-agent: one task at a time, in task-ID
    order). The main session sets `Status: approved`.
-3. `execute-plan` works wave by wave on the current feature branch, in one
+3. `run-plan` works wave by wave on the current feature branch, in one
    working tree: dispatch by each task's `Agent:` field, accept every report,
    one wave gate, one commit per task. `doc-writer` tasks wait until the
    checks pass.
@@ -34,7 +34,7 @@ which holds the full protocol. In short:
    the user runs `/pr-self-review` before any push or PR.
 
 While a plan runs, its last section is an `## Execution log` kept by
-`execute-plan` (mode, base commit, task results and commits, decisions, check
+`run-plan` (mode, base commit, task results and commits, decisions, check
 rounds, fix tasks). A fresh session resumes from it.
 
 ## Template

@@ -15,7 +15,7 @@ The caller gives you a plan path and a task ID (e.g. `docs/plans/2026-09-25-x.md
 Read the plan's header (Goal, Context, Design, Global constraints) and **your task
 only**. Other tasks are not yours, even if they look unfinished. A fix task
 (`F<round>.<n>`) is not under *Tasks*: it is under the plan's
-`## Execution log › Fix tasks`, written by the `execute-plan` skill, with the
+`## Execution log › Fix tasks`, written by the `run-plan` skill, with the
 same fields as a plan task.
 
 If the plan path or task ID is missing, stop and return `NEEDS_CONTEXT`.

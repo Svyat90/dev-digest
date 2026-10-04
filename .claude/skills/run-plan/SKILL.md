@@ -1,11 +1,11 @@
 ---
-name: execute-plan
+name: run-plan
 description: "Orchestrates the execution of one approved Implementation Plan (docs/plans/*.md) from the main session: preflight (branch, clean tree, plan and spec status, execution mode), wave-by-wave dispatch of implementer / test-writer agents, acceptance of every report, one wave gate and one commit per task, then architecture-reviewer in parallel with plan-verifier, a capped fix loop, doc-writer, insights, and closing the plan and spec statuses. Keeps a resumable Execution log in the plan so work survives /clear. Use whenever the user says 'execute the plan', 'run the plan', 'implement docs/plans/…', 'start wave N', 'continue the plan', 'resume execution', or names a plan file and asks to build it — even if they never name the skill. Not for writing plans (implementation-planner), specs (spec-creator) or reviewing a PR (/pr-self-review)."
 metadata:
   version: 1.0.0
 ---
 
-# Execute plan
+# Run plan
 
 The main session is the **orchestrator**. It never writes production code or
 tests itself: agents do, the orchestrator dispatches them, checks what they
@@ -54,7 +54,7 @@ A plan path (`docs/plans/<date>-<topic>.md`). Optionally a mode
 Copy this checklist and work through it:
 
 ```
-Execute <plan>:
+Run <plan>:
 - [ ] 1. Resume or start
 - [ ] 2. Preflight
 - [ ] 3. Run the waves (dispatch → accept → gate → commit, per wave)

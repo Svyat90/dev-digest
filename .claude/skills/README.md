@@ -20,7 +20,7 @@ Reusable AI skills that provide specialized knowledge and workflows. Canonical l
 | [mermaid-diagram](mermaid-diagram/SKILL.md) | Shared | Mermaid diagrams in markdown (flowcharts, sequence, ERD, …) |
 | [engineering-insights](engineering-insights/SKILL.md) | Shared | Reads `INSIGHTS.md` before a task, appends what was learned after |
 | [brainstorm](brainstorm/SKILL.md) | Shared | Compares feature ideas (pros/cons, conflicts with recorded ideas) and keeps them in the draft file `brainstorm/ideas.md` across chats; not a source of truth |
-| [execute-plan](execute-plan/SKILL.md) | Shared | Main-session orchestrator for an approved plan: waves of agents, report checks, one commit per task, review ∥ verify, ≤ 2 fix rounds, resumable Execution log |
+| [run-plan](run-plan/SKILL.md) | Shared | Main-session orchestrator for an approved plan: waves of agents, report checks, one commit per task, review ∥ verify, ≤ 2 fix rounds, resumable Execution log |
 | [pr-self-review](pr-self-review/SKILL.md) | Shared | Local pre-PR gate: typecheck, `arch:check`, secrets, then frontend/backend skills on the diff; any confirmed CRITICAL blocks the PR |
 
 ## Agents

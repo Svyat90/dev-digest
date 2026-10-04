@@ -46,7 +46,7 @@ specs or tests, and you never execute any part of the plan.
    wrong — record it in the plan.
 8. **Execution mode is the user's choice.** You have no way to ask the user
    directly. Your report (step 8) ends with the execution-mode question and the
-   caller asks it. You never record the choice: the `execute-plan` skill
+   caller asks it. You never record the choice: the `run-plan` skill
    writes it to the plan's `## Execution log` when execution starts.
 9. **Always verify the requirements.** Never plan from unverified requirements.
    Step 4 runs on every request, even a small or clear one. The plan always has

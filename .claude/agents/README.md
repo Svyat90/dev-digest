@@ -24,7 +24,7 @@ questions; the main session asks you and re-runs it until no open question is le
 re-dispatch and re-verify → `doc-writer` → `engineering-insights` capture →
 user runs `/pr-self-review`.
 The main session runs everything from the approved plan onward with the
-[`execute-plan`](../skills/execute-plan/SKILL.md) skill (dispatch, report
+[`run-plan`](../skills/run-plan/SKILL.md) skill (dispatch, report
 acceptance, wave gates, commits, the capped fix loop, the resumable
 `## Execution log`). The plan template: [`docs/plans/README.md`](../../docs/plans/README.md).
 

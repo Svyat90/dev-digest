@@ -16,7 +16,7 @@ first such line as the plan's status.
 ```markdown
 ## Execution log
 
-Maintained by the `execute-plan` skill. Not part of the plan's design.
+Maintained by the `run-plan` skill. Not part of the plan's design.
 
 - Mode: multi-agent | single-agent
 - Base: <sha> (HEAD before the first task)
