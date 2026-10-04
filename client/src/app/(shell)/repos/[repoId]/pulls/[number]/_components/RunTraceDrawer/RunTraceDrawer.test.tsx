@@ -5,7 +5,7 @@ import type { RunTrace } from "@devdigest/shared";
 import messages from "@messages/en/runs.json"; // apps/web/messages/en/runs.json
 
 // Mock the trace hooks so the drawer renders without a query client / SSE.
-const TRACE: RunTrace = {
+const BASE_TRACE: RunTrace = {
   config: { agent: "Security", version: "1", provider: "openai", model: "gpt-4.1", pr: 482, source: "local" },
   stats: { duration_ms: 8200, tokens_in: 12000, tokens_out: 1500, findings: 2, grounding: "2/2 passed" },
   prompt_assembly: { system: "You are a reviewer.", skills: "### skill", memory: null, specs: null, user: "Review PR #482" },
@@ -19,6 +19,8 @@ const TRACE: RunTrace = {
   ],
 };
 
+let TRACE: RunTrace = BASE_TRACE;
+
 vi.mock("@/lib/hooks/trace", () => ({
   useRunTrace: () => ({ data: TRACE, isLoading: false }),
 }));
@@ -28,7 +30,10 @@ vi.mock("@/lib/hooks/reviews", () => ({
 
 import RunTraceDrawer from "./RunTraceDrawer";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  TRACE = BASE_TRACE;
+});
 
 function renderWithIntl(ui: React.ReactElement) {
   return render(
@@ -62,5 +67,31 @@ describe("A5 Run Trace drawer (smoke)", () => {
     fireEvent.click(screen.getByText("log"));
     // LiveLogStream renders its filter input
     expect(screen.getByPlaceholderText("Filter log…")).toBeInTheDocument();
+  });
+
+  it("renders 'Specs read: none' and no project-context block for a pre-feature trace", () => {
+    renderWithIntl(<RunTraceDrawer runId="r1" agentName="Security" prNumber={482} onClose={() => {}} />);
+    expect(screen.getByText("none")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Prompt assembly"));
+    expect(screen.queryByText("Project context — attached specs (untrusted)")).not.toBeInTheDocument();
+  });
+
+  it("lists specs read with tokens and truncation, and shows the project-context block", () => {
+    TRACE = {
+      ...BASE_TRACE,
+      prompt_assembly: {
+        ...BASE_TRACE.prompt_assembly,
+        specs: '<untrusted source="docs/api.md">body</untrusted>',
+        specs_used: [{ path: "docs/api.md", tokens: 4000, truncated: true }],
+        specs_tokens: 4000,
+      },
+    };
+    renderWithIntl(<RunTraceDrawer runId="r1" agentName="Security" prNumber={482} onClose={() => {}} />);
+    expect(screen.getByText("docs/api.md")).toBeInTheDocument();
+    expect(screen.getByText(/≈ 4,000 tokens/)).toBeInTheDocument();
+    expect(screen.getByText("truncated")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Prompt assembly"));
+    expect(screen.getByText("Project context — attached specs (untrusted)")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Copy" }).length).toBeGreaterThan(0);
   });
 });

@@ -7,8 +7,8 @@ import { useTranslations } from "next-intl";
 import { Badge } from "@devdigest/ui";
 import type { RunTrace, FindingRecord } from "@devdigest/shared";
 import { PROMPT_COLORS } from "../../constants";
-import { formatUsd } from "@/lib/format";
-import { formatSeconds, formatTokens } from "../../helpers";
+import { formatUsd, formatTokenCount } from "@/lib/format";
+import { formatSeconds, formatTokens, specsReadRows } from "../../helpers";
 import { s } from "../../styles";
 import { TraceSection } from "../TraceSection";
 import { ToolCallRow } from "../ToolCallRow";
@@ -30,6 +30,12 @@ export function TraceBody({ trace, findings }: { trace: RunTrace; findings: Find
           names: skillsUsed.map((s) => s.name).join(", "),
         })
       : undefined;
+  const specRows = specsReadRows(trace);
+  const specsUsedCount = (trace.prompt_assembly.specs_used ?? []).length;
+  const specsMeta =
+    specsUsedCount > 0
+      ? t("trace.prompt.specsMeta", { tokens: trace.prompt_assembly.specs_tokens ?? 0, count: specsUsedCount })
+      : undefined;
   return (
     <>
       <TraceSection icon="Settings" title={t("trace.configuration")}>
@@ -49,12 +55,16 @@ export function TraceBody({ trace, findings }: { trace: RunTrace; findings: Find
           </Row>
           <Row label={t("trace.config.specsRead")}>
             <div style={s.specsWrap}>
-              {trace.specs_read.length === 0 ? (
+              {specRows.length === 0 ? (
                 <span style={s.specsNone}>{t("trace.config.none")}</span>
               ) : (
-                trace.specs_read.map((sp, i) => (
-                  <span key={i} className="mono" style={s.spec}>
-                    {sp}
+                specRows.map((sp) => (
+                  <span key={sp.path} style={s.spec}>
+                    <span className="mono">{sp.path}</span>
+                    {sp.tokens != null && (
+                      <span> {t("trace.config.specTokens", { tokens: formatTokenCount(sp.tokens) })}</span>
+                    )}
+                    {sp.truncated && <span> {t("trace.config.truncated")}</span>}
                   </span>
                 ))
               )}
@@ -99,7 +109,11 @@ export function TraceBody({ trace, findings }: { trace: RunTrace; findings: Find
           <PromptBlock label={t("trace.prompt.repoMap")} text={trace.prompt_assembly.repo_map} color={PROMPT_COLORS.repoMap} />
         )}
         {trace.prompt_assembly.specs != null && (
-          <PromptBlock label={t("trace.prompt.specs")} text={trace.prompt_assembly.specs} color={PROMPT_COLORS.specs} />
+          <PromptBlock
+            label={t("trace.prompt.specs")} text={trace.prompt_assembly.specs}
+            color={PROMPT_COLORS.specs}
+            meta={specsMeta}
+          />
         )}
         {trace.prompt_assembly.callers != null && (
           <PromptBlock label={t("trace.prompt.callers")} text={trace.prompt_assembly.callers} color={PROMPT_COLORS.callers} />
