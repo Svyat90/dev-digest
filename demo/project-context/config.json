@@ -9,7 +9,9 @@
     "s4",
     "s5",
     "s6",
-    "s7"
+    "s7",
+    "s8",
+    "s9"
   ],
   "surfaces": [
     "browser"
@@ -39,6 +41,10 @@
     "Delete agent",
     "Delete this review run",
     "Delete skill",
-    "Remove"
+    "Remove",
+    "Run Review",
+    "Delete run",
+    "Refresh",
+    "Recompute"
   ]
 }
