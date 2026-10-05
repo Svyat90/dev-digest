@@ -22,7 +22,7 @@ export class AppError extends Error {
  */
 export class NotFoundError extends AppError {
   constructor(entity = 'Resource', id?: string, details?: unknown) {
-    super('not_found', notFoundMessage(entity, id), undefined, details);
+    super('not_found', notFoundMessage(entity, id), 400, details);
   }
 }
 
