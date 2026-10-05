@@ -83,7 +83,12 @@ function setup(over: Partial<React.ComponentProps<typeof PrBriefBlock>> = {}) {
         onNavigate={onNavigate}
         {...over}
       >
-        <div>cards slot</div>
+        {({ riskAreas }) => (
+          <div>
+            <div>cards slot</div>
+            {riskAreas}
+          </div>
+        )}
       </PrBriefBlock>
     </NextIntlClientProvider>,
   );
@@ -93,10 +98,13 @@ function setup(over: Partial<React.ComponentProps<typeof PrBriefBlock>> = {}) {
 describe("PrBriefBlock", () => {
   it("offers Generate when no brief exists; click calls mutate once; children render", () => {
     setup();
+    expect(screen.getByText("No brief for this PR yet")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Generate brief" }));
     expect(h.gen.mutate).toHaveBeenCalledTimes(1);
     expect(screen.getByText("cards slot")).toBeInTheDocument();
     expect(screen.queryByText("PR SCORE")).not.toBeInTheDocument();
+    expect(screen.queryByText("Risk areas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Review focus — read these first")).not.toBeInTheDocument();
   });
 
   it("shows skeletons and a disabled Generate while pending", () => {
@@ -118,8 +126,8 @@ describe("PrBriefBlock", () => {
     h.brief = { data: BRIEF, isLoading: false };
     setup();
     const heads = screen.getAllByRole("button", { expanded: false });
-    expect(heads[0]).toHaveTextContent("High risk title");
-    expect(heads[0]).toHaveTextContent("High");
+    expect(heads[0]).toHaveAccessibleName("Show explanation: High risk title");
+    expect(screen.getByText("High")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "src/a.ts:12-18" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "src/b.ts:3" })).toBeInTheDocument();
     expect(screen.queryByText("High explanation")).not.toBeInTheDocument();
@@ -171,10 +179,14 @@ describe("PrBriefBlock", () => {
     expect(screen.getByText("No notable risks flagged.")).toBeInTheDocument();
   });
 
-  it("shows the newest review's verdict banner", () => {
+  it("merges the newest review's verdict into the brief card and lists the review focus", () => {
     h.brief = { data: BRIEF, isLoading: false };
     setup({ reviews: [REVIEW] });
     expect(screen.getByText("Request changes")).toBeInTheDocument();
     expect(screen.getByText("PR SCORE")).toBeInTheDocument();
+    // One card: the verdict line carries the brief's summary, not the agent's.
+    expect(screen.getByText("<b>x</b> adds paging")).toBeInTheDocument();
+    expect(screen.queryByText("Bad")).not.toBeInTheDocument();
+    expect(screen.getByText("Review focus — read these first")).toBeInTheDocument();
   });
 });

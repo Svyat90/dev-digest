@@ -16,6 +16,8 @@ export function VerdictBanner({
   findingsCount,
   blockers,
   agentName,
+  action,
+  children,
 }: {
   verdict: Verdict;
   summary: string | null;
@@ -23,6 +25,10 @@ export function VerdictBanner({
   findingsCount: number;
   blockers: number;
   agentName?: string | null;
+  /** Optional control shown before the score (e.g. the PR Brief refresh). */
+  action?: React.ReactNode;
+  /** Optional content under the summary (e.g. the PR Brief meta or empty state). */
+  children?: React.ReactNode;
 }) {
   const t = useTranslations("prReview");
   const m = VERDICT_META[verdict] ?? VERDICT_META.comment;
@@ -46,7 +52,9 @@ export function VerdictBanner({
           )}
         </div>
         {summary && <p style={s.summary}>{summary}</p>}
+        {children && <div style={s.extra}>{children}</div>}
       </div>
+      {action && <div style={s.action}>{action}</div>}
       {score != null && (
         <div style={s.scoreCol}>
           <CircularScore score={score} size={52} stroke={5} />

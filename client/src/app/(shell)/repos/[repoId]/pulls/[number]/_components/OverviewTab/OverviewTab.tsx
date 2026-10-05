@@ -45,26 +45,29 @@ export function OverviewTab({
         diffPaths={diffPaths}
         onNavigate={onNavigate}
       >
-        <div style={s.topGrid}>
-        <IntentCard
-          intent={intent}
-          isLoading={isLoading}
-          isError={isError}
-          headSha={headSha}
-          onRecompute={() => recompute.mutate()}
-          recomputing={recompute.isPending}
-        />
-        <BlastRadiusCard
-          blast={blast.data}
-          isLoading={blast.isLoading}
-          isError={blast.isError}
-          prId={prId}
-          repoFullName={repoFullName}
-          headSha={headSha}
-          onResync={() => resync.mutate()}
-          resyncing={resync.isPending}
-        />
-        </div>
+        {({ riskAreas }) => (
+          <div style={s.topGrid}>
+            <IntentCard
+              intent={intent}
+              isLoading={isLoading}
+              isError={isError}
+              headSha={headSha}
+              onRecompute={() => recompute.mutate()}
+              recomputing={recompute.isPending}
+              footer={riskAreas}
+            />
+            <BlastRadiusCard
+              blast={blast.data}
+              isLoading={blast.isLoading}
+              isError={blast.isError}
+              prId={prId}
+              repoFullName={repoFullName}
+              headSha={headSha}
+              onResync={() => resync.mutate()}
+              resyncing={resync.isPending}
+            />
+          </div>
+        )}
       </PrBriefBlock>
       {prBody && (
         <section>

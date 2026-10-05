@@ -44,42 +44,52 @@ function RiskItem({ risk, diffPaths, onNavigate }: { risk: Risk } & Omit<RiskLis
   const meta = SEVERITY[risk.severity];
   const I = Icon[meta.icon];
   return (
-    <li>
-      <button type="button" style={s.riskHead} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <span style={s.severity(meta.color)}>
-          <I size={14} />
-          {t(`severity.${risk.severity}`)}
-        </span>
-        <span>{risk.title}</span>
-      </button>
-      {open && <p style={s.explanation}>{risk.explanation}</p>}
-      {risk.file_refs.length > 0 && (
-        <div style={s.refRow}>
-          {risk.file_refs.map((ref) => (
-            <span key={`${ref.file}:${ref.start_line}`}>
-              <button
-                type="button"
-                style={s.linkButton}
-                onClick={() => {
-                  if (diffPaths.has(ref.file)) {
-                    setMissing(null);
-                    onNavigate(ref.file, ref.start_line);
-                  } else {
-                    setMissing(ref.file);
-                  }
-                }}
-              >
-                {refLabel(ref)}
-              </button>
-              {missing === ref.file && (
-                <span style={s.notice} role="status">
-                  {t("notInDiff")}
-                </span>
-              )}
-            </span>
-          ))}
+    <li style={s.riskItem}>
+      <div style={s.chip}>
+        <div style={s.chipMain}>
+          <div style={s.chipTitle}>
+            <I size={13} style={{ color: meta.color, flexShrink: 0 }} />
+            <span>{risk.title}</span>
+            <span style={s.severityWord(meta.color)}>{t(`severity.${risk.severity}`)}</span>
+          </div>
+          {risk.file_refs.length > 0 && (
+            <div style={s.chipRefs}>
+              {risk.file_refs.map((ref) => (
+                <button
+                  key={`${ref.file}:${ref.start_line}`}
+                  type="button"
+                  style={s.refButton}
+                  onClick={() => {
+                    if (diffPaths.has(ref.file)) {
+                      setMissing(null);
+                      onNavigate(ref.file, ref.start_line);
+                    } else {
+                      setMissing(ref.file);
+                    }
+                  }}
+                >
+                  {refLabel(ref)}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+        <button
+          type="button"
+          style={s.chipToggle}
+          aria-expanded={open}
+          aria-label={t("toggleRisk", { title: risk.title })}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <Icon.ChevronDown size={14} style={open ? s.chevronOpen : undefined} />
+        </button>
+      </div>
+      {missing && (
+        <span style={s.notice} role="status">
+          {t("notInDiff")}
+        </span>
       )}
+      {open && <p style={s.explanation}>{risk.explanation}</p>}
     </li>
   );
 }

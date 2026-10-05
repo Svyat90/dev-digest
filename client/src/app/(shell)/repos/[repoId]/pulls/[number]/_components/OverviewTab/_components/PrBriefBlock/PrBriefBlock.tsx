@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Button, Icon, SectionLabel, Skeleton } from "@devdigest/ui";
+import { Badge, Button, Icon, SectionLabel, Skeleton } from "@devdigest/ui";
 import type { ReviewRecord } from "@devdigest/shared";
 import { useGenerateBrief, usePrBrief } from "@/lib/hooks";
 import { VerdictBanner } from "@/components/verdict-banner";
@@ -11,14 +11,19 @@ import { RiskList } from "./RiskList";
 import { ReviewFocusList } from "./ReviewFocusList";
 import { s } from "./styles";
 
+export interface PrBriefSlots {
+  /** The Risk areas section, or `null` while no brief is stored. */
+  riskAreas: React.ReactNode;
+}
+
 export interface PrBriefBlockProps {
   prId: string | null | undefined;
   headSha: string | null | undefined;
   reviews: ReviewRecord[];
   diffPaths: ReadonlySet<string>;
   onNavigate: (file: string, line: number) => void;
-  /** The Intent and Blast radius cards. */
-  children?: React.ReactNode;
+  /** Renders the Intent and Blast radius cards; the Risk areas go inside the Intent card. */
+  children?: (slots: PrBriefSlots) => React.ReactNode;
 }
 
 export function PrBriefBlock({
@@ -33,6 +38,7 @@ export function PrBriefBlock({
   const query = usePrBrief(prId);
   const gen = useGenerateBrief(prId);
   const brief = query.data ?? null;
+  const busy = gen.isPending || query.isLoading;
   const stale = !!brief && !!headSha && brief.head_sha !== headSha;
   const review = newestReview(reviews);
   const blockers = review
@@ -41,82 +47,66 @@ export function PrBriefBlock({
 
   const generate = () => gen.mutate();
 
-  const banner =
-    review && review.verdict ? (
-      <VerdictBanner
-        verdict={review.verdict}
-        summary={review.summary}
-        score={review.score}
-        findingsCount={review.findings.length}
-        blockers={blockers}
-        agentName={review.agent_name}
-      />
-    ) : null;
+  const action = (
+    <>
+      {stale && (
+        <span style={s.staleHint} role="status">
+          <Icon.AlertTriangle size={14} />
+          {t("outOfDate")}
+        </span>
+      )}
+      {brief ? (
+        <Button
+          kind="ghost"
+          size="sm"
+          icon="RefreshCw"
+          aria-label={t("refresh")}
+          title={t("refresh")}
+          onClick={generate}
+          disabled={gen.isPending}
+        />
+      ) : (
+        <Button kind="primary" size="sm" icon="Sparkles" onClick={generate} disabled={gen.isPending}>
+          {t("generate")}
+        </Button>
+      )}
+    </>
+  );
 
-  let body: React.ReactNode;
-  if (gen.isPending || query.isLoading) {
-    body = (
-      <div style={s.card} aria-busy="true" aria-label={t("generating")}>
-        <div style={s.skeletonStack}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} height={16} width={`${100 - i * 12}%`} />
-          ))}
-        </div>
+  let content: React.ReactNode;
+  if (busy) {
+    content = (
+      <div style={s.skeletonStack} aria-busy="true" aria-label={t("generating")}>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} height={14} width={`${100 - i * 15}%`} />
+        ))}
       </div>
     );
   } else if (!brief) {
-    body = null;
+    content = (
+      <div>
+        <div style={s.emptyTitle}>{t("empty.title")}</div>
+        <div style={s.muted}>{t("empty.hint")}</div>
+      </div>
+    );
   } else {
-    body = (
-      <div style={s.card}>
-        <p style={s.summary}>{brief.summary}</p>
+    content = (
+      <div style={s.meta}>
         {brief.missing_inputs.length > 0 && (
-          <div style={s.muted}>
+          <span>
             {t("missing.label")}:{" "}
             {missingLabelKeys(brief.missing_inputs)
               .map((k) => t(k))
               .join(", ")}
-          </div>
+          </span>
         )}
-        <div>
-          <h3 style={s.sectionTitle}>{t("riskAreas")}</h3>
-          <RiskList risks={brief.risks.risks} diffPaths={diffPaths} onNavigate={onNavigate} />
-        </div>
-        <div>
-          <h3 style={s.sectionTitle}>{t("reviewFocus")}</h3>
-          <div style={s.muted}>{t("reviewFocusHint")}</div>
-          <ReviewFocusList items={brief.review_focus} diffPaths={diffPaths} onNavigate={onNavigate} />
-        </div>
-        <div style={s.muted}>
-          {t("generatedAt", { date: new Date(brief.generated_at).toLocaleString() })}
-        </div>
+        <span>{t("generatedAt", { date: new Date(brief.generated_at).toLocaleString() })}</span>
       </div>
     );
   }
 
-  return (
-    <section style={s.root}>
-      {banner}
-      <div style={s.headerRow}>
-        <SectionLabel icon="Sparkles">{t("block.title")}</SectionLabel>
-        {stale && (
-          <span style={s.staleHint} role="status">
-            <Icon.AlertTriangle size={14} />
-            {t("outOfDate")}
-          </span>
-        )}
-        <span style={s.spacer}>
-          <Button
-            kind={brief ? "secondary" : "primary"}
-            size="sm"
-            icon={brief ? "RefreshCw" : "Sparkles"}
-            onClick={generate}
-            disabled={gen.isPending}
-          >
-            {brief ? t("refresh") : t("generate")}
-          </Button>
-        </span>
-      </div>
+  const extra = (
+    <>
       {gen.error && !gen.isPending && (
         <div style={s.error} role="alert">
           <span>{t(failureMessageKey(gen.error))}</span>
@@ -125,8 +115,63 @@ export function PrBriefBlock({
           </Button>
         </div>
       )}
-      {body}
-      {children && <div style={s.cards}>{children}</div>}
+      {content}
+    </>
+  );
+
+  const summary = brief && !busy ? brief.summary : null;
+
+  const topCard =
+    review && review.verdict ? (
+      <VerdictBanner
+        verdict={review.verdict}
+        summary={summary}
+        score={review.score}
+        findingsCount={review.findings.length}
+        blockers={blockers}
+        agentName={review.agent_name}
+        action={action}
+      >
+        {extra}
+      </VerdictBanner>
+    ) : (
+      <div style={s.plainCard}>
+        <div style={s.plainMain}>
+          {summary && <p style={s.summary}>{summary}</p>}
+          {extra}
+        </div>
+        <div style={s.action}>{action}</div>
+      </div>
+    );
+
+  const riskAreas = brief ? (
+    <div>
+      <h3 style={s.subTitle}>
+        <Icon.AlertTriangle size={14} />
+        {t("riskAreas")}
+      </h3>
+      <RiskList risks={brief.risks.risks} diffPaths={diffPaths} onNavigate={onNavigate} />
+    </div>
+  ) : null;
+
+  return (
+    <section style={s.root}>
+      <div>
+        <SectionLabel icon="FileText">{t("block.title")}</SectionLabel>
+        {topCard}
+      </div>
+      {children?.({ riskAreas })}
+      {brief && (
+        <section style={s.card}>
+          <SectionLabel icon="ListChecks">
+            {t("reviewFocusTitle")}{" "}
+            <Badge color="var(--accent-text)" bg="var(--accent-bg)">
+              {brief.review_focus.length}
+            </Badge>
+          </SectionLabel>
+          <ReviewFocusList items={brief.review_focus} diffPaths={diffPaths} onNavigate={onNavigate} />
+        </section>
+      )}
     </section>
   );
 }

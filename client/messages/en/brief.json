@@ -17,6 +17,10 @@
     "noHistory": "No history available for this line.",
     "noCommits": "No commits found for this line."
   },
+  "empty": {
+    "title": "No brief for this PR yet",
+    "hint": "Generate brief writes a short summary, the risk areas and a suggested reading order for this PR."
+  },
   "generate": "Generate brief",
   "generating": "Generating brief",
   "refresh": "Refresh",
@@ -26,6 +30,8 @@
   "riskAreas": "Risk areas",
   "reviewFocus": "Review focus",
   "reviewFocusHint": "Suggested reading order",
+  "reviewFocusTitle": "Review focus — read these first",
+  "toggleRisk": "Show explanation: {title}",
   "noFocus": "No review focus items.",
   "notInDiff": "File not in this PR's diff",
   "missing": {

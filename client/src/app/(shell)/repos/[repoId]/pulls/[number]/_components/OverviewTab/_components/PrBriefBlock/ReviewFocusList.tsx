@@ -17,14 +17,17 @@ export function ReviewFocusList({ items, diffPaths, onNavigate }: ReviewFocusLis
   const [missing, setMissing] = React.useState<string | null>(null);
   if (items.length === 0) return <span style={s.muted}>{t("noFocus")}</span>;
   return (
-    <ol style={{ ...s.list, paddingLeft: 20, listStyle: "decimal" }}>
+    <ol style={s.focusList}>
       {items.map((item) => {
         const key = `${item.file}:${item.line}`;
         return (
-          <li key={key}>
+          <li key={key} style={s.focusItem}>
+            <span style={s.focusBullet} aria-hidden="true">
+              ▸
+            </span>
             <button
               type="button"
-              style={s.linkButton}
+              style={s.focusButton}
               onClick={() => {
                 if (diffPaths.has(item.file)) {
                   setMissing(null);
@@ -34,7 +37,8 @@ export function ReviewFocusList({ items, diffPaths, onNavigate }: ReviewFocusLis
                 }
               }}
             >
-              {`${key} — ${item.reason}`}
+              <span style={s.focusFile}>{key}</span>
+              <span style={s.focusReason}>{` — ${item.reason}`}</span>
             </button>
             {missing === key && (
               <span style={s.notice} role="status">
