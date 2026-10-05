@@ -41,10 +41,16 @@ delimiter-wrapped (`prompt.ts:104-122`):
 ## Skills / rules        (linked skill bodies)
 ## Relevant memory       (curated memory items)
 ## Repo skeleton         (untrusted, repo-derived)
-## Project context       (untrusted spec chunks)
+## Project context       (untrusted attached documents)
 ## Callers of changed symbols  (untrusted, repo-derived)
 ## Diff to review        (untrusted)
 ```
+
+`## Project context` holds the documents attached to the agent and its skills,
+one `<untrusted source="<path>">` block each, labelled with the repository-relative
+path. Each document is cut to 4,000 tokens and the section to 12,000
+(`server/src/modules/project-context/constants.ts`). Documents are attached in the
+Context tab of the agent or skill editor.
 
 Sections with no content are omitted. Everything repo- or author-derived is wrapped
 in `<untrusted source="…">…</untrusted>` so the model can tell instructions

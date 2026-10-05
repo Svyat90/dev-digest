@@ -37,6 +37,9 @@ package_of() {
 # Order matters: protected paths win over every other kind.
 kind_of() {
   case "$1" in
+    # nav.ts is the kit's nav data registry, edited on purpose (client/INSIGHTS.md, 2026-09-22).
+    client/src/vendor/ui/nav.ts)
+      echo code ;;
     server/src/db/migrations/*|client/src/vendor/ui/*|server/clones/*|client/.next/*|e2e/test-results/*)
       echo protected ;;
     */pnpm-lock.yaml|*/package-lock.json|pnpm-lock.yaml|package-lock.json)

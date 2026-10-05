@@ -127,6 +127,17 @@ d('GET /runs/:id (Testcontainers pg)', () => {
     expect((await get(foreignRunId)).statusCode).toBe(404);
   });
 
+  it('serves a run trace only inside its workspace', async () => {
+    const trace = { specs_read: [] } as never;
+    await pg.handle.db.insert(t.runTraces).values([
+      { runId: doneRunId, trace },
+      { runId: foreignRunId, trace },
+    ]);
+    const getTrace = (id: string) => app.inject({ method: 'GET', url: `/runs/${id}/trace` });
+    expect((await getTrace(doneRunId)).statusCode).toBe(200);
+    expect((await getTrace(foreignRunId)).statusCode).toBe(404);
+  });
+
   it('422s a non-uuid id', async () => {
     expect((await get('not-a-uuid')).statusCode).toBe(422);
   });

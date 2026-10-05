@@ -35,6 +35,9 @@ import type {
   WebFetchClient,
   WebFetchOptions,
   WebFetchResult,
+  RepoDocsReader,
+  RepoDocReadResult,
+  RepoDocReadFailure,
 } from '@devdigest/shared';
 import { parseUnifiedDiff } from './git/diff-parser.js';
 
@@ -353,6 +356,36 @@ export class MockCodeIndex implements CodeIndex {
   }
   async references(_repo: RepoRef, symbol: string): Promise<CodeReference[]> {
     return [{ fromPath: 'src/api/public/index.ts', toSymbol: symbol, line: 23 }];
+  }
+}
+
+// ---------- Mock RepoDocsReader ----------
+export interface MockRepoDocsOptions {
+  /** false simulates a repo that is not cloned (list -> null, read -> missing). */
+  cloned?: boolean;
+  /** path -> text, or { reason } to simulate a failed read. */
+  files?: Record<string, string | { reason: RepoDocReadFailure }>;
+}
+
+export class MockRepoDocsReader implements RepoDocsReader {
+  private readonly cloned: boolean;
+  private readonly files: Record<string, string | { reason: RepoDocReadFailure }>;
+  constructor(opts: MockRepoDocsOptions = {}) {
+    this.cloned = opts.cloned ?? true;
+    this.files = opts.files ?? {};
+  }
+  async listMarkdown(_root: string): Promise<string[] | null> {
+    if (!this.cloned) return null;
+    return Object.keys(this.files)
+      .filter((p) => p.endsWith('.md'))
+      .sort();
+  }
+  async read(_root: string, path: string): Promise<RepoDocReadResult> {
+    if (!this.cloned) return { ok: false, reason: 'missing' };
+    const f = this.files[path];
+    if (f === undefined) return { ok: false, reason: 'missing' };
+    if (typeof f === 'string') return { ok: true, text: f, clipped: false };
+    return { ok: false, reason: f.reason };
   }
 }
 

@@ -34,5 +34,14 @@ export const keys = {
   blast: (prId: Id) => ["blast", prId] as const,
   /** Prefix matching every PR's blast radius — for invalidation only. */
   blastAll: () => ["blast"] as const,
+  contextDocs: (repoId: Id, q: string) => ["context-docs", repoId, q] as const,
+  contextDoc: (repoId: Id, path: Id) => ["context-doc", repoId, path] as const,
+  contextDocUsage: (path: Id) => ["context-doc-usage", path] as const,
+  /** Prefix matching every path's usage — for invalidation only. */
+  contextDocUsageAll: () => ["context-doc-usage"] as const,
+  agentContextDocs: (agentId: Id, repoId: Id) => ["agent-context-docs", agentId, repoId] as const,
+  /** Prefix matching every agent's context docs — for invalidation only. */
+  agentContextDocsAll: () => ["agent-context-docs"] as const,
+  skillContextDocs: (skillId: Id, repoId: Id) => ["skill-context-docs", skillId, repoId] as const,
   prHistory: (prId: Id) => ["pr-history", prId] as const,
 };

@@ -52,6 +52,12 @@ chosen so the model sees structure before content and the diff last:
 → ## Diff to review
 ```
 
+`## Project context` is rendered from `PromptParts.specs` (`{ path, content }[]`):
+one `wrapUntrusted(path, content)` block per document, joined by a blank line
+(`prompt.ts:249-252`). The server resolves the documents and applies the caps —
+4,000 tokens per document, 12,000 per section — before calling `assemblePrompt`;
+reviewer-core itself does not truncate them.
+
 Two rules hold for every section:
 
 - **Optional slots are omit-when-empty.** An unused slot must not change the

@@ -87,9 +87,12 @@ for screenshots or a description.
    second feature spotted on the way is reported, not written.
 10. **Bash is an allow-list** (the hook enforces it): `ls`, `wc`, `head`, `cat`,
     `grep`, `git log|diff|show|status`, `date +%F`, and
-    `node scripts/lint-spec.mjs <spec>` — one command per call, no pipes,
+    `node scripts/lint-spec.mjs <spec>` with both paths relative to the repo
+    root (an absolute path is blocked) — one command per call, no pipes,
     redirects, `;` or `&&`; inside a `grep` pattern use `-e a -e b` instead of
-    `a|b`. `rg` is not installed here (root `INSIGHTS.md`, 2026-09-29).
+    `a|b`. `rg` is not installed here (root `INSIGHTS.md`, 2026-09-29). To
+    compare two files (e.g. the two `vendor/shared` copies) use
+    `git diff --no-index <a> <b>`; plain `diff` is blocked.
 
 ## Skills
 
@@ -127,9 +130,10 @@ Spec:
 The loop with the user, driven by the caller (the main session):
 
 1. Run 1 writes the draft with open questions `OQ1…` and returns them as
-   ready-to-ask questions.
-2. The caller asks the user (`AskUserQuestion` works there) and runs you again
-   with the spec path and the answers.
+   ready-to-ask questions plus a list of assumptions to confirm.
+2. The caller asks the user (`AskUserQuestion` works there) — the assumptions
+   in one question, then each remaining question in its own call — and runs you
+   again with the spec path and all the answers at once.
 3. A **revision** run starts at step 1 by reading the spec file, applies the
    answers with `Edit` (never a second file), removes the resolved `OQ`s, lets
    the lint run, and reports any new questions. Repeat until no `OQ` is left.
@@ -139,7 +143,8 @@ The loop with the user, driven by the caller (the main session):
 Before code, load `engineering-insights` with an explicit `Skill` call, in
 `read` mode only (see *Skills*). Read the `INSIGHTS.md` of the packages the spec
 is for — and the root `INSIGHTS.md` only when the spec spans two or more
-packages (it holds the cross-package traps). Then read `<pkg>/specs/`,
+packages (it holds the cross-package traps). Read each `INSIGHTS.md` once, with
+the `Read` tool — not `cat` first and `Read` again. Then read `<pkg>/specs/`,
 `<pkg>/docs/`, `specs/` and its `README.md`; if `brainstorm/ideas.md` exists,
 read the entry for this idea (conflicts, overlaps, dependencies). Say in one
 line which entries bear on the feature. If the topic is already specified, say
@@ -198,12 +203,26 @@ Run all four lenses over the design and the brief. Each finding is tagged
 
 Every finding that needs the user's decision becomes one question, written so
 the caller can pass it to `AskUserQuestion` unchanged: the finding in one
-sentence, 2–4 options with the recommended one first, and what changes in the
-spec per option. The same question goes into `## Open questions` as
-`- OQn (owner: user): …`. Ask nothing the code or a curated doc already answers.
-Rank by impact; at most 4 per run (one `AskUserQuestion` call), the rest stay
-open for the next revision. UX improvements are always offered as options,
-never written in as if decided.
+sentence, a concrete example of the thing being decided (a file path, a value,
+what the user would see — never only the abstract rule), 2–4 options with the
+recommended one first, and what changes in the spec per option. The same
+question goes into `## Open questions` as `- OQn (owner: user): …`. Ask nothing
+the code or a curated doc already answers. UX improvements are always offered as
+options, never written in as if decided.
+
+- **Return every open question**, ranked by impact — not a first batch. The
+  caller asks them one per `AskUserQuestion` call; the user rejects a batch of
+  several questions in one call.
+- **Follow-ups in the same run.** When an option, if chosen, opens a new
+  decision (a cap opens "what happens past it"; a merged section opens "what
+  does the preview show"), add `If chosen, also decide: …` under that option and
+  raise the follow-up as its own question now, not in the next revision.
+- **Assumptions to confirm.** A low-stakes point whose recommendation follows
+  from the brief, a design or the codebase is not a question: list it under
+  *Assumptions to confirm* with the assumed answer and its evidence. The caller
+  confirms the whole list with one question ("accept all / review each"); an
+  assumption the user wants to review becomes an ordinary question. Until then
+  each one is an `OQ` in the spec like any other.
 
 ### 6. Write the draft
 
@@ -273,7 +292,11 @@ Section rules (`scripts/lint-spec.mjs` checks the formats):
 
 A PostToolUse hook runs `scripts/lint-spec.mjs` after every `Write`/`Edit` of a
 spec and hands its errors back to you. Fix every `ERROR` until the hook is
-silent; you may also run `node scripts/lint-spec.mjs <spec path>` yourself.
+silent. Do not run the lint by hand after an edit — the hook already did, and
+every extra call re-reads the whole context. Run
+`node scripts/lint-spec.mjs <spec path>` yourself once, at the end of a
+dispatch, only to quote its summary line in the report. The rules it checks are
+summarised in step 6; do not read the lint script to learn them.
 Read each `WARN`: either rewrite the requirement to say what and why, or keep
 it and say why in the report (a public HTTP contract is behaviour, a file path
 is not). Besides the format, the lint checks that `Packages` matches the folder,
@@ -305,8 +328,12 @@ Spec ID: SPEC-<NN>-<slug> (status: <status>)
 Placement: <path> (<table row>) → new | revision
 Read: <INSIGHTS / spec entries that bear on it>
 Findings: <n> GAP · <n> EDGE · <n> INTEROP · <n> UX
-Questions for the caller (≤ 4, ready for AskUserQuestion; "none" when no OQ is left):
-  1. [OQn] <question> — A (recommended): … → <effect on the spec> / B: … → <effect>
+Questions for the caller (all of them, one AskUserQuestion call each; "none" when no OQ is left):
+  1. [OQn] <question> — e.g. <concrete example>
+     A (recommended): … → <effect on the spec> [If chosen, also decide: OQm]
+     B: … → <effect>
+Assumptions to confirm (one "accept all / review each" question; "none" when empty):
+  - [OQn] <point> → assumed: <answer> (<evidence>)
 Files changed:
   - <path> (new|modified)
 Counts: <n> AC · <n> EC · <n> open questions

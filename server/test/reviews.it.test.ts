@@ -10,6 +10,7 @@ import {
   MockGitClient,
   MockGitHubClient,
   MockWebFetchClient,
+  MockRepoDocsReader,
 } from '../src/adapters/mocks.js';
 import * as t from '../src/db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -142,7 +143,7 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
   function appWith(
     structured: unknown,
     provider: 'openai' | 'anthropic' = 'openai',
-    opts: { reviewerLLM?: MockLLMProvider; intent?: IntentUseCases } = {},
+    opts: { reviewerLLM?: MockLLMProvider; intent?: IntentUseCases; repoDocs?: MockRepoDocsReader } = {},
   ) {
     return buildApp({
       config: config(),
@@ -158,6 +159,8 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
         // INSIGHTS 2026-09-26).
         github: new MockGitHubClient(),
         webFetch: new MockWebFetchClient(),
+        // Project context reads attached docs from the clone; never touch the real fs.
+        repoDocs: opts.repoDocs ?? new MockRepoDocsReader(),
         llm: {
           [provider]: opts.reviewerLLM ?? new MockLLMProvider(provider, { structured }),
           // MockLLMProvider's constructor id is typed 'openai' | 'anthropic' only
@@ -261,6 +264,51 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
     expect(run!.costUsd).toBe(0.001);
     const runs = (await app.inject({ method: 'GET', url: `/pulls/${pr.id}/runs` })).json();
     expect(runs[0].cost_usd).toBe(0.001);
+
+    await app.close();
+  });
+
+  it('project context: attached documents are prompted, recorded in the trace, and unreadable ones are logged and skipped', async () => {
+    const repoDocs = new MockRepoDocsReader({
+      files: { 'docs/rules.md': 'module api/ must not import db/', 'docs/empty.md': '   ' },
+    });
+    const app = await appWith(REVIEW_FIXTURE, 'openai', { repoDocs });
+    const { pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
+    const agent = (
+      await app.inject({
+        method: 'POST',
+        url: '/agents',
+        payload: { name: 'Ctx', provider: 'openai', model: 'gpt-4.1', system_prompt: 'ctx' },
+      })
+    ).json();
+    await pg.handle.db.insert(t.agentContextDocs).values(
+      ['docs/rules.md', 'docs/missing.md', 'docs/empty.md'].map((path, position) => ({
+        workspaceId,
+        agentId: agent.id,
+        path,
+        position,
+      })),
+    );
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/pulls/${pr.id}/review`,
+      payload: { agentId: agent.id },
+    });
+    const runId = res.json().runs[0].run_id;
+    const runs = await waitForPrRuns(pg.handle.db, pr.id, { expected: 1 });
+    expect(runs.every((r) => r.status === 'done')).toBe(true);
+
+    const trace = (await app.inject({ method: 'GET', url: `/runs/${runId}/trace` })).json();
+    expect(trace.specs_read).toEqual(['docs/rules.md']);
+    expect(trace.prompt_assembly.specs_used).toHaveLength(1);
+    expect(trace.prompt_assembly.specs_used[0]).toMatchObject({ path: 'docs/rules.md', truncated: false });
+    expect(trace.prompt_assembly.specs_used[0].tokens).toBeGreaterThan(0);
+    expect(trace.prompt_assembly.specs_tokens).toBe(trace.prompt_assembly.specs_used[0].tokens);
+    expect(trace.prompt_assembly.specs).toContain('<untrusted source="docs/rules.md">');
+    const msgs = trace.log.map((e: { msg: string }) => e.msg).join('\n');
+    expect(msgs).toContain('docs/missing.md');
+    expect(msgs).toContain('docs/empty.md');
 
     await app.close();
   });

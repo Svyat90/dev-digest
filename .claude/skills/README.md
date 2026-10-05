@@ -22,6 +22,7 @@ Reusable AI skills that provide specialized knowledge and workflows. Canonical l
 | [brainstorm](brainstorm/SKILL.md) | Shared | Compares feature ideas (pros/cons, conflicts with recorded ideas) and keeps them in the draft file `brainstorm/ideas.md` across chats; not a source of truth |
 | [run-plan](run-plan/SKILL.md) | Shared | Main-session orchestrator for an approved plan: waves of agents, report checks, one commit per task, review ∥ verify, ≤ 2 fix rounds, resumable Execution log |
 | [pr-self-review](pr-self-review/SKILL.md) | Shared | Local pre-PR gate: typecheck, `arch:check`, secrets, then frontend/backend skills on the diff; any confirmed CRITICAL blocks the PR |
+| [workflow-retro](workflow-retro/SKILL.md) | Shared | Manual only (`/workflow-retro`): retrospective of one multi-agent run — tokens, cost, agents, launch order, errors, duplicated reads, human friction — written to `docs/retros/` with proposed changes to agents and skills |
 
 ## Agents
 

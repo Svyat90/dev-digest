@@ -1,5 +1,5 @@
 import type { LogLine } from "@devdigest/ui";
-import type { RunTrace } from "@devdigest/shared";
+import type { RunTrace, SpecUsed } from "@devdigest/shared";
 
 interface RawEvent {
   t: string;
@@ -25,4 +25,14 @@ export function formatSeconds(ms: number): string {
 /** Token in→out summary (e.g. "12k→1.5k"). */
 export function formatTokens(tokensIn: number, tokensOut: number): string {
   return `${(tokensIn / 1000).toFixed(0)}k→${(tokensOut / 1000).toFixed(1)}k`;
+}
+
+/** A "Specs read" row: tokens/truncated are absent for legacy path-only traces. */
+export type SpecsReadRow = { path: string; tokens?: number; truncated?: boolean };
+
+/** Rows for the "Specs read" list: `specs_used`, else legacy `specs_read` paths, else none. */
+export function specsReadRows(trace: RunTrace): SpecsReadRow[] {
+  const used: SpecUsed[] = trace.prompt_assembly.specs_used ?? [];
+  if (used.length > 0) return used;
+  return (trace.specs_read ?? []).map((path) => ({ path }));
 }

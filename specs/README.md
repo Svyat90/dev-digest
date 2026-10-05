@@ -60,6 +60,7 @@ previous one is passed. Agent rules live in
 | 8 | `doc-writer` | Explains how the shipped feature works in `<pkg>/docs/` and links the SPEC; never edits the SPEC or writes a second invariants spec for it | Docs written, indexes updated |
 | 9 | `engineering-insights` | Captures what the work taught; writes nothing when nothing qualifies | Done |
 | 10 | You | Run `/pr-self-review`, then push and open the PR | A verdict other than `BLOCKED` |
+| 11 | You (optional) | Run `/workflow-retro` to measure the run (tokens, agents, order, errors, duplicated work) and get proposed changes to agents and skills in `docs/retros/`; manual only, never run by an agent or skill | Report read |
 
 Rules of the flow:
 
@@ -74,4 +75,5 @@ Rules of the flow:
 
 | ID | Spec | Status | Packages |
 |----|------|--------|----------|
-| — | _none yet_ | — | — |
+| SPEC-01-project-context | [Project Context — discovery and attachment](01-project-context-2026-10-03.md) | approved | server, client |
+| SPEC-02-context-injection | [Project Context — run-time injection and trace](02-context-injection-2026-10-03.md) | approved | server, reviewer-core, client |

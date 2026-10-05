@@ -61,6 +61,23 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-10-03 — In the agent editor and skill detail, the scroll container is the editor `body` only while the flex chain above it keeps `minHeight: 0`.**
+  `AgentEditor` / `SkillDetail` give `body` `flex: 1; overflow: auto`, but until
+  e0f0b7d the wrappers above it (`AgentEditorView.tsx:113`, both `wrap` styles) had no
+  `minHeight: 0` / `display: flex`, so `body` grew to its content (2972px, never
+  scrolling) while an outer wrapper scrolled — and a `position: sticky` child did
+  nothing, because sticky binds to the nearest overflow ancestor (the non-scrolling
+  `body`). Measured with `agent-browser eval`: the sticky preview stayed at the grid
+  top (-608px) with the pane scrolled 857px; after the fix it held at 184px.
+  Rule: never remove `minHeight: 0` from that chain or wrap a tab in another
+  `overflow` box; a sticky element in an editor tab uses `top: 0` and a
+  `maxHeight` that subtracts the app + editor header (`calc(100vh - 220px)`, see
+  `previewColumn`). Check sticky in the real app (`agent-browser`), not jsdom — it
+  has no layout.
+  `client/src/app/(shell)/agents/[id]/_components/AgentEditor/styles.ts`,
+  `client/src/app/(shell)/skills/_components/SkillsView/_components/SkillDetail/styles.ts`,
+  `client/src/components/project-context/styles.ts`
+
 - **2026-09-26 — Anything `position: sticky` inside a PR-detail tab hides behind the sticky PR header unless it offsets by `--pr-header-h`.**
   The shell's `<main>` is the scroll container, and `PrDetailHeader`'s root is
   `position: sticky; top: 0; z-index: 5`, ~144px tall and taller when the title wraps.

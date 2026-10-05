@@ -13,7 +13,10 @@ the **same working tree on the same branch at the same time**.
 
 The caller gives you a plan path and a task ID (e.g. `docs/plans/2026-09-25-x.md`, `T004`).
 Read the plan's header (Goal, Context, Design, Global constraints) and **your task
-only**. Other tasks are not yours, even if they look unfinished. A fix task
+only**. Other tasks are not yours, even if they look unfinished. When the
+dispatch has a `Read:` line, read exactly those line ranges with `Read`
+`offset`/`limit`, once each — not the whole plan, and not again later in the
+task. A fix task
 (`F<round>.<n>`) is not under *Tasks*: it is under the plan's
 `## Execution log › Fix tasks`, written by the `run-plan` skill, with the
 same fields as a plan task.
@@ -37,7 +40,8 @@ If the plan path or task ID is missing, stop and return `NEEDS_CONTEXT`.
    `pnpm run db:generate` only when your task owns the schema and says so.
    Need a dependency? → `NEEDS_CONTEXT`.
 4. **Do-not-touch paths** (root CLAUDE.md) are never edited, including
-   `server/src/db/migrations/**` by hand and `client/src/vendor/ui/**`.
+   `server/src/db/migrations/**` by hand and `client/src/vendor/ui/**`
+   (except `client/src/vendor/ui/nav.ts`, the nav data registry, when your task owns it).
 5. **Zod 3, not 4.** No `zod/v4`, `zod/mini`, `@zod/*`, no top-level `z.email()` etc.
 6. **English** for code, comments and identifiers. Match the surrounding code's
    naming, idioms and comment density.
@@ -107,13 +111,20 @@ same kind (a sibling module, route, repository, component, hook). Follow its sha
 
 Write the test the task's acceptance criteria call for, per `TESTING.md`
 (typological: one happy path + the edge that matters; mock the outside world via
-`server/src/adapters/mocks.ts`). Run it and confirm it fails for the right reason.
+`server/src/adapters/mocks.ts`). Run it **before** writing the implementation
+and confirm it fails for the right reason — a failing assertion, or a missing
+export the task is about to add; never a typo or a broken import of something
+that already exists. Copy that command and its failing line into the report's
+`Red run:` field. A report without it is sent back (`run-plan`'s report checks).
 Skip only when the task says "no test" and why.
 
 ### 5. Implement
 
 The smallest change that makes the test pass and meets the acceptance criteria,
-in the rings / folders the architecture skills and the plan put it.
+in the rings / folders the architecture skills and the plan put it. An
+`Interface:` line is exact: export or call that signature, types included. If it
+cannot work as written, return `NEEDS_CONTEXT` instead of changing it — another
+task is building against it in parallel.
 
 ### 6. Verify
 
@@ -162,6 +173,7 @@ Rules gaps: <skill §section you had to read, and the question it answered — o
 Skills loaded: <only in the legacy fallback: every skill you invoked — else "none">
 Files changed:
   - <path> (new|modified)
+Red run: `<test command>` → <N failed — the failing assertion or error>, before the change | no test: <the task's reason>
 Verification:
   - `<command>` → <pass/fail, key output line>
 Foreign errors: <errors outside my files, or "none">

@@ -14,7 +14,7 @@ import { AgentEditor } from "../AgentEditor";
 import { useAgents, useAgent, useUpdateAgent } from "@/lib/hooks/agents";
 import { ApiError } from "@/lib/api";
 
-const VALID_TABS = ["config", "skills"];
+const VALID_TABS = ["config", "skills", "context"];
 
 export function AgentEditorView() {
   const t = useTranslations("agents");
@@ -110,7 +110,7 @@ export function AgentEditorView() {
                 </Button>
               </div>
             </div>
-            <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+            <div style={{ flex: 1, minHeight: 0, overflow: "auto", display: "flex", flexDirection: "column" }}>
               <AgentEditor agent={agent} tab={tab} onTab={setTab} />
             </div>
           </div>

@@ -78,6 +78,9 @@ flowchart TB
   subgraph Skills["Skills"]
     skills["skills<br/>/skills · /skills/:id · /skills/:id/versions(/:v)<br/>/skills/:id/stats · /skills/tokens · /skills/import/preview"]
   end
+  subgraph Context["Project context"]
+    projectContext["project-context<br/>/repos/:id/context/docs(/content) · /context-docs/usage<br/>/agents/:id/context-docs · /skills/:id/context-docs<br/>(GET · PUT · POST each)"]
+  end
   subgraph Intel["Repo intelligence"]
     repoIntel["repo-intel<br/>/repos/:id/index-state · /resync"]
     blast["blast<br/>/pulls/:id/blast · /pulls/:id/history<br/>(index read, no model call)"]
@@ -102,6 +105,7 @@ flowchart TB
 | `EMBEDDINGS_ENABLED` | `false` | memory/RAG embeddings (OpenAI); off → **zero** OpenAI calls |
 | `REPO_INTEL_ENABLED` | `true` | repo skeleton + callers in the prompt; `false` → ripgrep-only |
 | `DEVDIGEST_CLONE_DIR` | `./clones` | imported-repo checkouts (git-ignored) |
+| `PROJECT_CONTEXT_ROOTS` | `specs,docs,insights` | comma-separated plain folder names searched for project-context documents; empty → the default; a name with a path separator or dot-segment is rejected |
 | `LOG_LEVEL` | `info` (`silent` in test) | pino level |
 | `PROMPT_LOG` | `summary` | `off` \| `summary` \| `verbose`: content-free `prompt.assembled` record per prompt sent; `verbose` (fingerprints, per-item sizes) only when `NODE_ENV=development`, else downgraded to `summary` with a boot warning |
 | `NODE_ENV` | `development` | `test` → silent logs + global rate-limit disabled |
@@ -134,6 +138,13 @@ What the reviewer actually sends to the model is assembled in
   demo / test / not for production / do not flag" never descope the review — real
   defects are reported at full severity regardless. We deliberately do **not**
   keyword-scan untrusted text (a denylist only catches one phrasing).
+- **Attached documents feed `## Project context`.** Agents and skills can have
+  repository documents attached (`/agents/:id/context-docs`,
+  `/skills/:id/context-docs`). At run start `resolveForRun`
+  (`modules/project-context/service.ts`) reads the agent's own paths first, then
+  its active skills' in order, dedupes them, cuts each document to 4,000 tokens
+  and the whole section to 12,000; a document it cannot use is reported as
+  skipped with a reason code instead of failing the run.
 - **Grounding is mandatory.** Every finding must cite a line that exists in the
   diff or it is dropped (`groundFindings`), and the score is recomputed from the
   surviving findings — the model's self-reported score is ignored.

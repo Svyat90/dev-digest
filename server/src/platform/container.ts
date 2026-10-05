@@ -7,6 +7,7 @@ import type {
   Embedder,
   LLMProvider,
   WebFetchClient,
+  RepoDocsReader,
 } from '@devdigest/shared';
 import type { AppConfig } from './config.js';
 import type { Db } from '../db/client.js';
@@ -30,6 +31,9 @@ import { ReviewRepository } from '../modules/reviews/repository.js';
 import { SkillsRepository } from '../modules/skills/repository.js';
 import { IntentRepository } from '../modules/intent/repository.js';
 import { IntentService } from '../modules/intent/service.js';
+import { ProjectContextRepository } from '../modules/project-context/repository.js';
+import { ProjectContextService } from '../modules/project-context/service.js';
+import { FsRepoDocsReader } from '../adapters/repo-docs/fs.js';
 import type { RepoIntel } from '../modules/repo-intel/types.js';
 import { RepoIntelService } from '../modules/repo-intel/service.js';
 import { resolveFeatureModel } from '../modules/settings/feature-models.js';
@@ -46,6 +50,21 @@ import { type Tokenizer, TiktokenTokenizer } from '../adapters/tokenizer/index.j
  */
 /** The intent use cases callers reach through the container (overridable in tests). */
 export type IntentUseCases = Pick<IntentService, 'get' | 'getOrDerive' | 'recompute'>;
+
+/** The project-context use cases callers reach through the container (overridable in tests). */
+export type ProjectContextUseCases = Pick<
+  ProjectContextService,
+  | 'list'
+  | 'content'
+  | 'usage'
+  | 'agentView'
+  | 'skillView'
+  | 'setAgentDocs'
+  | 'setSkillDocs'
+  | 'appendAgentDoc'
+  | 'appendSkillDoc'
+  | 'resolveForRun'
+>;
 
 export interface ContainerOverrides {
   secrets?: SecretsProvider;
@@ -65,6 +84,10 @@ export interface ContainerOverrides {
   webFetch?: WebFetchClient;
   /** Intent layer use cases — tests inject a double. */
   intent?: IntentUseCases;
+  /** Reader of repository documents (project context) — tests inject a mock. */
+  repoDocs?: RepoDocsReader;
+  /** Project-context use cases — tests inject a double. */
+  projectContext?: ProjectContextUseCases;
 }
 
 export class Container {
@@ -93,6 +116,8 @@ export class Container {
   private _priceBook?: PriceBook;
   private _webFetch?: WebFetchClient;
   private _intent?: IntentUseCases;
+  private _repoDocs?: RepoDocsReader;
+  private _projectContext?: ProjectContextUseCases;
 
   constructor(config: AppConfig, db: Db, private overrides: ContainerOverrides = {}) {
     this.config = config;
@@ -176,6 +201,35 @@ export class Container {
       promptLogMode: this.config.promptLog,
     });
     return this._intent;
+  }
+
+  /** Filesystem reader of the clone's markdown documents (project context). */
+  get repoDocs(): RepoDocsReader {
+    if (this.overrides.repoDocs) return this.overrides.repoDocs;
+    this._repoDocs ??= new FsRepoDocsReader();
+    return this._repoDocs;
+  }
+
+  /**
+   * Project context. `ProjectContextService` takes a narrow structural
+   * `ProjectContextDeps` (not the Container), so no `container.ts` <-> service
+   * cycle. "Active skill" reuses `AgentsRepository.activeSkillLinks`.
+   */
+  get projectContext(): ProjectContextUseCases {
+    if (this.overrides.projectContext) return this.overrides.projectContext;
+    this._projectContext ??= new ProjectContextService({
+      repo: new ProjectContextRepository(this.db),
+      reader: this.repoDocs,
+      count: (text) => this.tokenizer.count(text),
+      roots: this.config.projectContextRoots,
+      clonePathFor: (ref) => this.git.clonePathFor(ref),
+      activeSkills: async (agentId) =>
+        (await this.agentsRepo.activeSkillLinks(agentId)).map((l) => ({
+          id: l.skill.id,
+          name: l.skill.name,
+        })),
+    });
+    return this._projectContext;
   }
 
   /**

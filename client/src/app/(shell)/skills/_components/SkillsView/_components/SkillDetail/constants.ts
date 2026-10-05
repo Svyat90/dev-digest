@@ -13,6 +13,7 @@ export const TABS: readonly DetailTab[] = [
   { key: "preview", labelKey: "detail.tabs.preview", icon: "Eye" },
   { key: "stats", labelKey: "detail.tabs.stats", icon: "Gauge" },
   { key: "versions", labelKey: "detail.tabs.versions", icon: "History" },
+  { key: "context", labelKey: "detail.tabs.context", icon: "FileText" },
 ];
 
 export const VALID_TABS: readonly string[] = TABS.map((t) => t.key);

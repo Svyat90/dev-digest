@@ -216,6 +216,15 @@ files**:
 
 A `doc-writer` task needs neither field.
 
+**Interface — pinned signatures between tasks.** When a task exports a function,
+hook, component or type that another task calls, the producing task gets an
+`Interface:` field with the full signature, parameter and return TYPES
+included (`mergeRows(docs: ContextDoc[], own: AttachedDoc[]): DocRow[]`), and
+every consuming task quotes the same line under its own `Interface:` with
+`(from T00x)`. A prose mention ("uses `mergeRows`") is not enough: parallel
+tasks guess different shapes (retro 2026-10-04: T008 took `string[]`, T011
+expected objects → a fix round).
+
 ### 7. Self-check
 
 Fix the plan until every answer is yes:
@@ -233,6 +242,8 @@ Fix the plan until every answer is yes:
   of the task it constrains.
 - Every implementer / test-writer task has `Rules:` (5–15 lines); every rule
   names a skill section, and you re-read that section to confirm it says so.
+- Every export one task makes for another is pinned in both tasks' `Interface:`
+  with parameter types, and the two lines are identical.
 - Tests follow `TESTING.md` (typological: one happy path + the edge that matters).
 - The plan is proportional: no task, file or abstraction the request does not need.
 - The plan has a *Requirements review* line (rule 9), *Assumptions* and

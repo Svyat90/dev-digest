@@ -329,3 +329,17 @@ export interface SecretsProvider {
    */
   set?(key: SecretKey, value: string): Promise<void>;
 }
+
+// ---------- Repo docs (project context; MVP = FsRepoDocsReader over the local clone) ----------
+export type RepoDocReadFailure = 'missing' | 'outside_clone' | 'not_utf8' | 'unreadable';
+
+export type RepoDocReadResult =
+  | { ok: true; text: string; clipped: boolean }
+  | { ok: false; reason: RepoDocReadFailure };
+
+export interface RepoDocsReader {
+  /** Posix repo-relative `.md` paths under `root`, sorted; `null` when the root does not exist. */
+  listMarkdown(root: string): Promise<string[] | null>;
+  /** Read one document; a missing root counts as `missing` ("not cloned"). Never throws. */
+  read(root: string, path: string): Promise<RepoDocReadResult>;
+}

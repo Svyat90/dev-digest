@@ -16,6 +16,21 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-03 — Asking an implementer for fail-first does not produce it; prove it from the orchestrator.**
+  In the Project Context run 14 of 15 code tasks reported "wrote the tests with
+  the code, never ran them red" — including fix task F1.1, whose acceptance
+  criteria named fail-first explicitly. plan-verifier cannot fill the gap: it is
+  read-only, so it may not mutate code, run `db:generate`, or stash.
+  Rule: when a test guards a regression (scoping, a reported bug), check it from
+  the main session in a detached scratch worktree, never in the working tree:
+  `git worktree add --detach <scratch>/wt HEAD`, symlink each package's
+  `node_modules` into it, then either copy the NEW test files onto the pre-fix
+  commit or mutate the guarded line, run that one test, expect red, and
+  `git worktree remove --force` afterwards.
+  `docs/plans/2026-10-03-project-context.md` › Execution log (F1.1: 4 failed on
+  pre-fix code; T006: removing the workspace filter at
+  `server/src/modules/reviews/repository/run.repo.ts:234` → `expected 200 to be 404`)
+
 - **2026-10-03 — An unquoted vitest glob in a shell script silently shrinks the server suite.**
   `TESTS="--exclude **/*.it.test.ts"; vitest run $TESTS` lets macOS bash 3.2
   (no globstar) expand the pattern to `test/*.it.test.ts` file names; vitest
@@ -29,6 +44,18 @@ valuable one.
 ## Codebase Patterns
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
+
+- **2026-10-03 — The do-not-touch list is enforced in five places that do not read each other.**
+  Root `CLAUDE.md`, `client/CLAUDE.md`, `.claude/agents/implementer.md` (rule 4),
+  `scripts/lint-plan.mjs` (`DO_NOT_TOUCH`, plus the `TOUCHABLE` exceptions) and
+  `.claude/skills/pr-self-review/scripts/collect-diff.sh` (`kind_of` → `protected`)
+  each keep their own copy. If you add an exception (here `client/src/vendor/ui/nav.ts`)
+  in one place only, the planner lint, the implementer or `/pr-self-review` still
+  blocks or flags the file.
+  Rule: change a do-not-touch path or exception in all five places in the same
+  commit, then check the result with
+  `grep -rn "vendor/ui" CLAUDE.md client/CLAUDE.md .claude/agents .claude/skills/pr-self-review scripts`.
+  Edits to `.claude/agents/*.md` take effect only after a session restart.
 
 - **2026-10-03 — A plan's `Status:` line does not say whether it shipped.**
   `docs/plans/2026-09-25-intent-layer.md`, `2026-09-26-smart-diff.md` and
@@ -67,6 +94,17 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 ## Tool & Library Notes
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
+
+- **2026-10-03 — A scratch tsconfig for `server/test/**` must set `rootDir: ".."` (amends 2026-09-26).**
+  `server/` compiles `../reviewer-core/src` through its path alias, so a scratch
+  tsconfig with `rootDir: "."` reports `TS6059: File '.../reviewer-core/src/prompt.ts'
+  is not under 'rootDir'` (8 errors) that look like real failures but say nothing
+  about the tests. Rule: in the 2026-09-26 recipe, set `"rootDir": ".."` (and
+  `"noEmit": true`) when the package is `server/`; reviewer-core needs the same
+  when its tests import from outside it. Also: `server/test/prompt-callers.test.ts`
+  already carries 7 `TS2345` errors at 3a5133d (readonly `as const` fixture) — baseline
+  debt, not a new failure.
+  `server/tsconfig.json` · `pnpm exec tsc -p tsconfig.scratch-tests.json` → `error TS6059`
 
 - **2026-10-03 — Edits to an agent's frontmatter do not reach that agent until the session restarts.**
   Adding a `Bash` matcher and a `PostToolUse` hook to `.claude/agents/spec-creator.md`

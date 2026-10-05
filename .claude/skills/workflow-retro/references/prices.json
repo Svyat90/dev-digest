@@ -1,0 +1,6 @@
+{
+  "_comment": "USD per million tokens, per model id as it appears in transcripts. Anthropic first-party API list prices as of 2026-09-25; cacheWrite is the 5-minute TTL rate (1.25x input). Sessions run on a subscription, so costUsd is an API-equivalent figure, not a bill. A model with any null price makes costUsd null rather than guessed.",
+  "claude-opus-5-5": { "input": 4, "output": 20, "cacheRead": 0.2, "cacheWrite": 5 },
+  "claude-sonnet-5-5": { "input": 2, "output": 10, "cacheRead": 0.2, "cacheWrite": 2.5 },
+  "claude-haiku-4-5-20251001": { "input": 1, "output": 5, "cacheRead": 0.1, "cacheWrite": 1.25 }
+}

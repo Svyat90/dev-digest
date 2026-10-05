@@ -27,11 +27,16 @@ flowchart TD
   ONB["/onboarding<br/>add repo"] -->|"POST /repos"| API[("Fastify API")]
   PULLS --> PR["/pulls/:number<br/>review detail<br/>(overview · diff · findings)"]
 
-  AGENTS["/agents"] --> AGENT["/agents/:id<br/>editor (config)"]
+  PULLS -.->|"sidebar Project Context · g c"| CTX["/repos/:repoId/context<br/>document browser"]
+  AGENTS["/agents"] --> AGENT["/agents/:id<br/>editor (config · skills · context tab)"]
+  SKILLS["/skills"] --> SKILL["/skills/:id<br/>detail (context tab)"]
   SETTINGS["/settings/:section<br/>API keys · models"]
 
   PULLS -->|"GET /repos/:id/pulls · /repos/:id/index-state"| API
   PR -->|"GET /pulls/:id · /reviews · /pulls/:id/comments · /pulls/:id/smart-diff · /pulls/:id/blast · /pulls/:id/history<br/>POST /pulls/:id/review · /findings/:id/(accept|dismiss) · /repos/:id/resync"| API
+  CTX -->|"GET /repos/:id/context/docs(/content) · /context-docs/usage"| API
+  AGENT -->|"GET · PUT · POST /agents/:id/context-docs"| API
+  SKILL -->|"GET · PUT · POST /skills/:id/context-docs"| API
   AGENTS -->|"/agents · /agents/:id"| API
   SETTINGS -->|"/settings · /providers"| API
 ```

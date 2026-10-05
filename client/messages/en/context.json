@@ -20,5 +20,52 @@
     "loadError": "Couldn’t load spec",
     "save": "Save",
     "saving": "Saving…"
+  },
+  "docs": {
+    "page": {
+      "crumb": "Project Context",
+      "heading": "Project context in {repo}",
+      "subtitle": "Markdown documents in this repository that you can attach to agents and skills."
+    },
+    "filterPlaceholder": "Filter by path…",
+    "moreNotListed": "{count} more documents not listed — use the filter to find them",
+    "notCloned": "Repository not cloned yet — documents appear once its local copy exists.",
+    "empty": "No markdown documents found under {roots}, and no INSIGHTS.md file.",
+    "noMatches": "No documents match the filter",
+    "tokens": "≈ {count} tokens",
+    "truncated": "truncated",
+    "notFound": "not found",
+    "preview": "Document preview",
+    "closePreview": "Close preview",
+    "selectPrompt": "Select a document to preview it",
+    "previewRegion": "Document preview",
+    "usedBy": "Used by {agents} agents · {skills} skills",
+    "attachTo": "Attach to…",
+    "attachAgents": "Agents",
+    "attachSkills": "Skills",
+    "attachedTo": "Attached to",
+    "loadError": "Couldn’t load documents",
+    "previewError": "Couldn’t load the document",
+    "tab": {
+      "title": "Project context",
+      "repoLabel": "Documents in {repo}",
+      "attachedCount": "{attached} of {total} attached",
+      "total": "Total ≈ {tokens} tokens",
+      "untrustedNote": "Injected as an untrusted block",
+      "openPage": "Open Project Context",
+      "attachLabel": "Attach {path}",
+      "dragHandle": "Drag to reorder",
+      "moveUp": "Move {path} up",
+      "moveDown": "Move {path} down",
+      "inheritedTitle": "Inherited from skills",
+      "inheritedFrom": "from {skill}",
+      "capWarning": "Over the {cap}-token project context cap — left out of the prompt: {paths}",
+      "noRepo": "Select a repository to attach documents"
+    },
+    "skillTab": {
+      "title": "Project context to use",
+      "inheritNote": "Any agent using this skill inherits these documents.",
+      "serializesAs": "Serializes as"
+    }
   }
 }
