@@ -81,15 +81,29 @@ const INTENT_SECTIONS = [
   'web',
   'diff_outline',
 ] as const;
+const RISK_BRIEF_SECTIONS = [
+  'system',
+  'task',
+  'pr_title',
+  'description',
+  'issues',
+  'intent',
+  'blast',
+  'files',
+  'documents',
+  'missing',
+] as const;
 export const PROMPT_SECTION_LOG_NAMES = {
   reviewer: REVIEWER_SECTIONS,
   intent_classifier: INTENT_SECTIONS,
+  risk_brief: RISK_BRIEF_SECTIONS,
 } as const;
 
 export type PromptLogComponent = keyof typeof PROMPT_SECTION_LOG_NAMES;
 export type PromptSectionLogName =
   | (typeof REVIEWER_SECTIONS)[number]
   | (typeof INTENT_SECTIONS)[number]
+  | (typeof RISK_BRIEF_SECTIONS)[number]
   | 'other';
 
 /** What a caller may hand in for one section. Loose on purpose: the builder validates it. */

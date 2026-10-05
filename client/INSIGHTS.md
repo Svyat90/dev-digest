@@ -14,6 +14,25 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-04 — Wrapping `SectionLabel` in your own flex row next to a button misaligns it.**
+  `SectionLabel` carries `marginBottom: 14` inside the primitive, so in an
+  `align-items: center` row with a button the label sits above the button's
+  centre line, and any gap you add stacks on top of its 14 px. Measured on the
+  PR Brief header: label and button only shared a centre line, and the title→card
+  gap only matched Intent / Blast radius (14 px), once the button moved into the slot.
+  Rule: put header actions in `SectionLabel`'s `right` prop and place the card
+  directly under it — never a custom header row around it.
+  `client/src/vendor/ui/primitives/SectionLabel.tsx:15`
+
+- **2026-10-04 — Seeded PR #482's core files have no `patch`, so diff line targeting cannot be checked on them.**
+  `src/middleware/ratelimit.ts`, `webhooks.ts`, `config.ts`, `users.ts` (the files
+  the seeded findings point at) render "No diff text available", and any
+  `?tab=diff&file=…&line=N` on them shows the line-not-found notice. Only the four
+  role files added later carry a patch, and a dev DB seeded before them has none.
+  Rule: check scroll/highlight/sticky arrival in the real app on a synced PR with
+  real patches (e.g. one from the `dev-digest` repo), never on #482's core files.
+  `server/src/db/seed.ts:139-142`
+
 - **2026-09-19 — Mixing the `border` shorthand with a `borderColor` override is a runtime error in dev.**
   A style object with `border: "1px solid transparent"` whose active variant
   overrides only `borderColor` makes React log, the moment the variant turns
@@ -324,6 +343,16 @@ Dated summary, only when a session changed how this package is worked on.
 ## Open Questions
 
 What was left unresolved, so the next session does not re-investigate blind.
+
+- **2026-10-05 — Some `?tab=diff&file=&line=` targets land UNDER the sticky file header.**
+  On dev-digest PR #228, `file=client/package.json&line=10` puts the highlighted
+  row (`[aria-current=location]`) at y=232, inside the sticky file-card header
+  (227–269), while `file=.claude/agents/README.md&line=120` lands at y=283, below it.
+  Reproduced at 1440×1100 and 1280×577, by deep link and by the PR Brief risk link.
+  Cause not found: `scroll-margin-top` in `components/diff-viewer/styles.ts` (`lineTarget`)
+  and the `FileCard` scroll effect are the places to start.
+  Rule: when checking arrival, measure the row against EVERY sticky element's bottom,
+  not only the PR header's, and test a line near the top of a short file.
 
 - **2026-09-23 — The agent editor's "Run on a PR…" opens the FIRST repo's PRs, not the active repo's.**
   The button is `router.push("/")`, and `/` always `router.replace`s to

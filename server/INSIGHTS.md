@@ -37,6 +37,16 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-04 — `grep linked_issue server/src/modules` finds no writer, but the field IS filled.**
+  The GitHub adapter resolves it while fetching the PR (`resolveLinkedIssue`), so a
+  search limited to `modules/` wrongly concludes "never populated" — SPEC-03 drafted
+  a provenance row on exactly that. It takes only the FIRST `#N` in the body, and
+  the closing keyword is optional (`/(?:closes|fixes|resolves)?\s*#(\d+)/i`).
+  Rule: search all of `server/src` (adapters included) before declaring a contract
+  field unfilled; a feature needing several issues or keyword-only matching must
+  resolve them itself.
+  `server/src/adapters/github/octokit.ts:92`, `server/src/adapters/github/octokit.ts:128-136`
+
 - **2026-09-29 — A `status: 'running'` run inserted before `buildApp()` comes back as `failed`.**
   `buildApp` calls `reapStaleRunningRuns` on boot, which marks EVERY `agent_runs`
   row still `running` as `failed` (no workspace or age filter). An integration test
@@ -175,6 +185,22 @@ valuable one.
 ## Codebase Patterns
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
+
+- **2026-10-04 — `maxRetries: 0` on `completeStructured` is NOT "one HTTP request".**
+  `maxRetries` only controls the re-ask after an invalid answer. Every request
+  inside that loop is still wrapped in `withRetry`, which retries up to 3 more
+  times on 429, 5xx or `ECONNRESET`/`ETIMEDOUT`/`ENOTFOUND`. No setting turns the
+  transport retries off today.
+  Rule: for a "one model call" requirement, pass `maxRetries: 0` and count answered
+  attempts, not HTTP requests; forbidding transport retries needs a new adapter option.
+  `server/src/adapters/llm/openai.ts:90-110`, `server/src/platform/resilience.ts:46-65`
+
+- **2026-10-04 — `pr_brief` has no `workspace_id`, like `findings`.**
+  The table is just `pr_id` (PK, FK to `pull_requests`) and `json`, so tenancy reaches
+  a brief only through its PR.
+  Rule: NEVER read or write `pr_brief` by PR id alone — load the PR scoped to the
+  caller's workspace first (or join `pull_requests` and assert `workspace_id` there).
+  `server/src/db/schema/reviews.ts:73-78`
 
 - **2026-09-30 — A TYPE-ONLY import of another module's `types.ts` also fails `no-cross-module-imports`; a shared constant goes to `src/domain/<topic>/`.**
   The blast spec said "type-only import of `repo-intel/types.ts`", but

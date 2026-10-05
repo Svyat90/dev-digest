@@ -18,6 +18,15 @@ valuable one.
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
 
+- **2026-10-04 — `OpenRouterProvider` ignores the per-request `timeoutMs` of `completeStructured`; only the constructor `deadlineMs` (default 5 min) bounds a call.**
+  A server feature that passes `timeoutMs: 60_000` (intent, PR brief) is NOT
+  bounded to 60 s on OpenRouter: a real `risk_brief` generation on
+  `deepseek/deepseek-v4-flash` took 3 m 52 s. The OpenAI and Anthropic adapters
+  do honour it (`withTimeout(…, req.timeoutMs)`).
+  Rule: NEVER promise a per-call time bound for an OpenRouter-backed feature
+  until the provider maps `req.timeoutMs` onto the `createWithDeadline` signal.
+  `reviewer-core/src/llm/openrouter.ts:28`, `:144`
+
 ## Tool & Library Notes
 
 Quirks of the dependencies this package pins.

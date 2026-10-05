@@ -33,7 +33,7 @@ flowchart TD
   SETTINGS["/settings/:section<br/>API keys · models"]
 
   PULLS -->|"GET /repos/:id/pulls · /repos/:id/index-state"| API
-  PR -->|"GET /pulls/:id · /reviews · /pulls/:id/comments · /pulls/:id/smart-diff · /pulls/:id/blast · /pulls/:id/history<br/>POST /pulls/:id/review · /findings/:id/(accept|dismiss) · /repos/:id/resync"| API
+  PR -->|"GET /pulls/:id · /reviews · /pulls/:id/comments · /pulls/:id/smart-diff · /pulls/:id/blast · /pulls/:id/history<br/>GET · POST /pulls/:id/brief<br/>POST /pulls/:id/review · /findings/:id/(accept|dismiss) · /repos/:id/resync"| API
   CTX -->|"GET /repos/:id/context/docs(/content) · /context-docs/usage"| API
   AGENT -->|"GET · PUT · POST /agents/:id/context-docs"| API
   SKILL -->|"GET · PUT · POST /skills/:id/context-docs"| API

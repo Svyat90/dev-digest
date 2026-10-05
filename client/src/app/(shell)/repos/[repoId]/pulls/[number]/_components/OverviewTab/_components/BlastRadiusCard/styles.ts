@@ -1,13 +1,8 @@
 import type { CSSProperties } from "react";
 
 export const s = {
+  /** The body under the card's own SectionLabel; the border lives on `root`. */
   card: {
-    borderWidth: 1,
-    borderStyle: "solid",
-    borderColor: "var(--border)",
-    borderRadius: 8,
-    background: "var(--bg-elevated)",
-    padding: 18,
     display: "flex",
     flexDirection: "column",
     gap: 14,
@@ -31,6 +26,12 @@ export const s = {
   } satisfies CSSProperties,
   root: {
     minWidth: 0, // a grid cell must not be blown out by a long path
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "var(--border)",
+    borderRadius: 8,
+    background: "var(--bg-elevated)",
+    padding: 18,
   } satisfies CSSProperties,
   statsRow: {
     display: "flex",

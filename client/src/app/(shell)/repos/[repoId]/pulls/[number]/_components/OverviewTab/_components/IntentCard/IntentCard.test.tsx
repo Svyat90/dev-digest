@@ -76,6 +76,15 @@ describe("IntentCard", () => {
     expect(onRecompute).toHaveBeenCalledTimes(1);
   });
 
+  it("renders the footer slot (the PR Brief's Risk areas) inside the card, with or without an intent", () => {
+    const base = { isLoading: false, isError: false, headSha: "sha-1", onRecompute: vi.fn(), recomputing: false };
+    renderWithIntl({ ...base, intent: RECORD, footer: <div>risk areas slot</div> });
+    expect(screen.getByText("risk areas slot")).toBeInTheDocument();
+    cleanup();
+    renderWithIntl({ ...base, intent: null, footer: <div>risk areas slot</div> });
+    expect(screen.getByText("risk areas slot")).toBeInTheDocument();
+  });
+
   it("shows the error state with a retry that calls back", () => {
     const onRecompute = vi.fn();
     renderWithIntl({

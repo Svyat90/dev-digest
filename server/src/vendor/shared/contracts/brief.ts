@@ -47,12 +47,19 @@ export type BlastRadius = z.infer<typeof BlastRadius>;
 export const RiskSeverity = z.enum(['high', 'medium', 'low']);
 export type RiskSeverity = z.infer<typeof RiskSeverity>;
 
+export const RiskFileRef = z.object({
+  file: z.string(),
+  start_line: z.number().int().positive(),
+  end_line: z.number().int().positive().nullable(),
+});
+export type RiskFileRef = z.infer<typeof RiskFileRef>;
+
 export const Risk = z.object({
   kind: z.string(),
   title: z.string(),
   explanation: z.string(),
   severity: RiskSeverity,
-  file_refs: z.array(z.string()),
+  file_refs: z.array(RiskFileRef),
 });
 export type Risk = z.infer<typeof Risk>;
 
@@ -113,10 +120,52 @@ export const SmartDiff = z.object({
 export type SmartDiff = z.infer<typeof SmartDiff>;
 
 // ---- Composed PR Brief (pr_brief.json) ----
+export const ReviewFocusItem = z.object({
+  file: z.string(),
+  line: z.number().int().positive(),
+  reason: z.string(),
+});
+export type ReviewFocusItem = z.infer<typeof ReviewFocusItem>;
+
+export const BriefMissingInput = z.enum([
+  'intent',
+  'intent_stale',
+  'blast',
+  'linked_issue',
+  'documents',
+]);
+export type BriefMissingInput = z.infer<typeof BriefMissingInput>;
+
+export const BriefTruncatableSource = z.enum([
+  'documents',
+  'linked_issues',
+  'description',
+  'files',
+  'blast_callers',
+]);
+export type BriefTruncatableSource = z.infer<typeof BriefTruncatableSource>;
+
+export const BriefFailureCode = z.enum([
+  'invalid_model_answer',
+  'external_service_error',
+  'config_error',
+]);
+export type BriefFailureCode = z.infer<typeof BriefFailureCode>;
+
 export const PrBrief = z.object({
-  intent: Intent,
-  blast: BlastRadius,
+  summary: z.string(),
+  intent: Intent.nullable(),
+  blast: BlastRadius.nullable(),
   risks: Risks,
-  history: PrHistory,
+  history: PrHistory.nullable(),
+  review_focus: z.array(ReviewFocusItem),
+  head_sha: z.string(),
+  generated_at: z.string(),
+  missing_inputs: z.array(BriefMissingInput),
+  truncated_sources: z.array(BriefTruncatableSource),
+  provider: z.string(),
+  model: z.string(),
+  tokens_in: z.number().int().nullable(),
+  tokens_out: z.number().int().nullable(),
 });
 export type PrBrief = z.infer<typeof PrBrief>;

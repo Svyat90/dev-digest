@@ -6,6 +6,7 @@ import {
   BlastRadius,
   Risks,
   PrHistory,
+  PrBrief,
   SmartDiff,
   Conformance,
   Onboarding,
@@ -107,6 +108,45 @@ describe('AI contracts parse fixtures', () => {
         ],
       }),
     ).not.toThrow();
+  });
+
+  it('PrBrief with structured risk file refs', () => {
+    const risk = {
+      kind: 'security',
+      title: 't',
+      explanation: 'e',
+      severity: 'high',
+      file_refs: [
+        { file: 'src/a.ts', start_line: 12, end_line: 18 },
+        { file: 'package.json', start_line: 34, end_line: null },
+      ],
+    };
+    const brief = {
+      summary: 's',
+      intent: null,
+      blast: null,
+      risks: { risks: [risk] },
+      history: null,
+      review_focus: [{ file: 'src/a.ts', line: 12, reason: 'r' }],
+      head_sha: 'abc123',
+      generated_at: '2026-10-04T00:00:00.000Z',
+      missing_inputs: ['intent_stale'],
+      truncated_sources: ['blast_callers'],
+      provider: 'openai',
+      model: 'gpt-4.1',
+      tokens_in: null,
+      tokens_out: null,
+    };
+    expect(PrBrief.parse(brief).risks.risks[0]!.file_refs).toHaveLength(2);
+    expect(() =>
+      PrBrief.parse({ ...brief, risks: { risks: [{ ...risk, file_refs: ['src/a.ts'] }] } }),
+    ).toThrow();
+    expect(() =>
+      PrBrief.parse({
+        ...brief,
+        risks: { risks: [{ ...risk, file_refs: [{ file: 'a.ts', start_line: 0, end_line: null }] }] },
+      }),
+    ).toThrow();
   });
 
   it('SmartDiff (data.jsx DIFF)', () => {
