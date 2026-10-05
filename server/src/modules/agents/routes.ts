@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { and, count, eq } from 'drizzle-orm';
 import { CiFailOn, Provider, ReviewStrategy } from '@devdigest/shared';
 import { getContext } from '../_shared/context.js';
+import * as t from '../../db/schema.js';
 import { IdParams } from '../_shared/schemas.js';
 import { NotFoundError } from '../../platform/errors.js';
 import { AgentsService } from './service.js';
@@ -121,6 +123,16 @@ export default async function agentsRoutes(appBase: FastifyInstance) {
     const ok = await service.delete(workspaceId, req.params.id);
     if (!ok) throw new NotFoundError('Agent not found');
     return { ok: true };
+  });
+
+  // How many times an agent has run — shown as a badge on the agent card.
+  app.get('/agents/:id/run-count', { schema: { params: IdParams } }, async (req) => {
+    const { workspaceId } = await getContext(app.container, req);
+    const [row] = await app.container.db
+      .select({ runs: count() })
+      .from(t.agentRuns)
+      .where(and(eq(t.agentRuns.agentId, req.params.id), eq(t.agentRuns.workspaceId, workspaceId)));
+    return { runs: row?.runs ?? 0 };
   });
 
   app.get('/agents/:id/versions', { schema: { params: IdParams } }, async (req) => {

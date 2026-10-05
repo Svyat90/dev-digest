@@ -16,10 +16,19 @@ export class AppError extends Error {
   }
 }
 
+/**
+ * A missing row, named by entity so every 404 reads the same way:
+ * `new NotFoundError('Agent', id)` → "Agent 6f6e… not found".
+ */
 export class NotFoundError extends AppError {
-  constructor(message = 'Not found', details?: unknown) {
-    super('not_found', message, 404, details);
+  constructor(entity = 'Resource', id?: string, details?: unknown) {
+    super('not_found', notFoundMessage(entity, id), undefined, details);
   }
+}
+
+/** "<entity> <id> not found", or "<entity> not found" when the id is unknown. */
+export function notFoundMessage(entity: string, id?: string): string {
+  return id ? `${entity} ${id} not found` : `${entity} not found`;
 }
 
 export class ValidationError extends AppError {
