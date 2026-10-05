@@ -18,6 +18,9 @@ Linked from `server/CLAUDE.md` › *Read when*.
   (SD1–SD11), the role classification precedence and its contested cases,
   the `finding_lines` rule, and how the client derives its groups, dot and
   counters from the same data.
+- **[`layering.md`](layering.md)** — server layering: invariant L1 (a
+  `routes.ts` never imports `db/` or `drizzle-orm`), why, and how
+  `arch:check` enforces it.
 - **[`blast-radius.md`](blast-radius.md)** — Blast Radius (L04): the
   invariants (BR1–BR13), the `BlastRadiusResponse` contract, the per-symbol
   caller-cap fix in the repo-intel facade, the Overview card, Prior PRs (PH1–PH7) and the
