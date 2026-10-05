@@ -95,6 +95,28 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
 
+- **2026-10-05 — In a demo video, film GitHub docs through the blob Preview with a heading anchor.**
+  The screencast engine sets CSS `html{zoom}` on every page. Under that zoom,
+  GitHub's virtualised code view (`blob/…?plain=1#L930-L933`) renders blank: only
+  one line number shows. PR Files changed `#diff-<sha256>` anchors do not scroll to
+  the file, and large files stay collapsed behind "Load diff". The rendered Preview
+  with a heading anchor works and shows tables as tables
+  (`blob/main/docs/plans/<plan>.md#checks`, `…/specs/<spec>.md#acceptance-criteria-ears`).
+  Rule: for a spec, plan or report on camera, open its blob Preview at a heading
+  anchor, call `scrollIntoCenter` on the heading (the start position is under
+  GitHub's sticky header), and check the dry still before filming.
+  `demo/project-context/scenes.mjs` (s8)
+
+- **2026-10-05 — Check the ElevenLabs quota before re-generating a demo cue; an overwritten cue cannot be recovered.**
+  `tts.mjs all <cue…>` overwrites each wav as it goes. The free tier (10,000
+  chars/month) ran out mid-batch with `HTTP 401 quota_exceeded`, after the first
+  cue had already been replaced. `GET /v1/history` returned 0 items, so the old
+  take could not be downloaded again. The only free repair was to cut a sentence
+  out of an older wav at a pause found with `silencedetect`.
+  Rule: run `tts.mjs <demoDir> voices` first (it prints `character_count/limit`),
+  and copy `<cache>/audio/*.wav` aside before re-generating anything.
+  `~/.cache/demo-video/<slug>/audio/`
+
 - **2026-10-03 — A scratch tsconfig for `server/test/**` must set `rootDir: ".."` (amends 2026-09-26).**
   `server/` compiles `../reviewer-core/src` through its path alias, so a scratch
   tsconfig with `rootDir: "."` reports `TS6059: File '.../reviewer-core/src/prompt.ts'

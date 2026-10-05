@@ -37,6 +37,28 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-05 — `POST /repos/:id/refresh` neither pulls the clone nor moves a PR's `head_sha`.**
+  Its clone job is a no-op for an existing clone (the dev-digest clone stayed 60
+  commits behind `origin/main`), and PR rows are upserted only by
+  `GET /repos/:id/pulls`. After a push, the stored head stayed old while
+  `GET /pulls/:id` returned the new one from GitHub, so the brief showed
+  "Out of date" and the Intent card "PR updated — intent stale".
+  Rule: after pushing to a PR, call `GET /repos/:id/pulls` before generating
+  intent or a brief; to get new `main` content (docs, index), use
+  `POST /repos/:id/resync`, never `refresh`.
+  `server/src/modules/pulls/routes.ts:79` (upsert sets `headSha`), `server/src/modules/repos/service.ts:134`
+
+- **2026-10-05 — An incremental reindex across a file deletion leaves the index `partial`.**
+  After `resync` over 60 commits, `repo_index_state.stats.parseDegraded` held
+  `ENOENT … VerdictBanner/index.ts` (a file deleted on `main`), status became
+  `partial`, and every Blast radius response came back `degraded: true,
+  reason: 'index_partial'`. Another incremental run keeps it partial, because
+  `full` survives only if the prior state was `full` (`incremental.ts:243`).
+  Rule: to get back to `full`, delete the repo's `repo_index_state` row and
+  `POST /repos/:id/resync`. With no state row, the indexer runs a full index
+  (`incremental.ts:78`).
+  `server/src/modules/repo-intel/pipeline/incremental.ts:78,243`
+
 - **2026-10-04 — `grep linked_issue server/src/modules` finds no writer, but the field IS filled.**
   The GitHub adapter resolves it while fetching the PR (`resolveLinkedIssue`), so a
   search limited to `modules/` wrongly concludes "never populated" — SPEC-03 drafted
