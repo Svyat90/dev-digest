@@ -159,7 +159,7 @@
     {
       "id": 5,
       "name": "reminders-port-gap",
-      "prompt": "Колега додав модуль reminders, який нагадує про застарілі PR (файли в /Users/wekcook/code/dev-digest/.claude/skills/onion-architecture-workspace/fixtures/reminders-port-gap/server/src/modules/reminders/). Перед мержем перевір його структуру: що не так і як виправити? Дай проблеми з файлом і рядком та впорядкований план виправлення.",
+      "prompt": "Колега додав модуль reminders, який нагадує про застарілі PR (файли в /Users/wekcook/code/dev-digest/docs/evals/onion-architecture/fixtures/reminders-port-gap/server/src/modules/reminders/). Перед мержем перевір його структуру: що не так і як виправити? Дай проблеми з файлом і рядком та впорядкований план виправлення.",
       "expected_output": "Flags that addLabel/requestReviewers are not on the GitHubClient port (PrLabeler declared locally in service.ts, hidden by a type cast in routes.ts); fix = add methods to vendor/shared/adapters.ts, implement in the octokit adapter, add to adapters/mocks.ts. Flags getRepo and countFindings called per PR inside the loop (N+1) and proposes one batched repository method; countFindings loads all rows to count them; a failure mid-loop aborts the batch after some PRs were labelled.",
       "files": [
         "evals/fixtures/reminders-port-gap/server/src/modules/reminders/routes.ts",
@@ -199,7 +199,7 @@
     {
       "id": 6,
       "name": "digest-publish-effect-order",
-      "prompt": "Є новий модуль digest-publish (файли в /Users/wekcook/code/dev-digest/.claude/skills/onion-architecture-workspace/fixtures/digest-publish/server/src/modules/digest-publish/). Користувачі скаржаться: іноді в БД є дайджест «доставлений», а коментаря в GitHub немає, а при повторі виходить два коментарі. Подивись модуль: причина, що ще не так із структури, і виправлення.",
+      "prompt": "Є новий модуль digest-publish (файли в /Users/wekcook/code/dev-digest/docs/evals/onion-architecture/fixtures/digest-publish/server/src/modules/digest-publish/). Користувачі скаржаться: іноді в БД є дайджест «доставлений», а коментаря в GitHub немає, а при повторі виходить два коментарі. Подивись модуль: причина, що ще не так із структури, і виправлення.",
       "expected_output": "Root cause: digest row is inserted with deliveredTo set before postReview, so a GitHub failure leaves a row that claims delivery; retry inserts another row and posts another review (no idempotency). Fix: write a pending/undelivered state first, call GitHub with no transaction around it, then mark delivered; make the call safe to repeat. Also: route returns the raw DigestRow with no response schema.",
       "files": [
         "evals/fixtures/digest-publish/server/src/modules/digest-publish/routes.ts",
@@ -242,7 +242,7 @@
         "evals/fixtures/reminders-hard/server/src/modules/reminders/helpers.ts",
         "evals/fixtures/reminders-hard/server/src/modules/reminders/repository.ts"
       ],
-      "prompt": "Перегляньте модуль reminders перед мержем (файли в /Users/wekcook/code/dev-digest/.claude/skills/onion-architecture-workspace/fixtures/reminders-hard/server/src/modules/reminders/): що не так зі структурою і як це виправити? Дайте проблеми з файлом і рядком та впорядкований план виправлення.",
+      "prompt": "Перегляньте модуль reminders перед мержем (файли в /Users/wekcook/code/dev-digest/docs/evals/onion-architecture/fixtures/reminders-hard/server/src/modules/reminders/): що не так зі структурою і як це виправити? Дайте проблеми з файлом і рядком та впорядкований план виправлення.",
       "expected_output": "Port gap hidden behind a concrete type (OctokitGitHubClient type-only import + cast), N+1 hidden in helpers.loadPullContext via Promise.all(map), countFindings counts rows in JS, partial failure in the nudge loop. helpers.ts pure functions are fine.",
       "assertions": [
         {
@@ -279,7 +279,7 @@
         "evals/fixtures/publish-in-tx/server/src/modules/publish/service.ts",
         "evals/fixtures/publish-in-tx/server/src/modules/publish/repository.ts"
       ],
-      "prompt": "Користувач скаржиться, що в GitHub іноді двічі з'являється той самий review, хоча «ми все робимо в транзакції». Модуль publish: /Users/wekcook/code/dev-digest/.claude/skills/onion-architecture-workspace/fixtures/publish-in-tx/server/src/modules/publish/. Знайди причину, що ще не так, і дай виправлення.",
+      "prompt": "Користувач скаржиться, що в GitHub іноді двічі з'являється той самий review, хоча «ми все робимо в транзакції». Модуль publish: /Users/wekcook/code/dev-digest/docs/evals/onion-architecture/fixtures/publish-in-tx/server/src/modules/publish/. Знайди причину, що ще не так, і дай виправлення.",
       "expected_output": "postReview is called inside uow.run, so a commit/rollback after the review was posted leaves a review on GitHub with no row (or pending that retryPending re-posts); retryPending re-posts every pending row with no idempotency check. Fix: commit a pending row first, post outside any transaction with a marker/idempotency check, then mark sent. Module otherwise respects ports, tenancy and response schema.",
       "assertions": [
         {
@@ -313,7 +313,7 @@
         "evals/fixtures/cost-report/server/src/modules/cost-report/service.ts",
         "evals/fixtures/cost-report/server/src/modules/cost-report/repository.ts"
       ],
-      "prompt": "Звіт витрат (модуль cost-report: /Users/wekcook/code/dev-digest/.claude/skills/onion-architecture-workspace/fixtures/cost-report/server/src/modules/cost-report/) тормозить на 90 днях, а в UI для днів без даних показується $0.00. Подивись модуль: причини і як виправити.",
+      "prompt": "Звіт витрат (модуль cost-report: /Users/wekcook/code/dev-digest/docs/evals/onion-architecture/fixtures/cost-report/server/src/modules/cost-report/) тормозить на 90 днях, а в UI для днів без даних показується $0.00. Подивись модуль: причини і як виправити.",
       "expected_output": "N+1 (agents x days queries) -> one grouped query; Number(total ?? 0) conflates NULL (unknown cost) with 0 (free); totals/averages treat unknown as 0; aggregation should be a pure function; route has no response schema.",
       "assertions": [
         {
@@ -346,7 +346,7 @@
         "evals/fixtures/webhook-intake/server/src/modules/webhooks/routes.ts",
         "evals/fixtures/webhook-intake/server/src/modules/webhooks/service.ts"
       ],
-      "prompt": "Webhook-модуль (/Users/wekcook/code/dev-digest/.claude/skills/onion-architecture-workspace/fixtures/webhook-intake/server/src/modules/webhooks/): GitHub інколи показує 'delivery failed' (500), а перевірка підпису то проходить, то ні. Переглянь модуль: причини і що ще не так, дай виправлення.",
+      "prompt": "Webhook-модуль (/Users/wekcook/code/dev-digest/docs/evals/onion-architecture/fixtures/webhook-intake/server/src/modules/webhooks/): GitHub інколи показує 'delivery failed' (500), а перевірка підпису то проходить, то ні. Переглянь модуль: причини і що ще не так, дай виправлення.",
       "expected_output": "Signature verified over JSON.stringify(req.body) instead of the raw body; process.env secret in the service; service imports drizzle and queries directly with no repository; repo lookup by owner/name not workspace scoped; redelivery inserts a duplicate and hits pr_repo_number_uq -> 500; payload not validated (cast as never); action ignored.",
       "assertions": [
         {
@@ -383,7 +383,7 @@
         "evals/fixtures/slack-notifier/server/src/adapters/notifier/slack.ts",
         "evals/fixtures/slack-notifier/server/src/modules/reviews/notify.ts"
       ],
-      "prompt": "Хочу слати підсумки рев'ю в Slack. Колега вже додав порт, адаптер і виклик (файли в /Users/wekcook/code/dev-digest/.claude/skills/onion-architecture-workspace/fixtures/slack-notifier/server/src/). Перегляньте це перед тим, як я на цьому будуватиму: що не так і як виправити?",
+      "prompt": "Хочу слати підсумки рев'ю в Slack. Колега вже додав порт, адаптер і виклик (файли в /Users/wekcook/code/dev-digest/docs/evals/onion-architecture/fixtures/slack-notifier/server/src/). Перегляньте це перед тим, як я на цьому будуватиму: що не так і як виправити?",
       "expected_output": "Port in vendor/shared imports Slack SDK types (SDK leaks into the core); port method is Slack-shaped instead of use-case-shaped; notify.ts builds Slack blocks/mrkdwn in application code and returns Slack ts; formatting belongs in the adapter; port belongs in vendor/shared/adapters.ts with a mock and a lazy container getter + ContainerOverrides entry.",
       "assertions": [
         {
