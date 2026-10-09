@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies costForDay being called per agent per day (agents x days queries) as the cause of slowness",
+      "passed": true,
+      "evidence": "agents x 90 queries sequential N+1"
+    },
+    {
+      "text": "Proposes one grouped query (group by agent and day) or one query per agent instead of one per day",
+      "passed": true,
+      "evidence": "one aggregated GROUP BY agent_id, date_trunc"
+    },
+    {
+      "text": "Flags `Number(row?.total ?? 0)` in the repository as turning NULL (unknown cost) into 0 (free)",
+      "passed": true,
+      "evidence": "Number(row?.total ?? 0) turns null into 0"
+    },
+    {
+      "text": "Flags that the service totals and the per-day average treat unknown days as 0 and proposes an explicit unknown/null representation",
+      "passed": true,
+      "evidence": "totals/avg only over known days, costUsd number|null"
+    },
+    {
+      "text": "Proposes extracting the aggregation (bucketing, totals, average) into a pure function with a unit test that needs no DB",
+      "passed": false,
+      "evidence": "mentions only 'pure layout' in service; no pure-function extraction with a DB-free unit test"
+    },
+    {
+      "text": "Flags that the route has no response schema",
+      "passed": false,
+      "evidence": "mentions moving AgentCost contract to vendor/shared but never says the route lacks a response schema"
+    },
+    {
+      "text": "Does not claim missing workspace scoping or an import-direction violation in this module",
+      "passed": true,
+      "evidence": "says no arch:check violations; no scoping claim"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 2,
+    "total": 7,
+    "pass_rate": 0.7142857142857143
+  }
+}

@@ -1,0 +1,560 @@
+{
+  "metadata": {
+    "skill_name": "onion-architecture",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-10-08T23:39:23Z",
+    "evals_run": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 10,
+        "failed": 0,
+        "total": 10,
+        "time_seconds": 48.4,
+        "tokens": 60976,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that routes.ts imports drizzle-orm / db schema and queries container.db directly",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags the blocked-ratio -> 'urgent'/'routine' business rule living in the route handler and proposes a pure function for it",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags manual CreateDigestBody.parse(req.body) and proposes declaring it as schema.body on the route",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags that DigestsService takes the whole Container and proposes narrow Deps",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags that the service imports drizzle-orm / db schema and proposes a repository",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags that the service imports FastifyReply / calls reply.code and proposes throwing an AppError subclass (NotFoundError)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags that the service constructs concrete adapters (OctokitGitHubClient / AnthropicProvider) itself and proposes getting them through the container/ports",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags reading API keys from process.env in the service (secrets must go through the container / SecretsProvider)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags that getOne and/or deliver load a digest by id without workspaceId scoping",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Mentions running pnpm arch:check (and not growing the baseline) as verification",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 9,
+        "failed": 0,
+        "total": 9,
+        "time_seconds": 58.0,
+        "tokens": 63179,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies the non-atomic delete-then-insert of pr_files/pr_commits (+ pull update) as the root cause of the empty PR",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Moves all GitHub calls before the writes, so no external call happens inside the transaction",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Wraps the writes in a single transaction",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "The transaction is opened through a port (UnitOfWork / uow.run or equivalent) so the service does not import drizzle or db/client; repository methods accept a tx scope",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags getPull(prId) as not scoped by workspaceId",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags listStale / syncStale as not scoped by workspaceId (re-syncs other workspaces' PRs)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags openFindings / the findings route as not scoped by workspace (reviews.workspaceId missing, route ignores context)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags raw db rows (PullRow / FindingRow) leaking out of the repository/service to the HTTP response, or the missing response schema",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Proposes a test that proves rollback or that a failed GitHub fetch leaves the old files intact",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 9,
+        "failed": 0,
+        "total": 9,
+        "time_seconds": 37.6,
+        "tokens": 54788,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags the FastifyBaseLogger import in scoring.ts as a framework dependency in pure/domain code",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags the db/rows types (AgentRow / FindingRow) in scoring.ts and proposes contract/domain types instead",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "States that type-only imports still count as a dependency (or that arch:check sees them)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags process.env read inside weightOf and proposes passing the weight in as a parameter/config",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags Date.now() / clock inside scorePull and proposes injecting time",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags that scorePull mixes I/O (repository calls) with the calculation and splits it into a pure function + orchestration",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags repos/service.ts importing from ../reviews/* as a cross-module import",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags `new ReviewRepository(this.container.db)` inside a service method and/or the service taking the whole Container",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Recommends src/domain/<topic>/ (or reviewer-core) as the home for the pure scoring rule",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 33.9,
+        "tokens": 52237,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Notes that repository methods are already scoped by workspaceId",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Does not report any fabricated architectural violation in the labels module",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 10,
+        "failed": 0,
+        "total": 10,
+        "time_seconds": 40.9,
+        "tokens": 53104,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that routes.ts imports drizzle-orm / db schema and queries container.db directly",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags the blocked-ratio -> 'urgent'/'routine' business rule living in the route handler and proposes a pure function for it",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags manual CreateDigestBody.parse(req.body) and proposes declaring it as schema.body on the route",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags that DigestsService takes the whole Container and proposes narrow Deps",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags that the service imports drizzle-orm / db schema and proposes a repository",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags that the service imports FastifyReply / calls reply.code and proposes throwing an AppError subclass (NotFoundError)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags that the service constructs concrete adapters (OctokitGitHubClient / AnthropicProvider) itself and proposes getting them through the container/ports",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags reading API keys from process.env in the service (secrets must go through the container / SecretsProvider)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags that getOne and/or deliver load a digest by id without workspaceId scoping",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Mentions running pnpm arch:check (and not growing the baseline) as verification",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.7777777777777778,
+        "passed": 7,
+        "failed": 2,
+        "total": 9,
+        "time_seconds": 46.0,
+        "tokens": 53642,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies the non-atomic delete-then-insert of pr_files/pr_commits (+ pull update) as the root cause of the empty PR",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Moves all GitHub calls before the writes, so no external call happens inside the transaction",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Wraps the writes in a single transaction",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "The transaction is opened through a port (UnitOfWork / uow.run or equivalent) so the service does not import drizzle or db/client; repository methods accept a tx scope",
+          "passed": false,
+          "evidence": "Transaction lives inside PullSyncRepository.replaceSnapshot via db.transaction; no UnitOfWork port / opaque tx scope, so the service cannot own the boundary"
+        },
+        {
+          "text": "Flags getPull(prId) as not scoped by workspaceId",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags listStale / syncStale as not scoped by workspaceId (re-syncs other workspaces' PRs)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags openFindings / the findings route as not scoped by workspace (reviews.workspaceId missing, route ignores context)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags raw db rows (PullRow / FindingRow) leaking out of the repository/service to the HTTP response, or the missing response schema",
+          "passed": false,
+          "evidence": "Treats PullRow/FindingRow as fine ('repo.ts/PullRow are fine'); no row-leak or response-schema finding"
+        },
+        {
+          "text": "Proposes a test that proves rollback or that a failed GitHub fetch leaves the old files intact",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.7777777777777778,
+        "passed": 7,
+        "failed": 2,
+        "total": 9,
+        "time_seconds": 31.6,
+        "tokens": 49928,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags the FastifyBaseLogger import in scoring.ts as a framework dependency in pure/domain code",
+          "passed": false,
+          "evidence": "Mentions a 'Fastify logger' parameter only as test pain; never flags the fastify import as a framework dependency in domain code"
+        },
+        {
+          "text": "Flags the db/rows types (AgentRow / FindingRow) in scoring.ts and proposes contract/domain types instead",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "States that type-only imports still count as a dependency (or that arch:check sees them)",
+          "passed": false,
+          "evidence": "Does not say type-only imports still count / arch:check sees them"
+        },
+        {
+          "text": "Flags process.env read inside weightOf and proposes passing the weight in as a parameter/config",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags Date.now() / clock inside scorePull and proposes injecting time",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags that scorePull mixes I/O (repository calls) with the calculation and splits it into a pure function + orchestration",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags repos/service.ts importing from ../reviews/* as a cross-module import",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Flags `new ReviewRepository(this.container.db)` inside a service method and/or the service taking the whole Container",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Recommends src/domain/<topic>/ (or reviewer-core) as the home for the pure scoring rule",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.2857142857142857,
+        "passed": 2,
+        "failed": 5,
+        "total": 7,
+        "time_seconds": 34.0,
+        "tokens": 49464,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+          "passed": false,
+          "evidence": "Recommends adding LabelsService ('\u0442\u0430\u043a') plus types.ts with a repository port"
+        },
+        {
+          "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+          "passed": false,
+          "evidence": "Claims routes.ts 'knows about the repository and Drizzle Db' \u2014 says the module is not already onion-clean"
+        },
+        {
+          "text": "Notes that repository methods are already scoped by workspaceId",
+          "passed": false,
+          "evidence": "Does not mention workspaceId scoping in the repository"
+        },
+        {
+          "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+          "passed": true,
+          "evidence": "Satisfied in answer.md"
+        },
+        {
+          "text": "Does not report any fabricated architectural violation in the labels module",
+          "passed": false,
+          "evidence": "Lists problems that are not violations: new LabelsRepository in plugin body, NotFoundError in route"
+        },
+        {
+          "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+          "passed": false,
+          "evidence": "Main deliverable is a file list with new service.ts and types.ts"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 44.475,
+        "stddev": 10.9152,
+        "min": 33.9,
+        "max": 58.0
+      },
+      "tokens": {
+        "mean": 57795.0,
+        "stddev": 5132.8884,
+        "min": 52237,
+        "max": 63179
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.7103,
+        "stddev": 0.3018,
+        "min": 0.2857,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 38.125,
+        "stddev": 6.5652,
+        "min": 31.6,
+        "max": 46.0
+      },
+      "tokens": {
+        "mean": 51534.5,
+        "stddev": 2142.6385,
+        "min": 49464,
+        "max": 53642
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.29",
+      "time_seconds": "+6.4",
+      "tokens": "+6260"
+    }
+  },
+  "notes": []
+}

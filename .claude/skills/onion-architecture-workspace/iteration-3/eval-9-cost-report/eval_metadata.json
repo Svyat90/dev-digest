@@ -1,0 +1,28 @@
+{
+  "eval_id": 9,
+  "eval_name": "cost-report",
+  "prompt": "Звіт витрат (модуль cost-report: /Users/wekcook/code/dev-digest/.claude/skills/onion-architecture-workspace/fixtures/cost-report/server/src/modules/cost-report/) тормозить на 90 днях, а в UI для днів без даних показується $0.00. Подивись модуль: причини і як виправити.",
+  "assertions": [
+    {
+      "text": "Identifies costForDay being called per agent per day (agents x days queries) as the cause of slowness"
+    },
+    {
+      "text": "Proposes one grouped query (group by agent and day) or one query per agent instead of one per day"
+    },
+    {
+      "text": "Flags `Number(row?.total ?? 0)` in the repository as turning NULL (unknown cost) into 0 (free)"
+    },
+    {
+      "text": "Flags that the service totals and the per-day average treat unknown days as 0 and proposes an explicit unknown/null representation"
+    },
+    {
+      "text": "Proposes extracting the aggregation (bucketing, totals, average) into a pure function with a unit test that needs no DB"
+    },
+    {
+      "text": "Flags that the route has no response schema"
+    },
+    {
+      "text": "Does not claim missing workspace scoping or an import-direction violation in this module"
+    }
+  ]
+}

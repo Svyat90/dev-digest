@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "Flags that addLabel and requestReviewers are not declared on the GitHubClient port in vendor/shared/adapters.ts",
+      "passed": true,
+      "evidence": "Issue 1: GitHubClient lacks the methods; not in Octokit or Mock."
+    },
+    {
+      "text": "Flags the locally declared PrLabeler interface and/or the type cast in routes.ts as hiding the missing port methods",
+      "passed": true,
+      "evidence": "Issue 1: PrLabeler local in service and cast at routes.ts:20 fakes it."
+    },
+    {
+      "text": "Proposes the fix in order: add the methods to the port, implement them in the Octokit adapter, add them to adapters/mocks.ts",
+      "passed": true,
+      "evidence": "Plan steps 1-5: port, adapter, mock, service, route."
+    },
+    {
+      "text": "Flags repo.getRepo called inside the loop over pulls as N+1 (same repo looked up repeatedly)",
+      "passed": true,
+      "evidence": "Issue 4: getRepo and countFindings per stale PR."
+    },
+    {
+      "text": "Flags repo.countFindings called inside the loop over pulls as N+1",
+      "passed": true,
+      "evidence": "Issue 4: same."
+    },
+    {
+      "text": "Proposes a batched repository method that takes the list of PR ids (or joins repos and counts in one query)",
+      "passed": true,
+      "evidence": "listStalePullsWithFindings with join and count()."
+    },
+    {
+      "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate",
+      "passed": true,
+      "evidence": "Issue 4: selects all rows and takes rows.length."
+    },
+    {
+      "text": "Flags that a failure partway through the loop aborts the batch after some PRs were already labelled (no per-PR error handling / partial-failure handling)",
+      "passed": true,
+      "evidence": "Issue 6: error on Nth PR aborts whole batch, first PRs already labelled."
+    },
+    {
+      "text": "Does not claim that routes.ts or service.ts import drizzle-orm or a concrete adapter (no fabricated violation)",
+      "passed": true,
+      "evidence": "Explicitly: no forbidden imports found."
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "failed": 0,
+    "total": 9,
+    "pass_rate": 1.0
+  }
+}

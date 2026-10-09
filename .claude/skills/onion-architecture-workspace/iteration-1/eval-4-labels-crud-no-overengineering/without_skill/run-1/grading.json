@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+      "passed": false,
+      "evidence": "Recommends adding LabelsService ('так') plus types.ts with a repository port"
+    },
+    {
+      "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+      "passed": false,
+      "evidence": "Claims routes.ts 'knows about the repository and Drizzle Db' — says the module is not already onion-clean"
+    },
+    {
+      "text": "Notes that repository methods are already scoped by workspaceId",
+      "passed": false,
+      "evidence": "Does not mention workspaceId scoping in the repository"
+    },
+    {
+      "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Does not report any fabricated architectural violation in the labels module",
+      "passed": false,
+      "evidence": "Lists problems that are not violations: new LabelsRepository in plugin body, NotFoundError in route"
+    },
+    {
+      "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+      "passed": false,
+      "evidence": "Main deliverable is a file list with new service.ts and types.ts"
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 5,
+    "total": 7,
+    "pass_rate": 0.2857142857142857
+  }
+}

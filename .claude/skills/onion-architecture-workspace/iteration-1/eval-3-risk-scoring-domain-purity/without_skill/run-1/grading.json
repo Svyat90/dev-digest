@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "Flags the FastifyBaseLogger import in scoring.ts as a framework dependency in pure/domain code",
+      "passed": false,
+      "evidence": "Mentions a 'Fastify logger' parameter only as test pain; never flags the fastify import as a framework dependency in domain code"
+    },
+    {
+      "text": "Flags the db/rows types (AgentRow / FindingRow) in scoring.ts and proposes contract/domain types instead",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "States that type-only imports still count as a dependency (or that arch:check sees them)",
+      "passed": false,
+      "evidence": "Does not say type-only imports still count / arch:check sees them"
+    },
+    {
+      "text": "Flags process.env read inside weightOf and proposes passing the weight in as a parameter/config",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags Date.now() / clock inside scorePull and proposes injecting time",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags that scorePull mixes I/O (repository calls) with the calculation and splits it into a pure function + orchestration",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags repos/service.ts importing from ../reviews/* as a cross-module import",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags `new ReviewRepository(this.container.db)` inside a service method and/or the service taking the whole Container",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Recommends src/domain/<topic>/ (or reviewer-core) as the home for the pure scoring rule",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 2,
+    "total": 9,
+    "pass_rate": 0.7777777777777778
+  }
+}

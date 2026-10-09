@@ -1,0 +1,92 @@
+{
+  "eval-10-webhook-intake": {
+    "A": [
+      "with_skill",
+      "run-1"
+    ],
+    "B": [
+      "with_skill",
+      "run-2"
+    ],
+    "C": [
+      "old_skill",
+      "run-1"
+    ],
+    "D": [
+      "old_skill",
+      "run-2"
+    ]
+  },
+  "eval-11-slack-notifier": {
+    "A": [
+      "with_skill",
+      "run-2"
+    ],
+    "B": [
+      "with_skill",
+      "run-1"
+    ],
+    "C": [
+      "old_skill",
+      "run-1"
+    ],
+    "D": [
+      "old_skill",
+      "run-2"
+    ]
+  },
+  "eval-7-reminders-hard": {
+    "A": [
+      "with_skill",
+      "run-1"
+    ],
+    "B": [
+      "old_skill",
+      "run-2"
+    ],
+    "C": [
+      "old_skill",
+      "run-1"
+    ],
+    "D": [
+      "with_skill",
+      "run-2"
+    ]
+  },
+  "eval-8-publish-in-tx": {
+    "A": [
+      "old_skill",
+      "run-1"
+    ],
+    "B": [
+      "old_skill",
+      "run-2"
+    ],
+    "C": [
+      "with_skill",
+      "run-1"
+    ],
+    "D": [
+      "with_skill",
+      "run-2"
+    ]
+  },
+  "eval-9-cost-report": {
+    "A": [
+      "with_skill",
+      "run-2"
+    ],
+    "B": [
+      "old_skill",
+      "run-2"
+    ],
+    "C": [
+      "with_skill",
+      "run-1"
+    ],
+    "D": [
+      "old_skill",
+      "run-1"
+    ]
+  }
+}

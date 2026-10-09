@@ -1,0 +1,12 @@
+{
+  "prompt": "Хочу привести модуль labels (/Users/wekcook/code/dev-digest/.claude/skills/onion-architecture-workspace/fixtures/labels-crud/server/src/modules/labels/ + /Users/wekcook/code/dev-digest/.claude/skills/onion-architecture-workspace/fixtures/labels-crud/server/src/db/schema/labels.ts) до нормальної onion architecture: додати LabelsService, доменний шар, use-case клас на кожен ендпоінт. Розпиши, які файли створити і що в кожен покласти.",
+  "assertions": [
+    "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+    "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+    "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+    "Notes that repository methods are already scoped by workspaceId",
+    "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+    "Does not report any fabricated architectural violation in the labels module",
+    "Does not create a set of new service/use-case/domain files as the main deliverable"
+  ]
+}

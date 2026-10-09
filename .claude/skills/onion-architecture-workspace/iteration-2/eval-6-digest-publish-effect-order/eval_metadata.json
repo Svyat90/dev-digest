@@ -1,0 +1,31 @@
+{
+  "eval_id": 6,
+  "eval_name": "digest-publish-effect-order",
+  "prompt": "Є новий модуль digest-publish (файли в /Users/wekcook/code/dev-digest/.claude/skills/onion-architecture-workspace/fixtures/digest-publish/server/src/modules/digest-publish/). Користувачі скаржаться: іноді в БД є дайджест «доставлений», а коментаря в GitHub немає, а при повторі виходить два коментарі. Подивись модуль: причина, що ще не так із структури, і виправлення.",
+  "assertions": [
+    {
+      "text": "Identifies that the digest row is inserted with deliveredTo already set before the GitHub postReview call, so a GitHub failure leaves a row claiming delivery"
+    },
+    {
+      "text": "Proposes storing a not-yet-delivered/pending state first and marking it delivered only after postReview succeeds"
+    },
+    {
+      "text": "Identifies that a retry creates a second digest row and posts a second review (no idempotency)"
+    },
+    {
+      "text": "Proposes making the publish safe to repeat (idempotency key, unique constraint, or checking what was already posted)"
+    },
+    {
+      "text": "Does not recommend holding a database transaction open across the LLM or GitHub calls"
+    },
+    {
+      "text": "Flags that the route returns a raw DigestRow with no response schema (leaks every column)"
+    },
+    {
+      "text": "Does not claim the service or route imports drizzle-orm, db/schema or a concrete adapter (no fabricated violation)"
+    },
+    {
+      "text": "Mentions running pnpm arch:check as verification"
+    }
+  ]
+}
