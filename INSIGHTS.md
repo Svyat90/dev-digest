@@ -95,6 +95,30 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
 
+- **2026-10-08 — `du -L` triples a pnpm package's `node_modules` size; per-dependency `du` misses its deps.**
+  In `server/` and `client/` every top-level `node_modules/<dep>` is a symlink into
+  `node_modules/.pnpm`, which a plain `du` already counts, so `-L` counts it again.
+  And `node_modules/<dep>` resolves to the package's own directory only: its
+  dependencies are siblings in `.pnpm/<dep>@<ver>/node_modules/` (for `next`:
+  `@swc`, `sharp`, `caniuse-lite`), so they are not in that number.
+  Rule: measure a package total with plain `du -sk <pkg>/node_modules`, never `-L`;
+  label a per-dependency `du -skL node_modules/<dep>` as "own size, without
+  transitive deps", never as the dependency's cost.
+  `du -sk client/node_modules` → 644508 · `du -skL client/node_modules` → 1943604
+  (server: 282056 vs 785548)
+
+- **2026-10-08 — pnpm 12 ignores `pnpm.onlyBuiltDependencies`; a new pnpm package fails its first install on `esbuild`.**
+  A package copied from elsewhere (`evals/`) that still lists
+  `"pnpm": {"onlyBuiltDependencies": ["esbuild"]}` installs its files but exits
+  non-zero, skips the `esbuild` postinstall and writes a placeholder
+  `pnpm-workspace.yaml` containing `esbuild: set this to true or false`.
+  Rule: for every pnpm package keep a committed `pnpm-workspace.yaml` with
+  `allowBuilds:` and `esbuild: true` (as `server/` and `client/` do), then rerun
+  `pnpm install`; do not rely on the `package.json` field and do not commit the
+  placeholder as generated.
+  `pnpm install` → `ERR_PNPM_IGNORED_BUILDS  Ignored build scripts: esbuild@0.21.5, esbuild@0.28.1` ·
+  `server/pnpm-workspace.yaml`, `client/pnpm-workspace.yaml`
+
 - **2026-10-03 — A scratch tsconfig for `server/test/**` must set `rootDir: ".."` (amends 2026-09-26).**
   `server/` compiles `../reviewer-core/src` through its path alias, so a scratch
   tsconfig with `rootDir: "."` reports `TS6059: File '.../reviewer-core/src/prompt.ts'
