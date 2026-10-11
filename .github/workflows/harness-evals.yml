@@ -21,7 +21,8 @@
 # Model switch (no UI): the repo variables EVAL_MODEL / EVAL_JUDGE_MODEL (Settings → Secrets and
 # variables → Actions → Variables) set the model for every PR, and EVAL_AGENT_MODEL overrides
 # EVAL_MODEL for the agent evals only (default anthropic/claude-sonnet-5.5), with its own judge
-# EVAL_AGENT_JUDGE_MODEL (default google/gemini-3.8-flash); the workflow_dispatch inputs
+# EVAL_AGENT_JUDGE_MODEL (default google/gemini-3.8-flash); EVAL_WORKFLOW_MODEL does the same for
+# the workflow evals (default anthropic/claude-sonnet-5.5); the workflow_dispatch inputs
 # override them for one manual run. Values are OpenRouter slugs, pinned (not a ~*-latest alias)
 # so a provider-side alias move cannot change results under us. The key is the repo secret
 # OPENROUTER_API_KEY; without it (e.g. PRs from forks) the model jobs fail on the first step.
@@ -42,6 +43,10 @@ on:
         default: ''
       agent_model:
         description: OpenRouter slug for the agent evals only (empty = repo var EVAL_AGENT_MODEL, else Claude Sonnet 5.5)
+        required: false
+        default: ''
+      workflow_model:
+        description: OpenRouter slug for the workflow evals only (empty = repo var EVAL_WORKFLOW_MODEL, else Claude Sonnet 5.5)
         required: false
         default: ''
       agent_judge_model:
@@ -271,6 +276,10 @@ jobs:
         working-directory: evals
     env:
       OPENROUTER_BASE_URL: http://localhost:4000
+      # Workflow cases assert real harness behaviour, including subagent dispatch. DeepSeek V4 Flash
+      # does the work inline instead of dispatching (README › Which cheap model); measured locally:
+      # Sonnet 5.5 → 7/7 in ~2.5 min. Trace cases have no judge.
+      EVAL_MODEL: ${{ inputs.workflow_model || vars.EVAL_WORKFLOW_MODEL || 'anthropic/claude-sonnet-5.5' }}
     steps:
       - name: require OPENROUTER_API_KEY
         working-directory: .

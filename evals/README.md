@@ -223,6 +223,8 @@ session wrote to the checkout.
   `anthropic/claude-sonnet-5.5` judged by `google/gemini-3.8-flash`). On DeepSeek V4 Flash the
   agent cases timed out at 240 s, missed verbatim evidence, and as a judge it failed a practice
   with empty evidence on an output that met it.
+- variable `EVAL_WORKFLOW_MODEL` — the workflow evals only (default `anthropic/claude-sonnet-5.5`):
+  DeepSeek V4 Flash skips the `architecture-reviewer` dispatch the API-route trace asserts.
 - `EVAL_TEST_TIMEOUT_MS` — per-test budget (local default 240 s; CI sets 600 s for reasoning models).
 
 Use a pinned slug, not a `~…-latest` alias, so results cannot move under you. For one run on
