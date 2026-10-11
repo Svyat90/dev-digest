@@ -29,4 +29,8 @@ general_settings:
   # No master_key on purpose: this is an ephemeral local/CI gateway. It runs in "no-auth" mode,
   # so the bearer token the SDK forwards (ANTHROPIC_AUTH_TOKEN=OPENROUTER_API_KEY) is ignored and
   # the proxy authenticates to OpenRouter with OPENROUTER_API_KEY from its own environment.
-  # Do NOT expose this port publicly.
+  # Do NOT expose this port publicly — docker-compose.yml binds it to 127.0.0.1 only.
+  #
+  # LiteLLM >= 1.105 refuses to boot without a master key (UnsafeMasterKeyError, "no master key
+  # is set"); this flag is its documented opt-out for exactly this local no-auth use.
+  dangerously_permit_weak_or_unset_master_key: true

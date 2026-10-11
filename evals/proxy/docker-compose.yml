@@ -11,10 +11,13 @@
 
 services:
   litellm:
-    image: ghcr.io/berriai/litellm:main-stable
+    # Pinned by digest (LiteLLM 1.105.0, the main-stable build of 2026-09-16): the floating
+    # main-stable tag once shipped a boot-time master-key check that broke every CI run.
+    image: ghcr.io/berriai/litellm@sha256:60947db020b57e204823d3fbc8bb295c85be890d7c9adcc77fb4f5fc2fe410b2
     container_name: devdigest-eval-litellm
     ports:
-      - "4000:4000"
+      # Loopback only: the proxy has no auth and spends the OpenRouter key.
+      - "127.0.0.1:4000:4000"
     environment:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY in the environment}
     volumes:
