@@ -188,60 +188,33 @@ workflow cases:
 
 ### Wiring it into GitHub Actions (per-PR)
 
-The engine is CI-ready: bring the proxy up as a step, wait for it, run the tier, tear it down. Put
-the OpenRouter key in the repo's **Actions secrets** as `OPENROUTER_API_KEY` (Settings → Secrets and
-variables → Actions). Create `.github/workflows/<name>.yml` in your repo:
+This repo runs it as `.github/workflows/harness-evals.yml` on every PR that touches `.claude/**`,
+any `CLAUDE.md`, or `evals/**`. `scripts/ci-detect.mjs` maps the diff onto suites:
 
-```yaml
-name: evals
-on:
-  pull_request:
-    paths: ['evals/**', '.claude/**', 'CLAUDE.md']   # only when the harness/artifacts change
+| Changed | Runs |
+|---|---|
+| `.claude/skills/<name>/**` or `evals/skills/<name>/**` | `skills/<name>/` (content tier, direct OpenRouter call) |
+| `.claude/agents/<name>.md` or `evals/agents/<name>/**` | `agents/<name>/` (tool tier, through the proxy) |
+| any `CLAUDE.md`, any agent, `.claude/settings.json`, `.claude/hooks/**`, `evals/workflow/**` | `workflow` (through the proxy) |
+| `evals/src/**`, `evals/proxy/**`, `evals/scripts/**`, the manifest/lockfile, the workflow file | every suite that has evals |
 
-permissions:
-  contents: read
+A changed skill or agent with no evals prints `SKIP <name> (no evals)` and runs nothing. A free
+`quality` job (typecheck, deterministic unit tests, `eval:quality`) runs on every such PR.
 
-jobs:
-  workflow-evals:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: evals
-    env:
-      EVAL_BACKEND: openrouter
-      OPENROUTER_BASE_URL: http://localhost:4000
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}   # repo Actions secret
-      EVAL_MODEL: google/gemini-2.5-flash
-      EVAL_JUDGE_MODEL: google/gemini-2.5-flash
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 10 }
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: evals/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
+**Non-blocking.** Every check step is `continue-on-error`: a failing eval never turns the PR red.
+It leaves a `::warning::` annotation, the step log, and the run's `results/` uploaded as an
+artifact. `scripts/ci-assert-clean.sh` runs after each model job and warns if a session wrote to
+the checkout.
 
-      # --- the engine ---
-      - run: docker compose -f proxy/docker-compose.yml up -d   # OPENROUTER_API_KEY from job env
-      - run: pnpm proxy:wait                                     # block until the proxy answers
-      - run: pnpm eval:workflow                                  # or eval:agents / eval:skills / eval
-      - if: failure()
-        run: docker compose -f proxy/docker-compose.yml logs --tail 100
-      - if: always()
-        run: docker compose -f proxy/docker-compose.yml down
-```
+**Setup and model switch** (Settings → Secrets and variables → Actions):
 
-Notes:
-- ubuntu runners ship Docker + `docker compose`, so no extra setup is needed.
-- The proxy container reads `OPENROUTER_API_KEY` straight from the job `env` (which is fed by the
-  secret) — you don't pass it to `docker compose` explicitly.
-- Because tool tiers cost real tokens, gate on `paths:` (only when the harness/artifacts change) and
-  keep the case count small. For a stricter gate, split into a required `eval:agents`/`eval:skills`
-  job and a non-blocking `eval:workflow` job (activation flakiness, above).
+- secret `OPENROUTER_API_KEY` — required for every model job;
+- variable `EVAL_MODEL` — model under test for every PR (default `deepseek/deepseek-v4-flash`);
+- variable `EVAL_JUDGE_MODEL` — the judge (default: same as `EVAL_MODEL`).
+
+Use a pinned slug, not a `~…-latest` alias, so results cannot move under you. For one run on
+another model, start the workflow manually (Actions → harness evals → Run workflow) with the
+`model` / `judge_model` inputs; `full` (default on) runs every suite.
 
 ## Module layout — `src/` (the engine)
 
