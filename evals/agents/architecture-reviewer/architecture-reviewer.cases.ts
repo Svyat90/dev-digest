@@ -7,13 +7,13 @@ const REVIEW_PROMPT = `Audit this diff against DevDigest's documented structural
 
 ${fx("checkout-service.diff")}`;
 
-// A second real diff whose violations map onto DevDigest-SPECIFIC rule names
-// (`reviewer-core-zero-io`, `reviewer-core-ground-findings-gate`) that a competent model will
-// describe in prose but will not spontaneously name unless the agent forces a citation. This is
-// the discriminating case for the strict-vs-lite A/B: both variants should FIND both problems,
-// but only the strict variant (which keeps the "cite the exact documented rule per finding" hard
-// rule) should reliably emit the identifier. The checkout diff's textbook violations don't
-// discriminate — the model volunteers `inward-only-dependencies`/`di-discipline` either way.
+// A second real diff whose violations map onto DevDigest-SPECIFIC written rules (the purity rule
+// in reviewer-core/CLAUDE.md and the groundFindings gate in reviewer-core/docs/pipeline.md) that a
+// competent model will describe in prose but will not spontaneously cite unless the agent forces a
+// citation. This is the discriminating case for the strict-vs-lite A/B: both variants should FIND
+// both problems, but only the strict variant (which keeps the "name the written rule per finding"
+// hard rule) should reliably cite the source. The checkout diff's textbook violations discriminate
+// less — the arch:check rule names are easy to volunteer either way.
 const REVIEWER_CORE_PROMPT = `Audit this diff against DevDigest's documented structural contracts.
 
 ${fx("reviewer-core-gate.diff")}`;
@@ -36,12 +36,12 @@ export const cases: AgentCase[] = [
     kind: "quality",
     prompt: REVIEW_PROMPT,
     practices: [
-      "flags the domain file (checkout.ts) importing a type from 'fastify' as a violation of the inward-only dependency rule between Domain and Presentation layers",
-      "flags the `new PgCheckoutRepository()` call inside service.ts as a violation of DI discipline (concrete adapters/repositories must be constructed only in the composition root / container)",
-      "names the specific documented rule identifier for EVERY finding (e.g. `inward-only-dependencies`, `di-discipline`) rather than describing the problem only in prose",
-      "assigns a severity (critical/high/medium/low/info) to each finding",
+      "flags the domain file (checkout.ts) importing a type from 'fastify' as a violation of the rule that only the presentation ring and the composition root may know Fastify (inward-only dependencies between rings)",
+      "flags the `new PgCheckoutRepository()` call inside service.ts as a violation of DI discipline (implementations are chosen and constructed only in the composition root / container, platform/container.ts)",
+      "names a specific documented rule for EVERY finding — an `arch:check` rule name (e.g. `no-framework-below-routes`), an onion-architecture section, or a precheck signal (e.g. `construct-in-service`) — rather than describing the problem only in prose",
+      "assigns a severity (e.g. CRITICAL/MAJOR/MINOR/NIT or critical/high/medium/low) to each finding",
       "quotes the offending line verbatim as evidence for each finding, not a paraphrase",
-      "ends with an explicit PASS/FAIL gate verdict based on whether any critical or high findings exist",
+      "ends with an explicit gate verdict (PASS/BLOCKED or PASS/FAIL) based on the severity of the findings",
     ],
     threshold: 1.0,
     maxTurns: 25,
@@ -51,7 +51,7 @@ export const cases: AgentCase[] = [
     kind: "quality",
     prompt: REVIEW_PROMPT,
     practices: [
-      "does not invent an architecture-contract violation for the optional `reply?: FastifyReply` parameter beyond the inward-only-dependencies import issue itself (no runtime bug/security finding fabricated as an architecture rule)",
+      "does not invent an architecture-contract violation for the optional `reply?: FastifyReply` parameter beyond the Fastify-import-in-domain issue itself (no runtime bug/security finding fabricated as an architecture rule)",
       "stays scoped to structural/layering/DI findings and does not comment on naming, style, or test coverage",
     ],
     threshold: 1.0,
@@ -62,12 +62,12 @@ export const cases: AgentCase[] = [
     kind: "quality",
     prompt: REVIEWER_CORE_PROMPT,
     practices: [
-      "flags the `import { readFileSync } from 'node:fs'` added to reviewer-core/src/pipeline/run.ts as a violation (reviewer-core must do no I/O except the injected LLMProvider)",
-      "flags that runPipeline now returns `deduped` directly, skipping the mandatory `groundFindings()` gate before emitting findings",
-      "names the exact documented rule identifier `reviewer-core-zero-io` for the fs-import finding rather than only describing it in prose",
-      "names the exact documented rule identifier `reviewer-core-ground-findings-gate` for the skipped-gate finding rather than only describing it in prose",
+      "flags the `import { readFileSync } from 'node:fs'` (and the readFileSync call) added to reviewer-core/src/review/run.ts as a violation (reviewer-core must do no I/O except the injected LLMProvider)",
+      "flags that reviewPullRequest now returns `merged.findings` directly, removing the mandatory `groundFindings()` citation-grounding gate before emitting findings",
+      "cites the documented reviewer-core purity rule (reviewer-core/CLAUDE.md, 'Purity is the point': no filesystem access, the only side effect is the injected LLMProvider) for the fs-import finding rather than only describing it in prose",
+      "cites a written source for the mandatory grounding gate (reviewer-core/specs/review-contract.md § Grounding, reviewer-core/CLAUDE.md 'Grounding is one shared gate', or reviewer-core/docs/pipeline.md) for the skipped-gate finding rather than only describing it in prose",
       "quotes the offending line verbatim as evidence for each finding, not a paraphrase",
-      "ends with an explicit PASS/FAIL gate verdict based on whether any critical or high findings exist",
+      "ends with an explicit gate verdict (PASS/BLOCKED or PASS/FAIL) based on the severity of the findings",
     ],
     threshold: 1.0,
     maxTurns: 25,
@@ -77,7 +77,7 @@ export const cases: AgentCase[] = [
     kind: "quality",
     prompt: BENIGN_PROMPT,
     practices: [
-      "reports no violations for the benign rename (or records only `info`-level, non-blocking observations) — it does not invent a critical/high/medium finding",
+      "reports no violations for the benign rename (or records only NIT/info-level, non-blocking observations) — it does not invent a CRITICAL/MAJOR/MINOR (critical/high/medium) finding",
       "does not fabricate a documented-rule violation where the diff violates none of the checked rules",
       "the final gate verdict is PASS",
     ],
