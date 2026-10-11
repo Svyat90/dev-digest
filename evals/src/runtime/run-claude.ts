@@ -148,7 +148,10 @@ export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<
     }
   } catch (err) {
     isError = true;
-    if (!resultText && textParts.length === 0) {
+    // A tool trace is usable on its own: a max-turns stop after only tool calls still answers an
+    // activation or trace case ("was the skill invoked?"), so only a run with no text AND no tool
+    // call is a failure worth surfacing.
+    if (!resultText && textParts.length === 0 && tools.length === 0) {
       throw err; // nothing usable collected — surface the failure
     }
   }
