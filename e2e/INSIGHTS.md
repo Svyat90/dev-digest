@@ -14,6 +14,17 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-09-30 — A green `./scripts/e2e.sh` does not mean CI will pass: it runs `next dev`, CI runs a production build.**
+  Against `next build && next start` the PR list renders faster than the data, so
+  `find text "<PR title>" click` straight after `wait --url /pulls` fires while the page
+  still shows "Loading pull requests…" and fails with
+  "Command failed: agent-browser find text Add rate limiting to public API endpoints click".
+  Under `next dev` the same flows pass.
+  Rule: before any `find … click` on data-driven content, add a `wait --text` for that
+  content; to reproduce CI locally, run a copy of `scripts/e2e.sh` with
+  `next build && NEXT_DIST_DIR=.next-e2e next start -p "$WEB_PORT"` in place of `next dev`.
+  `e2e/specs/04-pr-findings.flow.json:7`, `.github/workflows/e2e-web.yml` (Build + start web)
+
 ## Codebase Patterns
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
@@ -50,6 +61,11 @@ Dated summary, only when a session changed how this package is worked on.
 ## Open Questions
 
 What was left unresolved, so the next session does not re-investigate blind.
+
+- **2026-09-30 — Resolved (supersedes the 2026-09-26 flow 02 entry below): the FINDINGS header is CSS-uppercased.**
+  `headRow` sets `textTransform: "uppercase"`, so the rendered header is "FINDINGS";
+  flow 02 now waits for `FINDINGS` and passes (8/8 in dev and prod mode).
+  `client/src/app/(shell)/repos/[repoId]/pulls/styles.ts:115`, `e2e/specs/02-repo-pulls-detail.flow.json:8`
 
 - **2026-09-26 — Flow 02 fails at `wait --text Findings` on a clean hermetic run, before Smart Diff too.**
   `./scripts/e2e.sh` on `feature/l03-intent-layer` gives 6/7 with
