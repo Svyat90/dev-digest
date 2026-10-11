@@ -1,0 +1,303 @@
+# Harness evals — the Claude Code harness itself (.claude/skills, .claude/agents, every
+# CLAUDE.md), measured by the evals/ package on OpenRouter.
+#
+# Jobs:
+#  - detect:   maps the PR diff onto suites (evals/scripts/ci-detect.mjs). A changed skill or
+#              agent with no evals prints "SKIP <name> (no evals)" and runs nothing.
+#  - quality:  free, no model — evals typecheck, deterministic unit tests, SKILL.md static gate.
+#  - skills:   one matrix leg per changed skill that has evals. Content tier: a direct
+#              OpenAI-format call to OpenRouter, no proxy.
+#  - agents:   one leg per changed agent that has evals. Tool tier: the Claude Agent SDK, routed
+#              through the LiteLLM proxy (evals/proxy) so a non-Anthropic model can back it.
+#  - workflow: any CLAUDE.md / agent / project settings / hooks / workflow-case change. Same proxy.
+#
+# NON-BLOCKING BY DESIGN: every check step is `continue-on-error`, so an eval failure never
+# turns the PR red. A failed suite leaves a ::warning:: annotation and the step log; the raw
+# records (evals/results/) are uploaded as a run artifact for diagnosis.
+#
+# Model switch (no UI): the repo variables EVAL_MODEL / EVAL_JUDGE_MODEL (Settings → Secrets and
+# variables → Actions → Variables) set the model for every PR; the workflow_dispatch inputs
+# override them for one manual run. Values are OpenRouter slugs, pinned (not a ~*-latest alias)
+# so a provider-side alias move cannot change results under us. The key is the repo secret
+# OPENROUTER_API_KEY; PRs from forks get no secrets, so their model jobs fail soft.
+name: harness evals
+
+on:
+  pull_request:
+    paths:
+      - '.claude/**'
+      - '**/CLAUDE.md'
+      - 'evals/**'
+      - '.github/workflows/harness-evals.yml'
+  workflow_dispatch:
+    inputs:
+      model:
+        description: OpenRouter slug for the model under test (empty = repo var EVAL_MODEL, else DeepSeek V4 Flash)
+        required: false
+        default: ''
+      judge_model:
+        description: OpenRouter slug for the LLM judge (empty = repo var EVAL_JUDGE_MODEL, else the model under test)
+        required: false
+        default: ''
+      full:
+        description: Run every suite that has evals, not only the ones the diff touches
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harness-evals-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  EVAL_BACKEND: openrouter
+  EVAL_MODEL: ${{ inputs.model || vars.EVAL_MODEL || 'deepseek/deepseek-v4-flash' }}
+  EVAL_JUDGE_MODEL: ${{ inputs.judge_model || vars.EVAL_JUDGE_MODEL || inputs.model || vars.EVAL_MODEL || 'deepseek/deepseek-v4-flash' }}
+  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
+jobs:
+  detect:
+    name: detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      skills: ${{ steps.detect.outputs.skills }}
+      agents: ${{ steps.detect.outputs.agents }}
+      run_workflow: ${{ steps.detect.outputs.run_workflow }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: detect
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          FULL: ${{ github.event_name == 'workflow_dispatch' && inputs.full && '1' || '0' }}
+        run: |
+          if [ -n "$BASE_SHA" ]; then
+            CHANGED_FILES="$(git diff --name-only "$BASE_SHA"...HEAD)"
+          else
+            CHANGED_FILES=""
+          fi
+          export CHANGED_FILES
+          node evals/scripts/ci-detect.mjs
+          echo "model under test: $EVAL_MODEL · judge: $EVAL_JUDGE_MODEL"
+
+  quality:
+    name: quality (no model)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: evals
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: evals/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - id: typecheck
+        continue-on-error: true
+        run: pnpm typecheck
+
+      - id: unit
+        continue-on-error: true
+        run: pnpm exec vitest run --exclude '**/*.eval.ts'
+
+      - id: static
+        continue-on-error: true
+        run: pnpm eval:quality
+
+      - if: steps.typecheck.outcome == 'failure' || steps.unit.outcome == 'failure' || steps.static.outcome == 'failure'
+        run: echo "::warning title=harness evals · quality::typecheck=${{ steps.typecheck.outcome }} unit=${{ steps.unit.outcome }} static=${{ steps.static.outcome }} (non-blocking)"
+
+  skills:
+    name: skill · ${{ matrix.skill }}
+    needs: detect
+    if: needs.detect.outputs.skills != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        skill: ${{ fromJSON(needs.detect.outputs.skills) }}
+    defaults:
+      run:
+        working-directory: evals
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: evals/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # Trailing slash: `skills/foo` would also match `skills/foo-bar/`.
+      - id: eval
+        continue-on-error: true
+        run: pnpm exec vitest run "skills/${{ matrix.skill }}/" --no-file-parallelism
+
+      - if: steps.eval.outcome == 'failure'
+        run: echo "::warning title=harness evals · skill ${{ matrix.skill }}::failed on $EVAL_MODEL (non-blocking) — see the step log"
+
+      - id: clean
+        if: always()
+        continue-on-error: true
+        working-directory: .
+        run: ./evals/scripts/ci-assert-clean.sh
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-skill-${{ matrix.skill }}
+          path: evals/results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  agents:
+    name: agent · ${{ matrix.agent }}
+    needs: detect
+    if: needs.detect.outputs.agents != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      # Tool tiers on cheap OpenRouter models get rate-limited under load — one leg at a time.
+      max-parallel: 1
+      matrix:
+        agent: ${{ fromJSON(needs.detect.outputs.agents) }}
+    defaults:
+      run:
+        working-directory: evals
+    env:
+      OPENROUTER_BASE_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: evals/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - id: proxy
+        continue-on-error: true
+        run: |
+          docker compose -f proxy/docker-compose.yml up -d
+          pnpm proxy:wait
+
+      - id: eval
+        if: steps.proxy.outcome == 'success'
+        continue-on-error: true
+        run: pnpm exec vitest run "agents/${{ matrix.agent }}/" --no-file-parallelism
+
+      - if: steps.proxy.outcome != 'success' || steps.eval.outcome == 'failure'
+        run: echo "::warning title=harness evals · agent ${{ matrix.agent }}::proxy=${{ steps.proxy.outcome }} eval=${{ steps.eval.outcome }} on $EVAL_MODEL (non-blocking) — see the step log"
+
+      - if: steps.proxy.outcome != 'success' || steps.eval.outcome == 'failure'
+        continue-on-error: true
+        run: docker compose -f proxy/docker-compose.yml logs --tail 100
+
+      - id: clean
+        if: always()
+        continue-on-error: true
+        working-directory: .
+        run: ./evals/scripts/ci-assert-clean.sh
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-agent-${{ matrix.agent }}
+          path: evals/results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - if: always()
+        continue-on-error: true
+        run: docker compose -f proxy/docker-compose.yml down
+
+  workflow:
+    name: workflow (CLAUDE.md routing, activation, dispatch)
+    needs: detect
+    if: needs.detect.outputs.run_workflow == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: evals
+    env:
+      OPENROUTER_BASE_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: evals/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - id: proxy
+        continue-on-error: true
+        run: |
+          docker compose -f proxy/docker-compose.yml up -d
+          pnpm proxy:wait
+
+      - id: eval
+        if: steps.proxy.outcome == 'success'
+        continue-on-error: true
+        run: pnpm exec vitest run workflow --no-file-parallelism
+
+      - if: steps.proxy.outcome != 'success' || steps.eval.outcome == 'failure'
+        run: echo "::warning title=harness evals · workflow::proxy=${{ steps.proxy.outcome }} eval=${{ steps.eval.outcome }} on $EVAL_MODEL (non-blocking) — see the step log"
+
+      - if: steps.proxy.outcome != 'success' || steps.eval.outcome == 'failure'
+        continue-on-error: true
+        run: docker compose -f proxy/docker-compose.yml logs --tail 100
+
+      - id: clean
+        if: always()
+        continue-on-error: true
+        working-directory: .
+        run: ./evals/scripts/ci-assert-clean.sh
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-workflow
+          path: evals/results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - if: always()
+        continue-on-error: true
+        run: docker compose -f proxy/docker-compose.yml down
