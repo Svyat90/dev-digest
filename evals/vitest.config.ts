@@ -11,6 +11,12 @@ export default defineConfig({
     hookTimeout: 240_000,
     // One session per test; a few files can run concurrently. Keep it modest to stay cheap.
     fileParallelism: true,
-    reporters: ["default", new TrendReporter()],
+    // Vitest adds "github-actions" on CI only when no reporters are configured, so add it here:
+    // each failed case becomes an annotation (test name + error) on the PR's Checks page.
+    reporters: [
+      "default",
+      new TrendReporter(),
+      ...(process.env.GITHUB_ACTIONS === "true" ? ["github-actions" as const] : []),
+    ],
   },
 });

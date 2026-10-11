@@ -10,7 +10,7 @@ set -euo pipefail
 
 dirty="$(git status --porcelain)"
 if [[ -n "$dirty" ]]; then
-  echo "::warning title=harness evals · repo modified::an eval session wrote to the checkout (non-blocking)"
+  echo "::error title=harness evals · repo modified::an eval session wrote to the checkout"
   echo "$dirty"
   git --no-pager diff --stat
   exit 1

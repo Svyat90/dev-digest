@@ -201,10 +201,12 @@ any `CLAUDE.md`, or `evals/**`. `scripts/ci-detect.mjs` maps the diff onto suite
 A changed skill or agent with no evals prints `SKIP <name> (no evals)` and runs nothing. A free
 `quality` job (typecheck, deterministic unit tests, `eval:quality`) runs on every such PR.
 
-**Non-blocking.** Every check step is `continue-on-error`: a failing eval never turns the PR red.
-It leaves a `::warning::` annotation, the step log, and the run's `results/` uploaded as an
-artifact. `scripts/ci-assert-clean.sh` runs after each model job and warns if a session wrote to
-the checkout.
+**Visible, not blocking.** A failing eval fails its job: the PR shows a red check named after
+the skill, agent or tier, and the vitest `github-actions` reporter annotates each failed case
+(test name + error) on the Checks page. Merging stays possible because none of these checks is a
+required status check — keep them out of `main`'s branch protection and rulesets. The run's
+`results/` is uploaded as an artifact, and `scripts/ci-assert-clean.sh` fails the job if a
+session wrote to the checkout.
 
 **Setup and model switch** (Settings → Secrets and variables → Actions):
 
