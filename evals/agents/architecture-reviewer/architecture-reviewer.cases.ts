@@ -41,7 +41,9 @@ export const cases: AgentCase[] = [
       "names a specific documented rule for EVERY finding — an `arch:check` rule name (e.g. `no-framework-below-routes`), an onion-architecture section, or a precheck signal (e.g. `construct-in-service`) — rather than describing the problem only in prose",
       "assigns a severity (e.g. CRITICAL/MAJOR/MINOR/NIT or critical/high/medium/low) to each finding",
       "quotes the offending line verbatim as evidence for each finding, not a paraphrase",
-      "ends with an explicit gate verdict (PASS/BLOCKED or PASS/FAIL) based on the severity of the findings",
+      // The agent's output contract puts `Status:` at the TOP of the report, so the verdict is
+      // judged by presence and correctness, not position.
+      "states an explicit gate verdict (e.g. `Status: PASS` / `Status: BLOCKED`, anywhere in the report) that matches the findings: BLOCKED when at least one CRITICAL finding stands, PASS only when none does",
     ],
     threshold: 1.0,
     maxTurns: 25,
@@ -67,7 +69,9 @@ export const cases: AgentCase[] = [
       "cites the documented reviewer-core purity rule (reviewer-core/CLAUDE.md, 'Purity is the point': no filesystem access, the only side effect is the injected LLMProvider) for the fs-import finding rather than only describing it in prose",
       "cites a written source for the mandatory grounding gate (reviewer-core/specs/review-contract.md § Grounding, reviewer-core/CLAUDE.md 'Grounding is one shared gate', or reviewer-core/docs/pipeline.md) for the skipped-gate finding rather than only describing it in prose",
       "quotes the offending line verbatim as evidence for each finding, not a paraphrase",
-      "ends with an explicit gate verdict (PASS/BLOCKED or PASS/FAIL) based on the severity of the findings",
+      // The agent's output contract puts `Status:` at the TOP of the report, so the verdict is
+      // judged by presence and correctness, not position.
+      "states an explicit gate verdict (e.g. `Status: PASS` / `Status: BLOCKED`, anywhere in the report) that matches the findings: BLOCKED when at least one CRITICAL finding stands, PASS only when none does",
     ],
     threshold: 1.0,
     maxTurns: 25,
