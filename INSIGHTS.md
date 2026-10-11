@@ -106,6 +106,17 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
 
+- **2026-10-11 — A failing CI job's log cannot be read from the dev machine; reproduce locally instead.**
+  `gh` is not installed, the job page answers WebFetch with "Sign in to view logs",
+  and the public check-run annotations API returns only
+  "Process completed with exit code 1." — no failing step or flow name.
+  Rule: for a red `e2e web / browser flows` check, skip the log hunt and run the
+  production-mode copy of `scripts/e2e.sh` (see `e2e/INSIGHTS.md`, 2026-09-30)
+  on free ports, e.g. `E2E_PG_PORT=5441 E2E_API_PORT=3201 E2E_WEB_PORT=3200`;
+  for other jobs ask the user to paste the log.
+  `command -v gh` → not found ·
+  `curl -s https://api.github.com/repos/Svyat90/dev-digest/check-runs/<id>/annotations`
+
 - **2026-10-11 — In `evals/`, `allowedTools` does not stop a session from writing to the repo.**
   Sessions run with `permissionMode: "bypassPermissions"`, where `allowedTools`
   only pre-approves; every other tool still runs. The workflow case
