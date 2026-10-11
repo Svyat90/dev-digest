@@ -19,7 +19,9 @@
 # (evals/results/) are uploaded as a run artifact for diagnosis.
 #
 # Model switch (no UI): the repo variables EVAL_MODEL / EVAL_JUDGE_MODEL (Settings → Secrets and
-# variables → Actions → Variables) set the model for every PR; the workflow_dispatch inputs
+# variables → Actions → Variables) set the model for every PR, and EVAL_AGENT_MODEL overrides
+# EVAL_MODEL for the agent evals only (default anthropic/claude-sonnet-5.5), with its own judge
+# EVAL_AGENT_JUDGE_MODEL (default google/gemini-3.8-flash); the workflow_dispatch inputs
 # override them for one manual run. Values are OpenRouter slugs, pinned (not a ~*-latest alias)
 # so a provider-side alias move cannot change results under us. The key is the repo secret
 # OPENROUTER_API_KEY; without it (e.g. PRs from forks) the model jobs fail on the first step.
@@ -36,6 +38,14 @@ on:
     inputs:
       model:
         description: OpenRouter slug for the model under test (empty = repo var EVAL_MODEL, else DeepSeek V4 Flash)
+        required: false
+        default: ''
+      agent_model:
+        description: OpenRouter slug for the agent evals only (empty = repo var EVAL_AGENT_MODEL, else Claude Sonnet 5.5)
+        required: false
+        default: ''
+      agent_judge_model:
+        description: OpenRouter slug for the judge of the agent evals only (empty = repo var EVAL_AGENT_JUDGE_MODEL, else Gemini 3.8 Flash)
         required: false
         default: ''
       judge_model:
@@ -59,6 +69,8 @@ env:
   EVAL_MODEL: ${{ inputs.model || vars.EVAL_MODEL || 'deepseek/deepseek-v4-flash' }}
   EVAL_JUDGE_MODEL: ${{ inputs.judge_model || vars.EVAL_JUDGE_MODEL || inputs.model || vars.EVAL_MODEL || 'deepseek/deepseek-v4-flash' }}
   OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+  # DeepSeek V4 Flash reasons before answering: one agent case took > 240 s (the local default).
+  EVAL_TEST_TIMEOUT_MS: '600000'
 
 jobs:
   detect:
@@ -118,7 +130,7 @@ jobs:
     needs: detect
     if: needs.detect.outputs.skills != '[]'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -174,7 +186,7 @@ jobs:
     needs: detect
     if: needs.detect.outputs.agents != '[]'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50
     strategy:
       fail-fast: false
       # Tool tiers on cheap OpenRouter models get rate-limited under load — one leg at a time.
@@ -186,6 +198,13 @@ jobs:
         working-directory: evals
     env:
       OPENROUTER_BASE_URL: http://localhost:4000
+      # Agent evals grade a full review (verbatim evidence, cited rules, a verdict); DeepSeek V4
+      # Flash fell short there (5/6 on a 1.0-threshold case), so this tier runs on a stronger model.
+      # The judge is a different family (softens self-preference) and stronger than DeepSeek V4
+      # Flash, which twice failed "quotes the line verbatim" with empty evidence on an output that
+      # did quote it. Measured locally: Sonnet 5.5 + Gemini 3.8 Flash judge → 4/4.
+      EVAL_MODEL: ${{ inputs.agent_model || vars.EVAL_AGENT_MODEL || 'anthropic/claude-sonnet-5.5' }}
+      EVAL_JUDGE_MODEL: ${{ inputs.agent_judge_model || vars.EVAL_AGENT_JUDGE_MODEL || 'google/gemini-3.8-flash' }}
     steps:
       - name: require OPENROUTER_API_KEY
         working-directory: .
@@ -246,7 +265,7 @@ jobs:
     needs: detect
     if: needs.detect.outputs.run_workflow == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: evals
