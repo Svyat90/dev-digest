@@ -152,26 +152,29 @@ export function runWorkflowCases(cases: WorkflowCase[]): void {
         const skillEngaged = (p: { skillsInvoked: string[]; filesRead: string[] }, skill: string) =>
           p.skillsInvoked.some((s) => s === skill || s.endsWith(`:${skill}`)) ||
           p.filesRead.some((f) => f.includes(`skills/${skill}/SKILL.md`));
+        // Also stop once every expected subagent is dispatched: the main agent reads nothing more
+        // until the subagent returns, so waiting only burns the test timeout on its full run.
         const result = await workflowTask(c.prompt, {
           maxTurns: c.maxTurns,
           stopWhen: (p) =>
-            subs.every((s) => p.subagents.includes(s)) &&
-            skls.every((s) => skillEngaged(p, s)) &&
-            files.every((f) => p.filesRead.some((r) => r.includes(f))),
+            (subs.length > 0 && subs.every((s) => p.subagents.includes(s))) ||
+            (subs.every((s) => p.subagents.includes(s)) &&
+              skls.every((s) => skillEngaged(p, s)) &&
+              files.every((f) => p.filesRead.some((r) => r.includes(f)))),
         });
         logTrace(c.name, result);
         try {
           for (const sub of c.expectSubagents ?? []) {
-            expect(result.subagents, `subagents: ${result.subagents.join(", ")}`).toContain(sub);
+            expect.soft(result.subagents, `subagents: ${result.subagents.join(", ")}`).toContain(sub);
           }
           for (const skill of c.expectSkills ?? []) {
-            expect(
+            expect.soft(
               activated(result, skill),
               `skill ${skill} not engaged | skills: ${result.skillsInvoked.join(", ")} | reads: ${result.filesRead.join(", ")}`,
             ).toBe(true);
           }
           for (const file of c.expectFilesRead ?? []) {
-            expect(
+            expect.soft(
               result.filesRead.some((f) => f.includes(file)),
               `${file} not read | reads: ${result.filesRead.join(", ")}`,
             ).toBe(true);
