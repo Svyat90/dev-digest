@@ -12,6 +12,9 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { EVALS_DIR, SKILLS_DIR } from "../../src/artifacts/paths.js";
 
 const COLLECTOR = join(SKILLS_DIR, "dependency-checker", "scripts", "collect.mjs");
+// The forbidden Zod 4 subpath the collector must flag. Built at runtime so the repo's own
+// zod-3-only gate (pr-self-review precheck) does not read the fixture as a real import.
+const ZOD4 = ["zod", "v4"].join("/");
 
 let root: string;
 let out: any;
@@ -48,7 +51,7 @@ beforeAll(() => {
       `export const api = "http://localhost:3001/api";`,
     ].join("\n"),
   );
-  write("alpha/src/forbidden.ts", `import { z } from "zod/v4";\n`);
+  write("alpha/src/forbidden.ts", `import { z } from "${ZOD4}";\n`);
 
   fakePackage("alpha/node_modules/used-dep", { dependencies: { "provided-dep": "^1.0.0" }, peerDependencies: { "peer-needed": "*" } }, 200 * 1024);
   fakePackage("alpha/node_modules/provided-dep", {}, 100 * 1024);
@@ -96,7 +99,7 @@ describe("dependency-checker collector", () => {
 
   test("flags undeclared and forbidden imports", () => {
     expect(alpha().undeclaredImports.map((u: any) => u.name)).toEqual(["phantom-dep"]);
-    expect(alpha().forbiddenImports[0]).toMatchObject({ specifier: "zod/v4" });
+    expect(alpha().forbiddenImports[0]).toMatchObject({ specifier: ZOD4 });
   });
 
   test("sizes: transitive includes dependencies, node_modules total does not follow symlinks", () => {
