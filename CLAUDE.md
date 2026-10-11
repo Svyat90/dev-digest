@@ -10,6 +10,10 @@ Always search the relevant package's `docs/`, `specs/`, and `INSIGHTS.md` for
 what the user asks about FIRST — these are curated and may already answer it —
 then read code.
 
+A `Read when` row (here or in a package `CLAUDE.md`) that matches the task is
+mandatory, not a hint: open that exact document with `Read` before reading code,
+planning or dispatching a subagent. Naming the document is not reading it.
+
 ## Session protocol
 
 - **Before answering anything**, identify the package the request touches and read
@@ -70,7 +74,11 @@ Only Postgres runs in Docker; server and client run on the host.
 - **Zod 3, not 4.** Don't write Zod 4 API in any package.
 - **Contracts have one canonical home: `server/src/vendor/shared`.** server and
   reviewer-core alias `@devdigest/shared` there. `client/src/vendor/shared` is a
-  separate copy that has already drifted — a contract change means checking both.
+  separate copy that has already drifted — a contract change means checking both:
+  before planning or editing a contract, open BOTH
+  `server/src/vendor/shared/contracts/<name>.ts` and
+  `client/src/vendor/shared/contracts/<name>.ts` with `Read`. Reading only the
+  canonical copy is not checking both.
 - **Secrets never go in git or the DB.** One read chokepoint; see server/README.md.
 - **Migrations are never applied on boot** — run `cd server && pnpm db:migrate`.
 - **Tests are typological, not exhaustive.** Full policy: TESTING.md.
