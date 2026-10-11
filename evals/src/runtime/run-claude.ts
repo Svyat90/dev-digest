@@ -62,9 +62,13 @@ export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<
   const options: Options = {
     model: opts.model ?? EVAL_MODEL,
     maxTurns: opts.maxTurns ?? MAX_TURNS,
-    permissionMode: "bypassPermissions", // safe: evals only read/plan and tools are allow-listed
+    permissionMode: "bypassPermissions",
     systemPrompt,
+    // allowedTools only PRE-APPROVES tools; under bypassPermissions every other tool still runs.
+    // Writes must be denied explicitly, or a session (e.g. the engineering-insights activation case)
+    // edits real repo files such as INSIGHTS.md.
     allowedTools,
+    disallowedTools: ["Write", "Edit", "MultiEdit", "NotebookEdit"],
     cwd: opts.cwd ?? REPO_ROOT,
     // Default: do NOT load on-disk config — isolates the injected artifact. workflowTask overrides.
     settingSources: opts.settingSources ?? [],
