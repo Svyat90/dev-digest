@@ -4,7 +4,8 @@
 # Jobs:
 #  - detect:   maps the PR diff onto suites (evals/scripts/ci-detect.mjs). A changed skill or
 #              agent with no evals prints "SKIP <name> (no evals)" and runs nothing.
-#  - quality:  free, no model — evals typecheck, deterministic unit tests, SKILL.md static gate.
+#  - quality:  free, no model — evals typecheck and deterministic unit tests. The SKILL.md static
+#              gate (eval:quality) is the one BLOCKING check and lives in harness-quality.yml.
 #  - skills:   one matrix leg per changed skill that has evals. Content tier: a direct
 #              OpenAI-format call to OpenRouter, no proxy.
 #  - agents:   one leg per changed agent that has evals. Tool tier: the Claude Agent SDK, routed
@@ -87,7 +88,7 @@ jobs:
           echo "model under test: $EVAL_MODEL · judge: $EVAL_JUDGE_MODEL"
 
   quality:
-    name: quality (no model)
+    name: evals typecheck + unit (no model)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -111,8 +112,6 @@ jobs:
       - run: pnpm typecheck
 
       - run: pnpm exec vitest run --exclude '**/*.eval.ts'
-
-      - run: pnpm eval:quality
 
   skills:
     name: skill · ${{ matrix.skill }}

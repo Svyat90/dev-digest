@@ -199,12 +199,18 @@ any `CLAUDE.md`, or `evals/**`. `scripts/ci-detect.mjs` maps the diff onto suite
 | `evals/src/**`, `evals/proxy/**`, `evals/scripts/**`, the manifest/lockfile, the workflow file | every suite that has evals |
 
 A changed skill or agent with no evals prints `SKIP <name> (no evals)` and runs nothing. A free
-`quality` job (typecheck, deterministic unit tests, `eval:quality`) runs on every such PR.
+`quality` job (typecheck, deterministic unit tests) runs on every such PR.
+
+**`eval:quality` is the one blocking check.** It lives in its own workflow,
+`.github/workflows/harness-quality.yml`, with no `paths:` filter: it starts on every PR and passes
+at once when no skill or eval file changed. Make its job `skill quality (eval:quality)` a required
+status check on `main`. Never path-filter a required check — on PRs outside the paths it never
+reports and GitHub waits for it forever.
 
 **Visible, not blocking.** A failing eval fails its job: the PR shows a red check named after
 the skill, agent or tier, and the vitest `github-actions` reporter annotates each failed case
-(test name + error) on the Checks page. Merging stays possible because none of these checks is a
-required status check — keep them out of `main`'s branch protection and rulesets. The run's
+(test name + error) on the Checks page. Merging stays possible because none of these model-backed checks is
+a required status check — keep them out of `main`'s branch protection and rulesets. The run's
 `results/` is uploaded as an artifact, and `scripts/ci-assert-clean.sh` fails the job if a
 session wrote to the checkout.
 
