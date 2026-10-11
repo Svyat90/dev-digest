@@ -52,14 +52,29 @@ function metricRow(label: string, a: Stats, b: Stats): void {
   console.log(`      ${label}: ${a.mean.toFixed(0)} -> ${b.mean.toFixed(0)}  ${col}(${sign}${d.toFixed(0)})${RESET}`);
 }
 
+/**
+ * Re-key tests by case name (the last nodeid segment), dropping the eval file path and the
+ * describe label. Lets two artifacts that share one cases file (e.g. architecture-reviewer vs
+ * architecture-reviewer-lite) line up, since their full nodeids never match.
+ */
+function byCase(tests: Record<string, NodeAggregate>): Record<string, NodeAggregate> {
+  return Object.fromEntries(Object.entries(tests).map(([id, t]) => [id.split(" > ").slice(-1)[0], t]));
+}
+
 function main(): void {
-  const [labelA, labelB] = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const matchByCase = args.includes("--by-case");
+  const [labelA, labelB] = args.filter((x) => x !== "--by-case");
   if (!labelA || !labelB) {
-    console.error("usage: pnpm eval:delta <baseline-label> <candidate-label>");
+    console.error("usage: pnpm eval:delta <baseline-label> <candidate-label> [--by-case]");
     process.exit(1);
   }
   const a = load(labelA);
   const b = load(labelB);
+  if (matchByCase) {
+    a.tests = byCase(a.tests);
+    b.tests = byCase(b.tests);
+  }
   console.log(`A = ${labelA}  sha ${a.git_sha}${a.dirty ? "-dirty" : ""}  (${a.times} runs)`);
   console.log(`B = ${labelB}  sha ${b.git_sha}${b.dirty ? "-dirty" : ""}  (${b.times} runs)`);
 
