@@ -16,6 +16,17 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-11 — A relative path in a package `CLAUDE.md` "Read when" row is read from the repo root.**
+  `server/CLAUDE.md` said "Read `README.md` before adding a route"; in workflow
+  evals the model opened the root `README.md` instead, in both runs, and never
+  reached `server/README.md`. After writing `server/README.md` it opened the
+  package file. `client/CLAUDE.md` and `reviewer-core/CLAUDE.md` still use
+  relative paths.
+  Rule: in a package `CLAUDE.md`, name routed files with the package prefix
+  (`server/docs/architecture.md`), never bare `README.md` / `docs/…`.
+  `cd evals && pnpm exec vitest run workflow -t "server module task"` ·
+  `server/CLAUDE.md` › Read when
+
 - **2026-10-03 — Asking an implementer for fail-first does not produce it; prove it from the orchestrator.**
   In the Project Context run 14 of 15 code tasks reported "wrote the tests with
   the code, never ran them red" — including fix task F1.1, whose acceptance
@@ -94,6 +105,25 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 ## Tool & Library Notes
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
+
+- **2026-10-11 — In `evals/`, `allowedTools` does not stop a session from writing to the repo.**
+  Sessions run with `permissionMode: "bypassPermissions"`, where `allowedTools`
+  only pre-approves; every other tool still runs. The workflow case
+  "engineering-insights activates on a genuine discovery" appended an invented
+  pgvector entry to `server/INSIGHTS.md` while its allow-list was read-only.
+  Rule: any new SDK runner or task in `evals/` sets `disallowedTools` for
+  `Write`/`Edit`/`MultiEdit`/`NotebookEdit`, and `git status` is checked after
+  every model-backed eval run.
+  `evals/src/runtime/run-claude.ts` (`disallowedTools`)
+
+- **2026-10-11 — Workflow evals on the default Haiku 4.5 under-report CLAUDE.md routing.**
+  On Haiku the model often names a routed doc ("тобі потрібно прочитати
+  `server/docs/architecture.md`") instead of opening it, so a routing case fails
+  although the harness is fine. Same case: Haiku 0/2, Sonnet 2/2.
+  Rule: before changing a `CLAUDE.md` because a workflow case fails, re-run that
+  case once on Sonnet; tune `CLAUDE.md` only if it fails there too.
+  `EVAL_MODEL=claude-sonnet-5-5 pnpm exec vitest run workflow -t "<case>"`
+  Confidence: low
 
 - **2026-10-08 — `du -L` triples a pnpm package's `node_modules` size; per-dependency `du` misses its deps.**
   In `server/` and `client/` every top-level `node_modules/<dep>` is a symlink into
