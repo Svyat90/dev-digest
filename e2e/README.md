@@ -101,3 +101,4 @@ a CI artifact by `.github/workflows/e2e-web.yml`).
 | `06-onboarding` | `/onboarding` → add-repository form renders (no submit) |
 | `07-settings` | `/settings/api-keys` + `/settings/models` → section titles render |
 | `08-smart-diff` | PR #482 → Files changed tab → all five role groups render with labels/description; Docs and Boilerplate start collapsed; the Smart/Original order toggle round-trips |
+| `09-pr-brief` | PR #482 → Overview → PR Brief block with the Generate brief button (not clicked) and the seeded review's verdict banner (PR SCORE) |

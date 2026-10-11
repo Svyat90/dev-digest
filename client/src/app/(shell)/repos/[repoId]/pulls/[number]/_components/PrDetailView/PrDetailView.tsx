@@ -13,11 +13,11 @@ import { PrDetailHeader } from "../PrDetailHeader";
 import { OverviewTab } from "../OverviewTab";
 import { FindingsTab } from "../FindingsTab";
 import { DiffTab } from "../DiffTab";
-import { parseSeverityParam } from "./helpers";
+import { parseDiffTarget, parseSeverityParam } from "./helpers";
 import RunTraceDrawer from "../RunTraceDrawer";
 import { useTranslations } from "next-intl";
 import { useConfirm } from "@/components/confirm-dialog";
-import { useSearchParamState } from "@/lib/hooks/useSearchParamState";
+import { useSearchParamState, useSetSearchParams } from "@/lib/hooks/useSearchParamState";
 import { usePullDetail, usePulls } from "@/lib/hooks";
 import {
   usePrReviews,
@@ -78,6 +78,9 @@ export function PrDetailView() {
 
   const [tabParam, setTab] = useSearchParamState("tab");
   const tab = tabParam ?? "overview";
+  const [fileParam] = useSearchParamState("file");
+  const [lineParam] = useSearchParamState("line");
+  const setParams = useSetSearchParams();
   const [traceRunId, setTraceRunId] = useSearchParamState("trace");
   // The severity filter lives in the URL, not in component state: it spans
   // every run's findings panel, survives back/forward, and makes "look at the
@@ -87,6 +90,8 @@ export function PrDetailView() {
 
   // Reviews come newest-first; each is its own run (grouped into accordions).
   const runs = reviews ?? [];
+  const target = parseDiffTarget(fileParam, lineParam);
+  const diffPaths = React.useMemo(() => new Set((pr?.files ?? []).map((f) => f.path)), [pr?.files]);
   const allFindings: FindingRecord[] = React.useMemo(
     () => runs.flatMap((r) => r.findings),
     [reviews],
@@ -134,7 +139,7 @@ export function PrDetailView() {
         findingsCount={findingsCount}
         githubUrl={repoFullName ? githubPrUrl(repoFullName, pr.number) : null}
         heightVarTarget={viewRootRef}
-        onSetTab={setTab}
+        onSetTab={(next) => setParams({ tab: next, file: null, line: null })}
         onRunStart={() => setTab("findings")}
         onRunsStarted={() => invalidateActiveRuns()}
       />
@@ -147,6 +152,9 @@ export function PrDetailView() {
             repoFullName={repoFullName}
             headSha={pr.head_sha}
             prBody={pr.body}
+            reviews={runs}
+            diffPaths={diffPaths}
+            onNavigate={(file, line) => setParams({ tab: "diff", file, line: String(line) })}
           />
         )}
 
@@ -185,6 +193,8 @@ export function PrDetailView() {
 
         {tab === "diff" && (
           <DiffTab
+            key={target ? `${target.path}:${target.line ?? ""}` : "no-target"}
+            target={target}
             prId={prId}
             files={pr.files}
             canComment={pr.status === "open"}

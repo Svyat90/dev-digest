@@ -35,6 +35,18 @@ export const s = {
     color: "var(--text-secondary)",
     marginTop: 8,
   } satisfies CSSProperties,
+  extra: {
+    marginTop: 12,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+  } satisfies CSSProperties,
+  action: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 10,
+    flexShrink: 0,
+  } satisfies CSSProperties,
   scoreCol: {
     display: "flex",
     flexDirection: "column",

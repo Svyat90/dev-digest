@@ -15,6 +15,8 @@ export interface IntentCardProps {
   headSha: string | null | undefined;
   onRecompute: () => void;
   recomputing: boolean;
+  /** Rendered at the bottom of the card under a divider (the PR Brief's Risk areas). */
+  footer?: React.ReactNode;
 }
 
 /** Presentational: `OverviewTab` owns the hooks and passes the state in. */
@@ -25,51 +27,52 @@ export function IntentCard({
   headSha,
   onRecompute,
   recomputing,
+  footer,
 }: IntentCardProps) {
   const t = useTranslations("prReview");
 
   const label = <SectionLabel icon="Target">{t("detail.intent.title")}</SectionLabel>;
+  const footerBlock = footer ? <div style={s.footer}>{footer}</div> : null;
 
   if (isLoading) {
     return (
-      <section aria-busy="true">
+      <section aria-busy="true" style={s.card}>
         {label}
-        <div style={s.card}>
-          <div style={s.skeletonStack}>
-            <Skeleton height={16} />
-            <Skeleton height={16} width="80%" />
-            <Skeleton height={16} width="60%" />
-          </div>
+        <div style={s.skeletonStack}>
+          <Skeleton height={16} />
+          <Skeleton height={16} width="80%" />
+          <Skeleton height={16} width="60%" />
         </div>
+        {footerBlock}
       </section>
     );
   }
 
   if (isError) {
     return (
-      <section>
+      <section style={s.card}>
         {label}
-        <div style={s.card}>
-          <ErrorState
-            title={t("detail.intent.errorTitle")}
-            body={t("detail.intent.errorBody")}
-            onRetry={onRecompute}
-          />
-        </div>
+        <ErrorState
+          title={t("detail.intent.errorTitle")}
+          body={t("detail.intent.errorBody")}
+          onRetry={onRecompute}
+        />
+        {footerBlock}
       </section>
     );
   }
 
   if (!intent) {
     return (
-      <section>
+      <section style={s.card}>
         {label}
-        <div style={s.emptyCard}>
+        <div style={s.emptyRow}>
           <span style={s.muted}>{t("detail.intent.empty")}</span>
           <Button kind="secondary" icon="Sparkles" onClick={onRecompute} loading={recomputing}>
             {t("detail.intent.compute")}
           </Button>
         </div>
+        {footerBlock}
       </section>
     );
   }
@@ -78,9 +81,9 @@ export function IntentCard({
   const tone = confidenceTone(intent.confidence);
 
   return (
-    <section>
+    <section style={s.card}>
       {label}
-      <div style={s.card}>
+      <div style={s.body}>
         <blockquote style={s.quote}>{intent.intent}</blockquote>
 
         <div style={s.scopeGrid}>
@@ -147,6 +150,7 @@ export function IntentCard({
           </div>
         )}
       </div>
+      {footerBlock}
     </section>
   );
 }

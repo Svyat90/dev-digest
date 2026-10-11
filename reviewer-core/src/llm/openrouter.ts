@@ -47,6 +47,14 @@ export interface OpenRouterProviderOptions {
   estimateCost?: (model: string, tokensIn: number, tokensOut: number) => number | null;
 }
 
+/** The provider answered, but its structured output never matched the schema. */
+export class InvalidStructuredOutputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidStructuredOutputError';
+  }
+}
+
 export class OpenRouterProvider implements LLMProvider {
   readonly id: 'openai' | 'openrouter';
   private client: OpenAI;
@@ -125,7 +133,7 @@ export class OpenRouterProvider implements LLMProvider {
       messages.push({ role: 'assistant', content: lastRaw });
       messages.push({ role: 'user', content: parsed.repromptMessage });
     }
-    throw new Error(`OpenRouter structured output failed schema validation for ${req.schemaName}`);
+    throw new InvalidStructuredOutputError(`OpenRouter structured output failed schema validation for ${req.schemaName}`);
   }
 
   /** One completion call under `deadlineMs`, which also covers reading the body. */

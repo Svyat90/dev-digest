@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 export const s = {
+  /** The card holds its own SectionLabel (which brings a 14px bottom margin). */
   card: {
     borderWidth: 1,
     borderStyle: "solid",
@@ -8,22 +9,25 @@ export const s = {
     borderRadius: 8,
     background: "var(--bg-elevated)",
     padding: 18,
+  } satisfies CSSProperties,
+  body: {
     display: "flex",
     flexDirection: "column",
     gap: 16,
+  } satisfies CSSProperties,
+  footer: {
+    marginTop: 18,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopStyle: "solid",
+    borderTopColor: "var(--border)",
   } satisfies CSSProperties,
   skeletonStack: {
     display: "flex",
     flexDirection: "column",
     gap: 10,
   } satisfies CSSProperties,
-  emptyCard: {
-    borderWidth: 1,
-    borderStyle: "solid",
-    borderColor: "var(--border)",
-    borderRadius: 8,
-    background: "var(--bg-elevated)",
-    padding: 18,
+  emptyRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",

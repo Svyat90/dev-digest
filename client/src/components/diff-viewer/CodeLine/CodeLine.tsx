@@ -9,7 +9,7 @@ import type { FindingRecord } from "@devdigest/shared";
 import { SEV } from "@devdigest/ui";
 import { commentTargetFor, type CommentThread, type DiffCommentApi, cs } from "../comments";
 import { type Line } from "../helpers";
-import { s, lineRowFor, lineSignFor, lineBar, lineLabel } from "../styles";
+import { s, lineRowFor, lineSignFor, lineBar, lineLabel, lineTarget } from "../styles";
 import { CommentThreadView } from "../CommentThreadView";
 import { InlineComposer } from "../InlineComposer";
 import { InlineFindings } from "../InlineFindings";
@@ -24,6 +24,8 @@ export function CodeLine({
   commenting,
   findings = EMPTY_FINDINGS,
   findingApi,
+  highlighted = false,
+  targetRef,
 }: {
   ln: Line;
   path: string;
@@ -31,6 +33,8 @@ export function CodeLine({
   commenting?: DiffCommentApi;
   findings?: FindingRecord[];
   findingApi?: DiffFindingApi;
+  highlighted?: boolean;
+  targetRef?: React.Ref<HTMLDivElement>;
 }) {
   const t = useTranslations("prReview");
   const [hover, setHover] = React.useState(false);
@@ -57,7 +61,11 @@ export function CodeLine({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      <div style={{ ...lineRowFor(ln.kind), ...lineBar(severityColor) }}>
+      <div
+        ref={targetRef}
+        aria-current={highlighted ? "location" : undefined}
+        style={{ ...lineRowFor(ln.kind), ...lineBar(severityColor), ...lineTarget(highlighted) }}
+      >
         <span className="mono tnum" style={{ ...s.lineNo, position: "relative" }}>
           {showAdd && target && (
             <button

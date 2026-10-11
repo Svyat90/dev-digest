@@ -21,3 +21,21 @@ export function useSearchParamState(key: string): [string | null, (val: string |
 
   return [search.get(key), setValue];
 }
+
+/** Writes several URL query parameters in ONE `router.replace`. `null` removes
+   a key; every parameter not in the patch is kept. */
+export function useSetSearchParams(): (patch: Record<string, string | null>) => void {
+  const search = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  return (patch) => {
+    const sp = new URLSearchParams(search.toString());
+    for (const [key, val] of Object.entries(patch)) {
+      if (val == null) sp.delete(key);
+      else sp.set(key, val);
+    }
+    const qs = sp.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+  };
+}

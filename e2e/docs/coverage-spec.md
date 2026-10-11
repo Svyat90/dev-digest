@@ -50,6 +50,7 @@ same commit.
 | `06-onboarding` | add repo | `/onboarding` renders the add-repository form (**no submit** — nothing here clones a repo) |
 | `07-settings` | settings | `/settings/api-keys` and `/settings/models` render their sections |
 | `08-smart-diff` | Smart Diff | the Files changed tab's Smart-order header renders, and all five role groups render with their labels and the core role description; Docs and Boilerplate start collapsed by default, and expanding Boilerplate reveals the seeded `pnpm-lock.yaml`; the Smart/Original segmented toggle switches to the flat GitHub-order diff and back. Group **order** is asserted only in `client/.../DiffTab/DiffTab.test.tsx` — this runner can prove presence, never absence (see "Deliberately not covered" below). No model call; grouping is the deterministic `classifyFile` path classifier (`server/specs/smart-diff.md`) |
+| `09-pr-brief` | PR Brief | the Overview tab renders the PR Brief block with the Generate brief button (present, never clicked) and the newest seeded review's verdict banner (`PR SCORE` label). No model call — generating a brief and the Files changed navigation are covered by server integration and client unit tests |
 
 Together these cover the main path a first-time user walks — boot, find a PR,
 read its review, look at the diff — plus the two configuration screens that make

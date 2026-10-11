@@ -31,6 +31,10 @@ import { ReviewRepository } from '../modules/reviews/repository.js';
 import { SkillsRepository } from '../modules/skills/repository.js';
 import { IntentRepository } from '../modules/intent/repository.js';
 import { IntentService } from '../modules/intent/service.js';
+import { SmartDiffRepository } from '../modules/smart-diff/repository.js';
+import { SmartDiffService } from '../modules/smart-diff/service.js';
+import { BlastRepository } from '../modules/blast/repository.js';
+import { BlastService } from '../modules/blast/service.js';
 import { ProjectContextRepository } from '../modules/project-context/repository.js';
 import { ProjectContextService } from '../modules/project-context/service.js';
 import { FsRepoDocsReader } from '../adapters/repo-docs/fs.js';
@@ -50,6 +54,12 @@ import { type Tokenizer, TiktokenTokenizer } from '../adapters/tokenizer/index.j
  */
 /** The intent use cases callers reach through the container (overridable in tests). */
 export type IntentUseCases = Pick<IntentService, 'get' | 'getOrDerive' | 'recompute'>;
+
+/** The smart-diff use cases callers reach through the container. */
+export type SmartDiffUseCases = Pick<SmartDiffService, 'get'>;
+
+/** The blast-radius use cases callers reach through the container. */
+export type BlastUseCases = Pick<BlastService, 'get'>;
 
 /** The project-context use cases callers reach through the container (overridable in tests). */
 export type ProjectContextUseCases = Pick<
@@ -116,6 +126,7 @@ export class Container {
   private _priceBook?: PriceBook;
   private _webFetch?: WebFetchClient;
   private _intent?: IntentUseCases;
+  private _smartDiff?: SmartDiffUseCases;
   private _repoDocs?: RepoDocsReader;
   private _projectContext?: ProjectContextUseCases;
 
@@ -201,6 +212,29 @@ export class Container {
       promptLogMode: this.config.promptLog,
     });
     return this._intent;
+  }
+
+  /**
+   * Smart Diff. `SmartDiffService` takes a narrow `{ repo }` (not the Container),
+   * so this facade adds no `container.ts` <-> service cycle.
+   */
+  get smartDiff(): SmartDiffUseCases {
+    this._smartDiff ??= new SmartDiffService({ repo: new SmartDiffRepository(this.db) });
+    return this._smartDiff;
+  }
+
+  /**
+   * Blast radius. `BlastDeps` needs a logger the container does not own, so a
+   * service is built per call (cheap: no state, no I/O in the constructor).
+   */
+  blast(logger: { info(obj: unknown, msg?: string): void }): BlastUseCases {
+    return new BlastService({
+      repo: new BlastRepository(this.db),
+      repoIntel: this.repoIntel,
+      git: this.git,
+      github: () => this.github(),
+      logger,
+    });
   }
 
   /** Filesystem reader of the clone's markdown documents (project context). */

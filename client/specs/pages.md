@@ -55,6 +55,8 @@ lives in the URL. Everything else is component state.
 | `?status=` | PR list | `all`, `needs_review` (default), `reviewed`, `stale` | filter chip |
 | `?tab=` | PR detail | `overview` (default), `findings`, `diff` | active tab. `findings` is the tab labelled **Agent runs** — the internal key predates the label |
 | `?trace=<runId>` | PR detail | run uuid | opens the run trace drawer on that run |
+| `?file=<path>` | PR detail | a changed file's path | used with `?tab=diff`; set by Overview's Review focus and Risk areas. Scrolls Files changed to that file and shows its findings. A path that is not in the PR's changed files shows a notice over the normal view (`diffTarget.fileNotFound`) |
+| `?line=<n>` | PR detail | positive integer | refines `?file=` to a line. Anything that is not a positive integer is ignored (the file is still targeted); a line outside the file's changed lines shows a notice (`diffTarget.lineNotFound`). Both `file` and `line` are cleared when the tab changes |
 | `?severity=` | PR detail | `CRITICAL`, `WARNING`, `SUGGESTION` | filters every run's findings panel to one severity |
 | `?tab=` | skills list/detail | `config` (default), `preview`, `stats`, `versions` | active tab on the selected skill's detail pane; unrecognised → `config`, per the rule below |
 | `?tab=` | agent editor | existing set **plus** `skills` | the agent editor's `?tab=` values gain a `skills` tab (the agent's attached-skills panel) alongside whatever tabs it already had |

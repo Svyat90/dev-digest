@@ -1,0 +1,1 @@
+export { VerdictBanner } from "./VerdictBanner";

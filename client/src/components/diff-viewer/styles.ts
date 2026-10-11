@@ -64,6 +64,12 @@ export const s = {
     color: "var(--text-primary)",
     paddingRight: 12,
   } satisfies CSSProperties,
+  targetNotice: {
+    padding: "6px 12px",
+    fontSize: 12,
+    color: "var(--text-muted)",
+    borderTop: "1px solid var(--border)",
+  } satisfies CSSProperties,
   /** Fixed-colour dot next to a file path: "this file has open findings".
    *  Deliberately carries no number — that lives in the group counter. */
   findingDot: {
@@ -111,6 +117,18 @@ export function lineBar(color: string | null): CSSProperties {
     borderLeftWidth: color ? 3 : 0,
     borderLeftStyle: "solid",
     borderLeftColor: color ?? "transparent",
+  };
+}
+
+/** Highlight + scroll offset for the targeted row — all-longhand; the margin
+ *  clears the sticky PR header and the role-group header (client INSIGHTS). */
+export function lineTarget(highlighted: boolean): CSSProperties {
+  return {
+    scrollMarginTop: "calc(var(--pr-header-h, 0px) + 56px)",
+    outlineWidth: highlighted ? 2 : 0,
+    outlineStyle: "solid",
+    outlineColor: highlighted ? "var(--accent-text)" : "transparent",
+    outlineOffset: -2,
   };
 }
 

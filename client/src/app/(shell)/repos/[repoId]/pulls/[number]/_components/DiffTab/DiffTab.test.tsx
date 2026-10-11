@@ -31,6 +31,9 @@ vi.mock("@/lib/hooks/smart-diff", () => ({
 
 import { DiffTab } from "./DiffTab";
 
+// jsdom has no scrollIntoView; FileCard calls it for a targeted file.
+Element.prototype.scrollIntoView = vi.fn();
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -96,10 +99,10 @@ function review(over: Partial<ReviewRecord> & { id: string }): ReviewRecord {
   } as ReviewRecord;
 }
 
-function renderDiffTab() {
+function renderDiffTab(props: { target?: { path: string; line: number | null } | null; files?: PrFile[] } = {}) {
   return render(
     <NextIntlClientProvider locale="en" messages={{ shell: shellMessages, prReview: prReviewMessages }}>
-      <DiffTab prId="pr1" files={FILES} />
+      <DiffTab prId="pr1" files={props.files ?? FILES} target={props.target} />
     </NextIntlClientProvider>,
   );
 }
@@ -168,5 +171,43 @@ describe("DiffTab — Smart/Original order and role groups", () => {
 
     expect(screen.getAllByText("Review not run yet")).toHaveLength(5);
     expect(screen.queryByRole("img", { name: /files? with findings/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("DiffTab — target from the PR Brief", () => {
+  const DOC_PATCH = "@@ -1,1 +1,2 @@\n context\n+added line";
+  const filesWithDocPatch = FILES.map((f) => (f.path === "docs/x.md" ? { ...f, patch: DOC_PATCH } : f));
+
+  it("expands the targeted file's collapsed role group and marks the targeted row", () => {
+    stubBaseHooks();
+    usePrReviews.mockReturnValue({ data: [] });
+
+    renderDiffTab({ files: filesWithDocPatch, target: { path: "docs/x.md", line: 2 } });
+
+    expect(screen.getByRole("button", { name: "Collapse Docs group" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Expand Boilerplate group" })).toBeInTheDocument();
+    expect(document.querySelector('[aria-current="location"]')).not.toBeNull();
+  });
+
+  it("turns inline findings and comments on when a target exists, and the user's toggle still wins", () => {
+    stubBaseHooks();
+    // A comment makes the toggle visible while no finding is open: without a target the default is "hidden".
+    usePrComments.mockReturnValue({ data: [{ id: "c1" }] });
+    usePrReviews.mockReturnValue({ data: [] });
+
+    renderDiffTab({ files: filesWithDocPatch, target: { path: "docs/x.md", line: 2 } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide comments & findings" }));
+    expect(screen.getByRole("button", { name: "Show comments & findings" })).toBeInTheDocument();
+  });
+
+  it("shows a notice for a file that is not in the diff and still renders the groups", () => {
+    stubBaseHooks();
+    usePrReviews.mockReturnValue({ data: [] });
+
+    renderDiffTab({ target: { path: "src/nope.ts", line: 3 } });
+
+    expect(screen.getByRole("status")).toHaveTextContent("src/nope.ts is not in this pull request's changed files.");
+    expect(screen.getAllByRole("button", { name: /group/i })).toHaveLength(5);
   });
 });

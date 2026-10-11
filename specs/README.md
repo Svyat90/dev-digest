@@ -77,3 +77,4 @@ Rules of the flow:
 |----|------|--------|----------|
 | SPEC-01-project-context | [Project Context — discovery and attachment](01-project-context-2026-10-03.md) | approved | server, client |
 | SPEC-02-context-injection | [Project Context — run-time injection and trace](02-context-injection-2026-10-03.md) | approved | server, reviewer-core, client |
+| SPEC-03-pr-brief | [PR Brief — PR why and risk brief](03-pr-brief-2026-10-04.md) | approved | server, client |

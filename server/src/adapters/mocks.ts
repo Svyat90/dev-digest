@@ -39,6 +39,7 @@ import type {
   RepoDocReadResult,
   RepoDocReadFailure,
 } from '@devdigest/shared';
+import { InvalidModelOutputError } from '../platform/errors.js';
 import { parseUnifiedDiff } from './git/diff-parser.js';
 
 /**
@@ -98,7 +99,7 @@ export class MockLLMProvider implements LLMProvider {
     const fixture = this.opts.structuredBySchema?.[req.schemaName] ?? this.opts.structured ?? {};
     const parsed = (req.schema as z.ZodType<T>).safeParse(fixture);
     if (!parsed.success) {
-      throw new Error(`MockLLMProvider fixture failed schema: ${parsed.error.message}`);
+      throw new InvalidModelOutputError(`MockLLMProvider fixture failed schema: ${parsed.error.message}`);
     }
     return {
       data: parsed.data,

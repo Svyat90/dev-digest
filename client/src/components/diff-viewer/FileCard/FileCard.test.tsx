@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import type { FindingRecord } from "@devdigest/shared";
 import type { PrFile } from "@/lib/types";
 import type { DiffCommentApi } from "../comments";
-import type { DiffFindingApi } from "../findings";
+import type { DiffFindingApi, DiffTarget } from "../findings";
 import shellMessages from "@messages/en/shell.json";
 import prReviewMessages from "@messages/en/prReview.json";
 import { FileCard } from "./FileCard";
@@ -60,10 +60,13 @@ function baseFindingApi(findings: FindingRecord[], onAction = vi.fn()): DiffFind
   return { findings, onAction, pending: false };
 }
 
-function renderFileCard(props: { commenting?: DiffCommentApi; findings?: DiffFindingApi } = {}) {
+function renderFileCard(
+  props: { commenting?: DiffCommentApi; findings?: DiffFindingApi; target?: DiffTarget | null; file?: PrFile } = {},
+) {
+  const { file = FILE, ...rest } = props;
   return render(
     <NextIntlClientProvider locale="en" messages={{ shell: shellMessages, prReview: prReviewMessages }}>
-      <FileCard file={FILE} {...props} />
+      <FileCard file={file} {...rest} />
     </NextIntlClientProvider>,
   );
 }
@@ -143,5 +146,39 @@ describe("FileCard findings (edges)", () => {
     expect(
       screen.queryByRole("img", { name: "This file has review findings" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("FileCard target", () => {
+  const BIG: PrFile = { ...FILE, additions: 250, deletions: 0 };
+
+  it("opens a large file, highlights and scrolls to the target line, and shows its finding", () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    renderFileCard({
+      file: BIG,
+      target: { path: FILE.path, line: 2 },
+      commenting: baseCommenting(true),
+      findings: baseFindingApi([makeFinding({ id: "f", title: "Hardcoded secret", start_line: 2 })]),
+    });
+
+    expect(screen.getByText("addedLine").closest('[aria-current="location"]')).not.toBeNull();
+    expect(scroll).toHaveBeenCalled();
+    expect(screen.getByText("Hardcoded secret")).toBeInTheDocument();
+  });
+
+  it("scrolls to the header and shows a notice when the line is not rendered", () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    renderFileCard({ target: { path: FILE.path, line: 999 } });
+
+    expect(scroll).toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("Line 999");
+    expect(document.querySelector('[aria-current="location"]')).toBeNull();
+  });
+
+  it("keeps an untargeted large file collapsed", () => {
+    renderFileCard({ file: BIG });
+    expect(screen.queryByText("addedLine")).not.toBeInTheDocument();
   });
 });

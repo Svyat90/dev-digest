@@ -18,7 +18,7 @@ import {
   type CommentThread,
   type DiffCommentApi,
 } from "../comments";
-import { isOpenFinding, partitionFindings, type DiffFindingApi } from "../findings";
+import { isOpenFinding, partitionFindings, type DiffFindingApi, type DiffTarget } from "../findings";
 import { s, chevronFor } from "../styles";
 import { CodeLine } from "../CodeLine";
 import { OutdatedComments } from "../OutdatedComments";
@@ -47,17 +47,39 @@ export function FileCard({
   file,
   commenting,
   findings,
+  target,
 }: {
   file: PrFile;
   commenting?: DiffCommentApi;
   findings?: DiffFindingApi;
+  target?: DiffTarget | null;
 }) {
   const t = useTranslations("shell");
   const tPr = useTranslations("prReview");
+  const targeted = target?.path === file.path;
+  const targetLine = targeted ? target.line : null;
   const [open, setOpen] = React.useState(
-    (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
+    targeted || (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
   );
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
+  // The row of the target line (RIGHT side, first line of a range), if rendered.
+  const targetIndex = React.useMemo(
+    () =>
+      targetLine === null
+        ? -1
+        : lines.findIndex((ln) => ln.kind !== "hunk" && ln.kind !== "del" && ln.newNo === targetLine),
+    [lines, targetLine]
+  );
+  const lineNotFound = targeted && targetLine !== null && targetIndex === -1;
+  const headerRef = React.useRef<HTMLDivElement>(null);
+  const targetRowRef = React.useRef<HTMLDivElement>(null);
+
+  // Synchronise the DOM scroll position with the target: the line row when it
+  // is rendered, otherwise the file header.
+  React.useEffect(() => {
+    if (!targeted) return;
+    (targetRowRef.current ?? headerRef.current)?.scrollIntoView({ block: "start" });
+  }, [targeted, targetLine]);
 
   // Group this file's comments into threads and findings into per-line
   // buckets, against the same rendered-line keys, then split each into
@@ -90,7 +112,7 @@ export function FileCard({
 
   return (
     <div style={s.fileCard}>
-      <div onClick={() => setOpen((o) => !o)} style={s.fileHeader}>
+      <div ref={headerRef} onClick={() => setOpen((o) => !o)} style={s.fileHeader}>
         <Icon.ChevronRight size={13} style={chevronFor(open)} />
         <Icon.FileText size={14} style={s.fileIcon} />
         <span className="mono" style={s.filePath}>
@@ -112,6 +134,11 @@ export function FileCard({
           </span>
         )}
       </div>
+      {lineNotFound && (
+        <div role="status" style={s.targetNotice}>
+          {tPr("diffTarget.lineNotFound", { line: targetLine })}
+        </div>
+      )}
       {open && (
         <div style={s.fileBody}>
           {lines.length === 0 ? (
@@ -126,6 +153,8 @@ export function FileCard({
                 commenting={commenting}
                 findings={findingsForLine(ln, matchedFindings)}
                 findingApi={findings}
+                highlighted={i === targetIndex}
+                targetRef={i === targetIndex ? targetRowRef : undefined}
               />
             ))
           )}

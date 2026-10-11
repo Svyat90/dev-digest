@@ -1,0 +1,14 @@
+{
+  "name": "PR detail Overview shows the PR Brief block with the Generate brief control and the verdict banner",
+  "description": "From PR #482, the Overview tab (default) renders the PR Brief block (its section label is CSS-uppercased, so the flow waits for 'PR BRIEF'): the Generate brief button is present (AC1) and the newest review's verdict banner shows its PR SCORE label (AC25; the label is the literal 'PR SCORE' in prReview.json, no CSS text-transform). Read-only: the flow never clicks Generate brief because that would call a model; the button is asserted with the `text` action (a bare `find` clicks). Assumes a freshly-seeded DB (see e2e/README.md).",
+  "steps": [
+    { "cmd": ["open", "{BASE}/"], "label": "load the app root" },
+    { "cmd": ["wait", "--url", "/pulls"], "label": "land on the PR list" },
+    { "cmd": ["find", "text", "Add rate limiting to public API endpoints", "click"], "label": "open the PR row" },
+    { "cmd": ["wait", "--url", "/pulls/482"], "label": "navigate to the PR detail route" },
+    { "cmd": ["wait", "--load", "networkidle"], "label": "PR detail data settles" },
+    { "cmd": ["wait", "--text", "PR BRIEF"], "label": "the PR Brief block renders on Overview (section label is CSS-uppercased)" },
+    { "cmd": ["find", "role", "button", "text", "--name", "Generate brief"], "label": "the Generate brief button is present (asserted, not clicked)" },
+    { "cmd": ["wait", "--text", "PR SCORE"], "label": "the seeded review's verdict banner renders its score label" }
+  ]
+}

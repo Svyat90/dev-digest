@@ -16,6 +16,7 @@ import {
   MAX_URLS,
   MIN_TRIMMED_SECTION_CHARS,
 } from './constants.js';
+import { parseClosingIssueRefs, type IssueRef } from '../../domain/intent/closing-refs.js';
 
 /**
  * Intent module — pure helpers. Reference parsing, diff outline, confidence,
@@ -30,12 +31,6 @@ import {
 
 // ---------------------------------------------------------------- Reference parsing
 
-export interface IssueRef {
-  owner: string;
-  name: string;
-  number: number;
-}
-
 export interface ParsedRefs {
   /** Issues the PR closes, via a closing keyword only. */
   issues: IssueRef[];
@@ -44,15 +39,6 @@ export interface ParsedRefs {
   /** External https URLs to fetch as text. */
   urls: string[];
 }
-
-/**
- * Closing-keyword grammar: `Fixes #1`, `closes owner/repo#2`,
- * `Resolved: https://github.com/owner/repo/issues/3`. A bare `#123` is NOT a
- * reference. Every quantifier is bounded or over a disjoint character class,
- * so the match is linear-time.
- */
-const CLOSING_REF_RE =
-  /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b:?[ \t]+(?:https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/issues\/(\d{1,9})(?!\d)|([\w.-]+)\/([\w.-]+)#(\d{1,9})(?!\d)|#(\d{1,9})(?!\d))/gi;
 
 /** https URLs; stops at whitespace, brackets and quotes so markdown links end cleanly. */
 const URL_RE = /https:\/\/[^\s<>()[\]"'`]+/gi;
@@ -103,19 +89,7 @@ export function parseRefs(body: string, repo: { owner: string; name: string }): 
   const sameRepo = (owner: string, name: string): boolean =>
     owner.toLowerCase() === repo.owner.toLowerCase() && name.toLowerCase() === repo.name.toLowerCase();
 
-  const issues: IssueRef[] = [];
-  const seenIssues = new Set<string>();
-  for (const m of text.matchAll(CLOSING_REF_RE)) {
-    const ref: IssueRef | null = m[3]
-      ? { owner: m[1]!, name: m[2]!, number: Number(m[3]) }
-      : m[6]
-        ? { owner: m[4]!, name: m[5]!, number: Number(m[6]) }
-        : m[7]
-          ? { owner: repo.owner, name: repo.name, number: Number(m[7]) }
-          : null;
-    if (!ref) continue;
-    pushUnique(issues, seenIssues, `${ref.owner}/${ref.name}#${ref.number}`.toLowerCase(), ref, MAX_ISSUES);
-  }
+  const issues = parseClosingIssueRefs(text, repo, MAX_ISSUES);
 
   const docs: string[] = [];
   const seenDocs = new Set<string>();

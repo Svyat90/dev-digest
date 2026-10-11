@@ -37,6 +37,38 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-05 — `POST /repos/:id/refresh` neither pulls the clone nor moves a PR's `head_sha`.**
+  Its clone job is a no-op for an existing clone (the dev-digest clone stayed 60
+  commits behind `origin/main`), and PR rows are upserted only by
+  `GET /repos/:id/pulls`. After a push, the stored head stayed old while
+  `GET /pulls/:id` returned the new one from GitHub, so the brief showed
+  "Out of date" and the Intent card "PR updated — intent stale".
+  Rule: after pushing to a PR, call `GET /repos/:id/pulls` before generating
+  intent or a brief; to get new `main` content (docs, index), use
+  `POST /repos/:id/resync`, never `refresh`.
+  `server/src/modules/pulls/routes.ts:79` (upsert sets `headSha`), `server/src/modules/repos/service.ts:134`
+
+- **2026-10-05 — An incremental reindex across a file deletion leaves the index `partial`.**
+  After `resync` over 60 commits, `repo_index_state.stats.parseDegraded` held
+  `ENOENT … VerdictBanner/index.ts` (a file deleted on `main`), status became
+  `partial`, and every Blast radius response came back `degraded: true,
+  reason: 'index_partial'`. Another incremental run keeps it partial, because
+  `full` survives only if the prior state was `full` (`incremental.ts:243`).
+  Rule: to get back to `full`, delete the repo's `repo_index_state` row and
+  `POST /repos/:id/resync`. With no state row, the indexer runs a full index
+  (`incremental.ts:78`).
+  `server/src/modules/repo-intel/pipeline/incremental.ts:78,243`
+
+- **2026-10-04 — `grep linked_issue server/src/modules` finds no writer, but the field IS filled.**
+  The GitHub adapter resolves it while fetching the PR (`resolveLinkedIssue`), so a
+  search limited to `modules/` wrongly concludes "never populated" — SPEC-03 drafted
+  a provenance row on exactly that. It takes only the FIRST `#N` in the body, and
+  the closing keyword is optional (`/(?:closes|fixes|resolves)?\s*#(\d+)/i`).
+  Rule: search all of `server/src` (adapters included) before declaring a contract
+  field unfilled; a feature needing several issues or keyword-only matching must
+  resolve them itself.
+  `server/src/adapters/github/octokit.ts:92`, `server/src/adapters/github/octokit.ts:128-136`
+
 - **2026-09-29 — A `status: 'running'` run inserted before `buildApp()` comes back as `failed`.**
   `buildApp` calls `reapStaleRunningRuns` on boot, which marks EVERY `agent_runs`
   row still `running` as `failed` (no workspace or age filter). An integration test
@@ -175,6 +207,22 @@ valuable one.
 ## Codebase Patterns
 
 Conventions and structural decisions a newcomer would otherwise re-derive.
+
+- **2026-10-04 — `maxRetries: 0` on `completeStructured` is NOT "one HTTP request".**
+  `maxRetries` only controls the re-ask after an invalid answer. Every request
+  inside that loop is still wrapped in `withRetry`, which retries up to 3 more
+  times on 429, 5xx or `ECONNRESET`/`ETIMEDOUT`/`ENOTFOUND`. No setting turns the
+  transport retries off today.
+  Rule: for a "one model call" requirement, pass `maxRetries: 0` and count answered
+  attempts, not HTTP requests; forbidding transport retries needs a new adapter option.
+  `server/src/adapters/llm/openai.ts:90-110`, `server/src/platform/resilience.ts:46-65`
+
+- **2026-10-04 — `pr_brief` has no `workspace_id`, like `findings`.**
+  The table is just `pr_id` (PK, FK to `pull_requests`) and `json`, so tenancy reaches
+  a brief only through its PR.
+  Rule: NEVER read or write `pr_brief` by PR id alone — load the PR scoped to the
+  caller's workspace first (or join `pull_requests` and assert `workspace_id` there).
+  `server/src/db/schema/reviews.ts:73-78`
 
 - **2026-09-30 — A TYPE-ONLY import of another module's `types.ts` also fails `no-cross-module-imports`; a shared constant goes to `src/domain/<topic>/`.**
   The blast spec said "type-only import of `repo-intel/types.ts`", but

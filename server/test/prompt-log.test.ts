@@ -233,3 +233,23 @@ describe('emitting never fails the caller', () => {
     ).not.toThrow();
   });
 });
+
+describe('risk_brief component', () => {
+  it('keeps known section names and maps an unknown one to other', () => {
+    const record = buildPromptLogRecord(
+      {
+        component: 'risk_brief',
+        provider: 'openai',
+        model: 'gpt-4.1',
+        correlation: {},
+        sections: [
+          { name: 'blast', role: 'user', source: 'untrusted', chars: 10, items: 1 },
+          { name: 'CANARY_label', role: 'user', source: 'untrusted', chars: 5, items: 1 },
+        ],
+      },
+      'summary',
+    );
+    expect(record.component).toBe('risk_brief');
+    expect(record.sections.map((s) => s.name)).toEqual(['blast', 'other']);
+  });
+});

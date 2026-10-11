@@ -7,7 +7,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { DiffViewer, type DiffCommentApi, type DiffFindingApi } from "@/components/diff-viewer";
+import { DiffViewer, type DiffCommentApi, type DiffFindingApi, type DiffTarget } from "@/components/diff-viewer";
 import { COLLAPSED_BY_DEFAULT, ROLE_COLOR, ROLE_LABEL_KEY } from "../../constants";
 import type { RoleGroupView } from "../../helpers";
 import { s } from "../../styles";
@@ -17,15 +17,18 @@ export function RoleGroup({
   reviewed,
   commenting,
   findings,
+  target,
 }: {
   group: RoleGroupView;
   /** Whether at least one `kind==='review'` review exists for this PR. */
   reviewed: boolean;
   commenting?: DiffCommentApi;
   findings?: DiffFindingApi;
+  /** Set only for the group that contains the target file; it opens that group. */
+  target?: DiffTarget | null;
 }) {
   const t = useTranslations("prReview");
-  const [open, setOpen] = React.useState(!COLLAPSED_BY_DEFAULT.has(group.role));
+  const [open, setOpen] = React.useState(!!target || !COLLAPSED_BY_DEFAULT.has(group.role));
   const label = t(ROLE_LABEL_KEY[group.role]);
 
   return (
@@ -58,7 +61,7 @@ export function RoleGroup({
       </button>
       {open && (
         <div style={s.roleBody}>
-          <DiffViewer files={group.files} commenting={commenting} findings={findings} />
+          <DiffViewer files={group.files} commenting={commenting} findings={findings} target={target} />
         </div>
       )}
     </div>

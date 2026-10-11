@@ -1,4 +1,8 @@
 {
+  "diffTarget": {
+    "lineNotFound": "Line {line} is not in the changed lines of this file.",
+    "fileNotFound": "{file} is not in this pull request's changed files."
+  },
   "finding": {
     "accepted": "accepted",
     "dismissed": "dismissed",

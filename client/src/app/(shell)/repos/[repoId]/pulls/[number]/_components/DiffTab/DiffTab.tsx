@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { DiffViewer, type DiffCommentApi, type DiffFindingApi } from "@/components/diff-viewer";
+import { DiffViewer, type DiffCommentApi, type DiffFindingApi, type DiffTarget } from "@/components/diff-viewer";
 import { usePrComments, useCreatePrComment, usePrReviews, useFindingAction } from "@/lib/hooks/reviews";
 import { useSmartDiff } from "@/lib/hooks/smart-diff";
+import { useTranslations } from "next-intl";
 import { notify } from "@/lib/toast";
 import type { PrFile } from "@devdigest/shared";
 import { buildRoleGroups, diffTotals, findingsByPath, hasAnyReview, latestFindings } from "./helpers";
@@ -19,9 +20,12 @@ interface DiffTabProps {
   /** For finding cards' "open on GitHub" link. */
   repoFullName?: string | null;
   headSha?: string | null;
+  /** A file (and line) to open on arrival, from the PR Brief. */
+  target?: DiffTarget | null;
 }
 
-export function DiffTab({ prId, files, canComment, repoFullName, headSha }: DiffTabProps) {
+export function DiffTab({ prId, files, canComment, repoFullName, headSha, target }: DiffTabProps) {
+  const t = useTranslations("prReview");
   const { data: comments } = usePrComments(prId);
   const create = useCreatePrComment(prId);
   const { data: smartDiff } = useSmartDiff(prId);
@@ -38,10 +42,11 @@ export function DiffTab({ prId, files, canComment, repoFullName, headSha }: Diff
   const groups = buildRoleGroups(smartDiff, files, byPath);
   const totals = diffTotals(files);
   const openFindingCount = findings.filter((f) => !f.dismissed_at).length;
+  const targetMissing = !!target && !files.some((f) => f.path === target.path);
   const reviewed = hasAnyReview(reviews ?? []);
 
   const commentCount = comments?.length ?? 0;
-  const effectiveShowComments = showComments ?? openFindingCount > 0;
+  const effectiveShowComments = showComments ?? (target ? true : openFindingCount > 0);
 
   const commenting: DiffCommentApi = {
     comments: comments ?? [],
@@ -81,14 +86,26 @@ export function DiffTab({ prId, files, canComment, repoFullName, headSha }: Diff
         commentCount={commentCount}
         openFindingCount={openFindingCount}
       />
+      {targetMissing && (
+        <p role="status" style={s.targetNotice}>
+          {t("diffTarget.fileNotFound", { file: target.path })}
+        </p>
+      )}
       {order === "smart" ? (
         <div style={s.groups}>
           {groups.map((group) => (
-            <RoleGroup key={group.role} group={group} reviewed={reviewed} commenting={commenting} findings={findingApi} />
+            <RoleGroup
+              key={group.role}
+              group={group}
+              reviewed={reviewed}
+              commenting={commenting}
+              findings={findingApi}
+              target={target && group.files.some((f) => f.path === target.path) ? target : null}
+            />
           ))}
         </div>
       ) : (
-        <DiffViewer files={files} commenting={commenting} findings={findingApi} />
+        <DiffViewer files={files} commenting={commenting} findings={findingApi} target={target} />
       )}
     </section>
   );
