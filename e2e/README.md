@@ -86,8 +86,9 @@ Env knobs:
   `E2E_WEB_PORT` (3100), `E2E_PG_CONTAINER` (`devdigest-e2e-postgres`),
   `E2E_PG_IMAGE` (`pgvector/pgvector:pg16`).
 
-Failure screenshots are written to `e2e/test-results/` (git-ignored; uploaded as
-a CI artifact by `.github/workflows/e2e-web.yml`).
+Failure screenshots and `<flow>-diag.json` click diagnostics are written to
+`e2e/test-results/` (git-ignored; uploaded with the API and web logs as a CI
+artifact by `.github/workflows/e2e-web.yml`).
 
 ## Coverage (typological, not exhaustive)
 

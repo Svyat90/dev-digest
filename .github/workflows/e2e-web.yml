@@ -119,6 +119,14 @@ jobs:
           npm ci
           npm test
 
+      # The API and web logs live in $RUNNER_TEMP; copy them next to the flow
+      # screenshots and diag JSON so one artifact holds everything.
+      - name: Collect stack logs
+        if: failure()
+        run: |
+          mkdir -p e2e/test-results
+          cp "$RUNNER_TEMP/api.log" "$RUNNER_TEMP/web.log" e2e/test-results/ 2>/dev/null || true
+
       - name: Upload failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
