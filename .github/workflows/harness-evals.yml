@@ -76,6 +76,10 @@ env:
   OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
   # DeepSeek V4 Flash reasons before answering: one agent case took > 240 s (the local default).
   EVAL_TEST_TIMEOUT_MS: '600000'
+  # Claude Code reserves 64000 output tokens per request by default; OpenRouter rejects a request
+  # with 402 when the key cannot afford that reservation, even if the real answer is short. Our
+  # reports are a few thousand tokens, so reserve less.
+  CLAUDE_CODE_MAX_OUTPUT_TOKENS: '16000'
 
 jobs:
   detect:
