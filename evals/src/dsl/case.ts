@@ -86,6 +86,13 @@ function runQualityCases(artifact: string, cases: QualityCase[], task: Task): vo
       const result = await task(c.prompt, artifact, { maxTurns: c.maxTurns });
       logTrace(c.name, result);
 
+      // A provider error (402 out of credits, 429, 5xx) is not a quality result: fail on it as such
+      // instead of paying the judge to score the error string as 0/N.
+      if (result.isError && /^API Error\b/.test(result.text.trim())) {
+        record(c.name, { result, threshold });
+        throw new Error(`provider error — case not judged: ${result.text.trim().slice(0, 300)}`);
+      }
+
       // measure → record → assert. Everything measurable runs in the try; record() fires in the
       // finally with whatever accumulated; the asserts happen strictly after. A failing config
       // (e.g. baseline: grounding gate fails, judge skipped) still leaves a record.
