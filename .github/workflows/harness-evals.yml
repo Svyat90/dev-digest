@@ -223,7 +223,17 @@ jobs:
             exit 1
           fi
 
+      # The reviewer agents diff against `main` (their protocol runs `git diff main...HEAD` and
+      # precheck.sh). The default checkout is a 1-commit clone of the PR merge ref with no `main`,
+      # so the agent answered "fatal: bad revision 'main'" → Status: NEEDS_CONTEXT, failing a
+      # case that expects PASS. Full history + a local `main` reproduce a developer checkout.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: create local main for the agents' diff base
+        working-directory: .
+        run: git branch -f main origin/main
 
       - uses: pnpm/action-setup@v4
         with:
@@ -293,7 +303,17 @@ jobs:
             exit 1
           fi
 
+      # The reviewer agents diff against `main` (their protocol runs `git diff main...HEAD` and
+      # precheck.sh). The default checkout is a 1-commit clone of the PR merge ref with no `main`,
+      # so the agent answered "fatal: bad revision 'main'" → Status: NEEDS_CONTEXT, failing a
+      # case that expects PASS. Full history + a local `main` reproduce a developer checkout.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: create local main for the agents' diff base
+        working-directory: .
+        run: git branch -f main origin/main
 
       - uses: pnpm/action-setup@v4
         with:
