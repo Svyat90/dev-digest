@@ -117,6 +117,20 @@ Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
   `402 … This request requires more credits, or fewer max_tokens. You requested up to 64000 tokens, but can only afford 53972` ·
   `.github/workflows/harness-evals.yml` (`CLAUDE_CODE_MAX_OUTPUT_TOKENS`)
 
+- **2026-10-11 — Supersedes the same-day entry below: CI logs ARE readable, and local reproduction can stay green while CI fails.**
+  Log access: from a github.com tab in the user's signed-in Chrome (Claude in
+  Chrome), `fetch('/Svyat90/dev-digest/commit/<full sha>/checks/<job id>/logs')`
+  returns the raw job log (a short sha gives HTTP 500); the failure artifact
+  downloads from `…/actions/runs/<run>/artifacts/<id>` (ask before downloading).
+  Or ask the user to paste the failing step. Reproduction: flows 04/08 failed on
+  every CI run since 2026-10-04 but passed 9/9 locally in production mode on
+  macOS, Linux arm64 and amd64 with Chrome for Testing 155, without
+  `server/.env` and with `CI=true`; only a temporary in-CI probe (`db374d0`:
+  scroll offsets + `elementFromPoint` around each click) found the cause.
+  Rule: read the real CI log first; if two local variants pass while CI fails,
+  stop varying the local setup and push a temporary probe, then revert it.
+  `e2e/docs/flow-authoring.md` (off-screen clicks) · commits `db374d0`, `72afaf9`
+
 - **2026-10-11 — A failing CI job's log cannot be read from the dev machine; reproduce locally instead.**
   `gh` is not installed, the job page answers WebFetch with "Sign in to view logs",
   and the public check-run annotations API returns only
