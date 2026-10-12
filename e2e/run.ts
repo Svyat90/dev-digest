@@ -18,7 +18,7 @@
  */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { readdirSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import {
@@ -50,44 +50,6 @@ async function ab(args: string[]): Promise<string> {
   return stdout ?? "";
 }
 
-/** The locator value a `find … click` step targets (`--name` for role, else the text value). */
-function clickTarget(args: string[]): string | null {
-  if (args[0] !== "find" || !args.includes("click")) return null;
-  const n = args.indexOf("--name");
-  return n >= 0 ? (args[n + 1] ?? null) : (args[2] ?? null);
-}
-
-/** Page geometry around a click target: every scrolled container, the matching
-   elements' boxes, and which element actually sits under each box's centre. */
-function probeJs(target: string | null): string {
-  return `(() => {
-    const t = ${JSON.stringify(target)};
-    const desc = (e) => e ? [e.tagName, e.getAttribute("aria-label") || (e.textContent || "").trim().slice(0, 60)].join(" ") : null;
-    const scrollers = [document.scrollingElement, ...document.querySelectorAll("*")]
-      .filter((e) => e && e.scrollHeight > e.clientHeight && (e === document.scrollingElement || /(auto|scroll)/.test(getComputedStyle(e).overflowY)))
-      .map((e) => ({ el: e.tagName, top: Math.round(e.scrollTop), height: e.scrollHeight, client: e.clientHeight }));
-    const matches = !t ? [] : [...document.querySelectorAll("button, a, [role=button], [role=tab]")]
-      .filter((e) => ((e.getAttribute("aria-label") || "") + " " + (e.textContent || "")).toLowerCase().includes(t.toLowerCase()))
-      .slice(0, 5)
-      .map((e) => {
-        const r = e.getBoundingClientRect();
-        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-        return { el: desc(e), rect: [r.left, r.top, r.width, r.height].map(Math.round), hit: desc(document.elementFromPoint(cx, cy)) };
-      });
-    return JSON.stringify({ url: location.pathname + location.search, viewport: [innerWidth, innerHeight], scrollers, matches });
-  })()`;
-}
-
-async function probe(target: string | null): Promise<unknown> {
-  try {
-    const out = (await ab(["eval", probeJs(target)])).trim();
-    // `eval` prints the returned string JSON-quoted.
-    return JSON.parse(JSON.parse(out));
-  } catch (e) {
-    return { probeError: (e as Error).message.split("\n")[0] };
-  }
-}
-
 function loadFlows(): { file: string; flow: Flow }[] {
   return readdirSync(SPECS_DIR)
     .filter((f) => f.endsWith(".flow.json"))
@@ -102,17 +64,12 @@ async function runFlow(file: string, flow: Flow): Promise<FlowResult> {
   const id = file.replace(/\.flow\.json$/, "");
   console.log(`\n▶ ${flow.name}  (${file})`);
   const steps: StepResult[] = [];
-  // Geometry before and right after the most recent click, for the failure dump.
-  let lastClick: { label: string; target: string; before: unknown; after?: unknown } | null = null;
 
   for (const step of flow.steps) {
     const args = resolveArgs(step.cmd, BASE);
     const label = step.label ?? args.join(" ");
-    const target = clickTarget(args);
-    if (target) lastClick = { label, target, before: await probe(target) };
     try {
       const stdout = await ab(args);
-      if (target && lastClick) lastClick.after = await probe(target);
       if (step.assert?.stdoutIncludes && !stdoutContains(stdout, step.assert.stdoutIncludes)) {
         steps.push({ label, ok: false, detail: `stdout missing "${step.assert.stdoutIncludes}"` });
         console.log(`   ✗ ${label} — assertion failed`);
@@ -127,16 +84,6 @@ async function runFlow(file: string, flow: Flow): Promise<FlowResult> {
       // Best-effort failure screenshot for the artifact upload.
       mkdirSync(RESULTS_DIR, { recursive: true });
       await ab(["screenshot", join(RESULTS_DIR, `${id}-fail.png`)]).catch(() => {});
-      // Diagnostics: where the last click landed, the page now, and browser logs.
-      const diag = {
-        failedStep: label,
-        lastClick,
-        atFailure: await probe(lastClick?.target ?? null),
-        console: await ab(["console"]).catch((err) => `n/a: ${(err as Error).message.split("\n")[0]}`),
-        errors: await ab(["errors"]).catch((err) => `n/a: ${(err as Error).message.split("\n")[0]}`),
-      };
-      writeFileSync(join(RESULTS_DIR, `${id}-diag.json`), JSON.stringify(diag, null, 2));
-      console.log(`   diag ${JSON.stringify(diag)}`);
       break;
     }
   }

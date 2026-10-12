@@ -73,8 +73,8 @@ model.
 
 In CI, `find … click` does not scroll the app's `<main>` scroll container: a
 target below the fold receives no click, the step still reports success, and
-the next `wait` times out (flow 04's diag showed `<main>` at `scrollTop: 0` and
-nothing under the button's centre). Locally the same click scrolls first, so
+the next `wait` times out (a one-off CI probe of flow 04 showed `<main>` at
+`scrollTop: 0` and nothing under the button's centre, commit `db374d0`). Locally the same click scrolls first, so
 the flow passes. Put a `["scrollintoview", "<css selector>"]` step before every
 click whose target may be off-screen, selecting by `aria-label`, or by the
 `aria-label` of its `role="group"` when the button has only text.
@@ -91,13 +91,8 @@ That is a UI-side requirement this suite imposes on the app.
 | `AGENT_BROWSER_BIN` | `agent-browser` | binary name or path |
 | `E2E_STEP_TIMEOUT` | `60000` | per-command timeout in ms |
 
-A failing step writes a screenshot to `test-results/<id>-fail.png` and a
-`test-results/<id>-diag.json` (also printed to the log): the page geometry
-before and right after the flow's last `find … click` — scroll offsets, the
-target's box and the element actually under its centre — the same probe at
-failure time, and the browser's `console` and `errors` output. CI uploads both,
-plus the API and web logs, as the `e2e-failure` artifact. `test-results/**` is
-generated output.
+A failing step writes a screenshot to `test-results/<id>-fail.png`, which CI
+uploads as an artifact. `test-results/**` is generated output.
 
 ## Running it
 
