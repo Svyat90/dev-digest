@@ -220,11 +220,12 @@ session wrote to the checkout.
 - variable `EVAL_MODEL` — model under test for every PR (default `deepseek/deepseek-v4-flash`);
 - variable `EVAL_JUDGE_MODEL` — the judge (default: same as `EVAL_MODEL`).
 - variables `EVAL_AGENT_MODEL` / `EVAL_AGENT_JUDGE_MODEL` — the agent evals only (default
-  `anthropic/claude-sonnet-5.5` judged by `google/gemini-3.8-flash`). On DeepSeek V4 Flash the
-  agent cases timed out at 240 s, missed verbatim evidence, and as a judge it failed a practice
-  with empty evidence on an output that met it.
-- variable `EVAL_WORKFLOW_MODEL` — the workflow evals only (default `anthropic/claude-sonnet-5.5`):
-  DeepSeek V4 Flash skips the `architecture-reviewer` dispatch the API-route trace asserts.
+  `anthropic/claude-haiku-5.5` judged by `google/gemini-3.8-flash`). Measured: Haiku 5.5 → 2/4,
+  Sonnet 5.5 → 4/4 at ~20× the token price; set `EVAL_AGENT_MODEL=anthropic/claude-sonnet-5.5`
+  for the full pass. On DeepSeek V4 Flash the agent cases timed out at 240 s, missed verbatim
+  evidence, and as a judge it failed a practice with empty evidence on an output that met it.
+- variable `EVAL_WORKFLOW_MODEL` — the workflow evals only (default `anthropic/claude-haiku-5.5`,
+  7/7): DeepSeek V4 Flash skips the `architecture-reviewer` dispatch the API-route trace asserts.
 - `EVAL_TEST_TIMEOUT_MS` — per-test budget (local default 240 s; CI sets 600 s for reasoning models).
 
 Use a pinned slug, not a `~…-latest` alias, so results cannot move under you. For one run on

@@ -20,9 +20,9 @@
 #
 # Model switch (no UI): the repo variables EVAL_MODEL / EVAL_JUDGE_MODEL (Settings → Secrets and
 # variables → Actions → Variables) set the model for every PR, and EVAL_AGENT_MODEL overrides
-# EVAL_MODEL for the agent evals only (default anthropic/claude-sonnet-5.5), with its own judge
+# EVAL_MODEL for the agent evals only (default anthropic/claude-haiku-5.5), with its own judge
 # EVAL_AGENT_JUDGE_MODEL (default google/gemini-3.8-flash); EVAL_WORKFLOW_MODEL does the same for
-# the workflow evals (default anthropic/claude-sonnet-5.5); the workflow_dispatch inputs
+# the workflow evals (default anthropic/claude-haiku-5.5); the workflow_dispatch inputs
 # override them for one manual run. Values are OpenRouter slugs, pinned (not a ~*-latest alias)
 # so a provider-side alias move cannot change results under us. The key is the repo secret
 # OPENROUTER_API_KEY; without it (e.g. PRs from forks) the model jobs fail on the first step.
@@ -42,11 +42,11 @@ on:
         required: false
         default: ''
       agent_model:
-        description: OpenRouter slug for the agent evals only (empty = repo var EVAL_AGENT_MODEL, else Claude Sonnet 5.5)
+        description: OpenRouter slug for the agent evals only (empty = repo var EVAL_AGENT_MODEL, else Claude Haiku 5.5)
         required: false
         default: ''
       workflow_model:
-        description: OpenRouter slug for the workflow evals only (empty = repo var EVAL_WORKFLOW_MODEL, else Claude Sonnet 5.5)
+        description: OpenRouter slug for the workflow evals only (empty = repo var EVAL_WORKFLOW_MODEL, else Claude Haiku 5.5)
         required: false
         default: ''
       agent_judge_model:
@@ -208,11 +208,14 @@ jobs:
     env:
       OPENROUTER_BASE_URL: http://localhost:4000
       # Agent evals grade a full review (verbatim evidence, cited rules, a verdict); DeepSeek V4
-      # Flash fell short there (5/6 on a 1.0-threshold case), so this tier runs on a stronger model.
+      # Flash fell short there, so this tier runs on a Claude model (native tool/subagent protocol).
       # The judge is a different family (softens self-preference) and stronger than DeepSeek V4
       # Flash, which twice failed "quotes the line verbatim" with empty evidence on an output that
-      # did quote it. Measured locally: Sonnet 5.5 + Gemini 3.8 Flash judge → 4/4.
-      EVAL_MODEL: ${{ inputs.agent_model || vars.EVAL_AGENT_MODEL || 'anthropic/claude-sonnet-5.5' }}
+      # did quote it. Measured locally with the Gemini 3.8 Flash judge: Sonnet 5.5 → 4/4; Haiku 5.5
+      # → 2/4 at ~1/20 of the token price (paraphrased one quote; NEEDS_CONTEXT on the benign-rename
+      # fixture, whose file is not in the tree). Haiku is the default by choice — cost over the
+      # last two cases; set EVAL_AGENT_MODEL=anthropic/claude-sonnet-5.5 for the full 4/4.
+      EVAL_MODEL: ${{ inputs.agent_model || vars.EVAL_AGENT_MODEL || 'anthropic/claude-haiku-5.5' }}
       EVAL_JUDGE_MODEL: ${{ inputs.agent_judge_model || vars.EVAL_AGENT_JUDGE_MODEL || 'google/gemini-3.8-flash' }}
     steps:
       - name: require OPENROUTER_API_KEY
@@ -292,8 +295,8 @@ jobs:
       OPENROUTER_BASE_URL: http://localhost:4000
       # Workflow cases assert real harness behaviour, including subagent dispatch. DeepSeek V4 Flash
       # does the work inline instead of dispatching (README › Which cheap model); measured locally:
-      # Sonnet 5.5 → 7/7 in ~2.5 min. Trace cases have no judge.
-      EVAL_MODEL: ${{ inputs.workflow_model || vars.EVAL_WORKFLOW_MODEL || 'anthropic/claude-sonnet-5.5' }}
+      # Haiku 5.5 → 7/7 in ~3 min (Sonnet 5.5 also 7/7). Trace cases have no judge.
+      EVAL_MODEL: ${{ inputs.workflow_model || vars.EVAL_WORKFLOW_MODEL || 'anthropic/claude-haiku-5.5' }}
     steps:
       - name: require OPENROUTER_API_KEY
         working-directory: .
