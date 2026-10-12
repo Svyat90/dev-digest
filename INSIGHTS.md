@@ -106,6 +106,17 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
 
+- **2026-10-12 — Evals on OpenRouter hit 402 on a low-limit key because Claude Code reserves 64000 output tokens.**
+  The Agent SDK sends `max_tokens=64000` on every `/v1/messages` call (captured
+  with a stub upstream: 21 of 21 calls), and OpenRouter refuses any call whose
+  reservation exceeds the key's remaining limit, though the reviews are a few
+  thousand tokens. The judge then scored the error text as 0/N.
+  Rule: run agent/workflow evals on OpenRouter with
+  `CLAUDE_CODE_MAX_OUTPUT_TOKENS=16000` (CI sets it); on 402 raise the key's
+  limit, not the model.
+  `402 … This request requires more credits, or fewer max_tokens. You requested up to 64000 tokens, but can only afford 53972` ·
+  `.github/workflows/harness-evals.yml` (`CLAUDE_CODE_MAX_OUTPUT_TOKENS`)
+
 - **2026-10-11 — A failing CI job's log cannot be read from the dev machine; reproduce locally instead.**
   `gh` is not installed, the job page answers WebFetch with "Sign in to view logs",
   and the public check-run annotations API returns only
