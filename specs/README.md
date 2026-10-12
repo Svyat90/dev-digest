@@ -80,3 +80,4 @@ Rules of the flow:
 | SPEC-03-pr-brief | [PR Brief — PR why and risk brief](03-pr-brief-2026-10-04.md) | approved | server, client |
 | SPEC-04-eval-pipeline | [Eval Pipeline — cases from findings, runs and scoring](04-eval-pipeline-2026-10-11.md) | approved | server, client |
 | SPEC-05-eval-dashboard | [Eval Dashboard — trends, run comparison and Promote](05-eval-dashboard-2026-10-11.md) | approved | server, client |
+| SPEC-06-case-editor | [Case Editor and the skills' Evals tab](06-case-editor-2026-10-12.md) | approved | server, client |
