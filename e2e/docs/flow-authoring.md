@@ -71,6 +71,14 @@ The AI `chat` command is **banned**. It makes runs non-deterministic and require
 a model key, which would break the suite's core promise: these flows never call a
 model.
 
+In CI, `find … click` does not scroll the app's `<main>` scroll container: a
+target below the fold receives no click, the step still reports success, and
+the next `wait` times out (flow 04's diag showed `<main>` at `scrollTop: 0` and
+nothing under the button's centre). Locally the same click scrolls first, so
+the flow passes. Put a `["scrollintoview", "<css selector>"]` step before every
+click whose target may be off-screen, selecting by `aria-label`, or by the
+`aria-label` of its `role="group"` when the button has only text.
+
 Because `find role button --name` matches the **accessible name**, a control that
 a flow needs to click must carry a real `aria-label` rather than only a `title`.
 That is a UI-side requirement this suite imposes on the app.
