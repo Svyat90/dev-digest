@@ -1,0 +1,34 @@
+{
+  "eval_id": 2,
+  "eval_name": "pull-sync-transactions-tenancy",
+  "prompt": "Here is a new pull-sync module (evals/fixtures/pull-sync/server/src/modules/pull-sync/). It re-fetches files and commits of a PR from GitHub. QA saw a PR in the UI with zero files after a GitHub timeout during sync. Review the module and tell me what to change — root cause plus anything else structurally wrong you see. Write the concrete fix.",
+  "assertions": [
+    {
+      "text": "Identifies the non-atomic delete-then-insert of pr_files/pr_commits (+ pull update) as the root cause of the empty PR"
+    },
+    {
+      "text": "Moves all GitHub calls before the writes, so no external call happens inside the transaction"
+    },
+    {
+      "text": "Wraps the writes in a single transaction"
+    },
+    {
+      "text": "The transaction is opened through a port (UnitOfWork / uow.run or equivalent) so the service does not import drizzle or db/client; repository methods accept a tx scope"
+    },
+    {
+      "text": "Flags getPull(prId) as not scoped by workspaceId"
+    },
+    {
+      "text": "Flags listStale / syncStale as not scoped by workspaceId (re-syncs other workspaces' PRs)"
+    },
+    {
+      "text": "Flags openFindings / the findings route as not scoped by workspace (reviews.workspaceId missing, route ignores context)"
+    },
+    {
+      "text": "Flags raw db rows (PullRow / FindingRow) leaking out of the repository/service to the HTTP response, or the missing response schema"
+    },
+    {
+      "text": "Proposes a test that proves rollback or that a failed GitHub fetch leaves the old files intact"
+    }
+  ]
+}

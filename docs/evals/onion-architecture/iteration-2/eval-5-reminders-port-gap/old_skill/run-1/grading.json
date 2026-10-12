@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "Flags that addLabel and requestReviewers are not declared on the GitHubClient port in vendor/shared/adapters.ts",
+      "passed": true,
+      "evidence": "Issue 1: not in GitHubClient port, octokit or MockGitHubClient."
+    },
+    {
+      "text": "Flags the locally declared PrLabeler interface and/or the type cast in routes.ts as hiding the missing port methods",
+      "passed": true,
+      "evidence": "Issue 2: cast at routes.ts:20 hides missing methods; PrLabeler declared in service."
+    },
+    {
+      "text": "Proposes the fix in order: add the methods to the port, implement them in the Octokit adapter, add them to adapters/mocks.ts",
+      "passed": true,
+      "evidence": "Plan steps 1-3: port, adapter+mock, remove cast."
+    },
+    {
+      "text": "Flags repo.getRepo called inside the loop over pulls as N+1 (same repo looked up repeatedly)",
+      "passed": true,
+      "evidence": "Issue 6: getRepo and countFindings per PR in loop."
+    },
+    {
+      "text": "Flags repo.countFindings called inside the loop over pulls as N+1",
+      "passed": true,
+      "evidence": "Issue 6 covers countFindings per PR."
+    },
+    {
+      "text": "Proposes a batched repository method that takes the list of PR ids (or joins repos and counts in one query)",
+      "passed": true,
+      "evidence": "Step 5: one query returning owner, name, findingsCount via join and count()."
+    },
+    {
+      "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate",
+      "passed": true,
+      "evidence": "Issue 7: select id ... rows.length instead of count()."
+    },
+    {
+      "text": "Flags that a failure partway through the loop aborts the batch after some PRs were already labelled (no per-PR error handling / partial-failure handling)",
+      "passed": true,
+      "evidence": "Issue 9: failure on Nth PR aborts whole pass, already-labelled left unreported."
+    },
+    {
+      "text": "Does not claim that routes.ts or service.ts import drizzle-orm or a concrete adapter (no fabricated violation)",
+      "passed": true,
+      "evidence": "No claim of drizzle/adapter import in route/service; only says route constructs repository and notes it is permitted."
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "failed": 0,
+    "total": 9,
+    "pass_rate": 1.0
+  }
+}

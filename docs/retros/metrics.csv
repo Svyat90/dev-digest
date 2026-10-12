@@ -1,0 +1,3 @@
+date,topic,session,agents,dispatches,max_concurrent,wall_min,output_tokens,cache_read_tokens,cache_hit_ratio,agent_share,cost_usd,errors,hook_blocks,questions,rejected_calls
+2026-10-03,l05-project-context,863fd37d-7338-4865-b81d-7041cfaef3e9,1,4,1,93.6,86176,16113426,0.948,0.644,,5,2,16,1
+2026-10-04,l05-project-context,ec6b75cb-0a17-4e19-a827-b16b4db8689e,21,38,6,756.6,86432,31009828,0.956,0.237,,3,0,3,0

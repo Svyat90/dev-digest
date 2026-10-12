@@ -1,0 +1,50 @@
+{
+  "expectations": [
+    {
+      "text": "Flags that the signature is computed over JSON.stringify(req.body) instead of the raw request body",
+      "passed": true,
+      "evidence": "routes.ts:8 JSON.stringify(req.body) vs raw bytes; parseAs buffer fix"
+    },
+    {
+      "text": "Flags that the service reads process.env.GITHUB_WEBHOOK_SECRET instead of going through the config/secrets chokepoint",
+      "passed": true,
+      "evidence": "process.env.GITHUB_WEBHOOK_SECRET read directly; secret should come via SecretsProvider/platform/config in Deps"
+    },
+    {
+      "text": "Flags that the service imports drizzle-orm / db schema and queries the database directly (no repository)",
+      "passed": true,
+      "evidence": "service.ts imports drizzle-orm, db/client, db/schema; queries belong in repository.ts"
+    },
+    {
+      "text": "Flags that the repo lookup by owner/name is not scoped to a workspace",
+      "passed": true,
+      "evidence": "Tenancy: lookup by owner+name without workspaceId, arbitrary pick"
+    },
+    {
+      "text": "Explains that a redelivered or repeated event inserts the same PR again and fails on the unique (repo, number) index, giving a 500, and proposes an upsert or dedupe",
+      "passed": true,
+      "evidence": "Repeat delivery hits uniqueIndex (repoId, number) -> duplicate key 500; onConflictDoUpdate"
+    },
+    {
+      "text": "Flags the missing zod validation of the payload (`as never` cast)",
+      "passed": true,
+      "evidence": "req.body as never cast; Zod PullEventSchema.safeParse at edge"
+    },
+    {
+      "text": "Flags that the `action` of the event is ignored (every pull_request event inserts)",
+      "passed": true,
+      "evidence": "Notes every action inserts and status derived from action is ignored (synchronize resets status, closed not handled); weaker on explicit filtering but flags action being unused"
+    },
+    {
+      "text": "Proposes a thin route that calls one service method with narrow Deps and a repository",
+      "passed": true,
+      "evidence": "Target shape: thin routes with one service call, Deps {repo, webhookSecret}, repository.ts"
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  }
+}

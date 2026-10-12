@@ -1,0 +1,1380 @@
+{
+  "metadata": {
+    "skill_name": "onion-architecture",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-10-09T00:30:43Z",
+    "evals_run": [
+      4,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 10,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 34.6,
+        "tokens": 52450,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that the signature is computed over JSON.stringify(req.body) instead of the raw request body",
+          "passed": true,
+          "evidence": "Signature over JSON.stringify body; raw body parser"
+        },
+        {
+          "text": "Flags that the service reads process.env.GITHUB_WEBHOOK_SECRET instead of going through the config/secrets chokepoint",
+          "passed": true,
+          "evidence": "process.env read in service violates secrets chokepoint"
+        },
+        {
+          "text": "Flags that the service imports drizzle-orm / db schema and queries the database directly (no repository)",
+          "passed": true,
+          "evidence": "service imports drizzle-orm, db/schema; queries should be in repository.ts"
+        },
+        {
+          "text": "Flags that the repo lookup by owner/name is not scoped to a workspace",
+          "passed": true,
+          "evidence": "Repo lookup by owner+name without workspaceId"
+        },
+        {
+          "text": "Explains that a redelivered or repeated event inserts the same PR again and fails on the unique (repo, number) index, giving a 500, and proposes an upsert or dedupe",
+          "passed": true,
+          "evidence": "Redelivery/synchronize violates pr_repo_number_uq -> 500; upsert"
+        },
+        {
+          "text": "Flags the missing zod validation of the payload (`as never` cast)",
+          "passed": true,
+          "evidence": "req.body as never; zod schema"
+        },
+        {
+          "text": "Flags that the `action` of the event is ignored (every pull_request event inserts)",
+          "passed": true,
+          "evidence": "Any action handled; only process opened/reopened/synchronize/edited"
+        },
+        {
+          "text": "Proposes a thin route that calls one service method with narrow Deps and a repository",
+          "passed": true,
+          "evidence": "Route builds service from narrow Deps {repo, webhookSecret}; handler verify->parse->one service call"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 10,
+      "configuration": "old_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 0.875,
+        "passed": 7,
+        "failed": 1,
+        "total": 8,
+        "time_seconds": 32.8,
+        "tokens": 51456,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that the signature is computed over JSON.stringify(req.body) instead of the raw request body",
+          "passed": true,
+          "evidence": "HMAC over JSON.stringify(req.body), not raw bytes"
+        },
+        {
+          "text": "Flags that the service reads process.env.GITHUB_WEBHOOK_SECRET instead of going through the config/secrets chokepoint",
+          "passed": true,
+          "evidence": "process.env.GITHUB_WEBHOOK_SECRET; should go via common secrets chokepoint/config"
+        },
+        {
+          "text": "Flags that the service imports drizzle-orm / db schema and queries the database directly (no repository)",
+          "passed": true,
+          "evidence": "service imports drizzle-orm, db/schema, db/client; repository.ts"
+        },
+        {
+          "text": "Flags that the repo lookup by owner/name is not scoped to a workspace",
+          "passed": false,
+          "evidence": "Not flagged; findRepoByFullName merely returns workspaceId, no mention that lookup is unscoped"
+        },
+        {
+          "text": "Explains that a redelivered or repeated event inserts the same PR again and fails on the unique (repo, number) index, giving a 500, and proposes an upsert or dedupe",
+          "passed": true,
+          "evidence": "Insert on every action/redelivery hits unique (repo,number) -> 500; upsert"
+        },
+        {
+          "text": "Flags the missing zod validation of the payload (`as never` cast)",
+          "passed": true,
+          "evidence": "req.body as never without zod; PullEventSchema"
+        },
+        {
+          "text": "Flags that the `action` of the event is ignored (every pull_request event inserts)",
+          "passed": true,
+          "evidence": "Insert on every action; filter action list"
+        },
+        {
+          "text": "Proposes a thin route that calls one service method with narrow Deps and a repository",
+          "passed": true,
+          "evidence": "Route calls single service.ingest with Deps {repo, secret}; repository.ts"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 11,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.7142857142857143,
+        "passed": 5,
+        "failed": 2,
+        "total": 7,
+        "time_seconds": 17.7,
+        "tokens": 49054,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that the port in vendor/shared/notifier.ts imports types from @slack/web-api (SDK types in the innermost ring)",
+          "passed": true,
+          "evidence": "Port imports types from @slack/web-api; core may know only zod."
+        },
+        {
+          "text": "Proposes a use-case-shaped port method with plain types (e.g. a review summary or channel + text) instead of Slack's ChatPostMessageArguments",
+          "passed": true,
+          "evidence": "Neutral port Notifier.notify({channel,title,body}) with own types."
+        },
+        {
+          "text": "Flags that notify.ts builds Slack-specific blocks/mrkdwn and returns Slack's `ts` in application code",
+          "passed": true,
+          "evidence": "notify.ts assembles Slack blocks and mrkdwn and reads res.ts."
+        },
+        {
+          "text": "States that Slack message formatting belongs in the adapter",
+          "passed": true,
+          "evidence": "Move formatting (blocks, mrkdwn) into adapters/notifier/slack.ts."
+        },
+        {
+          "text": "States that only the SlackNotifier adapter should import @slack/web-api",
+          "passed": false,
+          "evidence": "Never states that only the adapter may import @slack/web-api; only says to remove SDK from the port."
+        },
+        {
+          "text": "Mentions adding a mock to adapters/mocks.ts and wiring through platform/container.ts (lazy getter + ContainerOverrides) so the review code receives the notifier through its deps",
+          "passed": false,
+          "evidence": "Mentions container wiring, mock in mocks.ts, ContainerOverrides and Deps, but no lazy getter; strict reading fails."
+        },
+        {
+          "text": "Does not claim that notify.ts imports a concrete adapter or the Slack SDK directly",
+          "passed": true,
+          "evidence": "No such claim."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 11,
+      "configuration": "old_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 21.8,
+        "tokens": 49400,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that the port in vendor/shared/notifier.ts imports types from @slack/web-api (SDK types in the innermost ring)",
+          "passed": true,
+          "evidence": "notifier.ts imports ChatPostMessageArguments/Response; core knows only zod."
+        },
+        {
+          "text": "Proposes a use-case-shaped port method with plain types (e.g. a review summary or channel + text) instead of Slack's ChatPostMessageArguments",
+          "passed": true,
+          "evidence": "Domain-language port notifyReviewDone(summary: ReviewSummary)."
+        },
+        {
+          "text": "Flags that notify.ts builds Slack-specific blocks/mrkdwn and returns Slack's `ts` in application code",
+          "passed": true,
+          "evidence": "notify.ts builds Slack blocks and mrkdwn and reads res.ts."
+        },
+        {
+          "text": "States that Slack message formatting belongs in the adapter",
+          "passed": true,
+          "evidence": "Adapter builds blocks/mrkdwn and owns channel."
+        },
+        {
+          "text": "States that only the SlackNotifier adapter should import @slack/web-api",
+          "passed": true,
+          "evidence": "'All Slack specifics stay in infrastructure'; SDK only in server adapters, not in shared or reviewer-core."
+        },
+        {
+          "text": "Mentions adding a mock to adapters/mocks.ts and wiring through platform/container.ts (lazy getter + ContainerOverrides) so the review code receives the notifier through its deps",
+          "passed": true,
+          "evidence": "MockNotifier in mocks.ts; lazy SlackNotifier construction and ContainerOverrides in container; notifier in Deps."
+        },
+        {
+          "text": "Does not claim that notify.ts imports a concrete adapter or the Slack SDK directly",
+          "passed": true,
+          "evidence": "Says notify.ts 'effectively depends' via types, not that it imports the SDK or adapter directly."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 28.8,
+        "tokens": 51661,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+          "passed": true,
+          "evidence": "'\u043d\u0456. \u041d\u0435 \u0440\u0430\u0434\u0436\u0443 \u0441\u0442\u0432\u043e\u0440\u044e\u0432\u0430\u0442\u0438 LabelsService, \u0434\u043e\u043c\u0435\u043d\u043d\u0438\u0439 \u0448\u0430\u0440 \u0456 use-case'."
+        },
+        {
+          "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+          "passed": true,
+          "evidence": "CRUD like workspace/settings; service would only forward; no logic besides 404; table of absent signals."
+        },
+        {
+          "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+          "passed": true,
+          "evidence": "'\u041f\u0440\u0430\u0432\u0438\u043b\u043e \u0437\u0430\u043b\u0435\u0436\u043d\u043e\u0441\u0442\u0435\u0439 \u0432\u0438\u043a\u043e\u043d\u0430\u043d\u043e: route -> repository -> db'; no drizzle in routes."
+        },
+        {
+          "text": "Notes that repository methods are already scoped by workspaceId",
+          "passed": true,
+          "evidence": "'\u043a\u043e\u0436\u0435\u043d \u043c\u0435\u0442\u043e\u0434 \u043f\u0440\u0438\u0439\u043c\u0430\u0454 workspaceId \u0456 \u0444\u0456\u043b\u044c\u0442\u0440\u0443\u0454 \u043f\u043e \u043d\u044c\u043e\u043c\u0443'."
+        },
+        {
+          "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+          "passed": true,
+          "evidence": "Table of signals plus examples: label limit, ban on deleting used label, GitHub sync two ports, cascade with UnitOfWork."
+        },
+        {
+          "text": "Does not report any fabricated architectural violation in the labels module",
+          "passed": true,
+          "evidence": "Says module already onion-compatible; only optional tweaks; no violation."
+        },
+        {
+          "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+          "passed": true,
+          "evidence": "Creates nothing; optional renames/tests only."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "old_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 27.7,
+        "tokens": 51647,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+          "passed": true,
+          "evidence": "Says '\u043d\u0456, \u043f\u043e\u0432\u043d\u0438\u0439 \u043d\u0430\u0431\u0456\u0440 \u0448\u043a\u043e\u0434\u0438\u0442\u044c'; do not create service.ts, domain/*, *-use-case.ts."
+        },
+        {
+          "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+          "passed": true,
+          "evidence": "Says CRUD module needs only routes+repository; service would just forward calls; table shows no logic."
+        },
+        {
+          "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+          "passed": true,
+          "evidence": "'routes.ts \u043d\u0435 \u0456\u043c\u043f\u043e\u0440\u0442\u0443\u0454 drizzle \u0456 db/*'; repository returns DTO; schema stays in infrastructure."
+        },
+        {
+          "text": "Notes that repository methods are already scoped by workspaceId",
+          "passed": true,
+          "evidence": "'\u041a\u043e\u0436\u0435\u043d \u043c\u0435\u0442\u043e\u0434 \u043f\u0440\u0438\u0439\u043c\u0430\u0454 workspaceId \u0456 \u0441\u043a\u043e\u0443\u043f\u0438\u0442\u044c \u043f\u043e \u043d\u044c\u043e\u043c\u0443, \u0432\u043a\u043b\u044e\u0447\u043d\u043e \u0437 update \u0456 delete.'"
+        },
+        {
+          "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+          "passed": true,
+          "evidence": "Lists: rule duplicated in create/update (limit, reserved names), cascade delete with UnitOfWork, GitHub sync as second port."
+        },
+        {
+          "text": "Does not report any fabricated architectural violation in the labels module",
+          "passed": true,
+          "evidence": "Only optional small improvements, repo-in-route called acceptable; no violation claimed."
+        },
+        {
+          "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+          "passed": true,
+          "evidence": "Final summary: create nothing mandatory; do not create service/domain/use-case."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 7,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 36.2,
+        "tokens": 54498,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that service.ts/routes.ts depend on the concrete OctokitGitHubClient type (a type-only import still counts) instead of the GitHubClient port",
+          "passed": true,
+          "evidence": "Rows 3 and 4 flag service.ts:1,7 and routes.ts:4,17 concrete adapter instead of port."
+        },
+        {
+          "text": "Flags the `as OctokitGitHubClient` cast in routes.ts as hiding that addLabels/requestReviewers are not on the port",
+          "passed": true,
+          "evidence": "Row 4: the as OctokitGitHubClient cast bypasses types and ties service to Octokit; plan step 1 checks port lacks the methods."
+        },
+        {
+          "text": "Proposes adding addLabels/requestReviewers to the port in vendor/shared/adapters.ts, implementing them in the adapter and adding them to adapters/mocks.ts",
+          "passed": true,
+          "evidence": "Plan step 1: add to port if missing, implement in octokit.ts, add mock in adapters/mocks.ts (phrased conditionally but proposed)."
+        },
+        {
+          "text": "Identifies the per-PR getRepo/countFindings lookups inside helpers.loadPullContext (called through Promise.all over pulls) as N+1",
+          "passed": true,
+          "evidence": "Row 7: service.ts:20 Promise.all, Nx2 queries, part of N+1."
+        },
+        {
+          "text": "Proposes a batched repository method (list of PR ids, or a join/group-by) instead of per-PR lookups",
+          "passed": true,
+          "evidence": "Plan step 4: single repository method listStalePullsWithContext with join and count in SQL."
+        },
+        {
+          "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate",
+          "passed": true,
+          "evidence": "Row 8: countFindings pulls all rows and returns rows.length instead of count()."
+        },
+        {
+          "text": "Flags that a failure partway through the nudge loop (e.g. addLabels succeeded, requestReviewers failed, or an error mid-batch) leaves PRs half-nudged and aborts the batch, with no retry safety",
+          "passed": true,
+          "evidence": "Row 11: addLabels passes but requestReviewers fails, retry inconsistent, one PR failure stops the rest; plan step 8 per-PR error handling and idempotency."
+        },
+        {
+          "text": "Does not flag the pure functions in helpers.ts (cutoffFor, needsNudge, constants) as a layering violation",
+          "passed": true,
+          "evidence": "Plan keeps cutoffFor, needsNudge, constants in helpers.ts; only I/O and the repository import flagged."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 7,
+      "configuration": "old_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 34.9,
+        "tokens": 57517,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that service.ts/routes.ts depend on the concrete OctokitGitHubClient type (a type-only import still counts) instead of the GitHubClient port",
+          "passed": true,
+          "evidence": "Problem 1 service.ts:1,:7 and problem 2 routes.ts:4,:17 flag OctokitGitHubClient instead of GitHubClient port."
+        },
+        {
+          "text": "Flags the `as OctokitGitHubClient` cast in routes.ts as hiding that addLabels/requestReviewers are not on the port",
+          "passed": true,
+          "evidence": "Problem 2: cast hides that the port lacks addLabels/requestReviewers instead of adding the methods."
+        },
+        {
+          "text": "Proposes adding addLabels/requestReviewers to the port in vendor/shared/adapters.ts, implementing them in the adapter and adding them to adapters/mocks.ts",
+          "passed": true,
+          "evidence": "Plan step 1: add both to GitHubClient in vendor/shared/adapters.ts, implement in octokit.ts, add to mocks.ts."
+        },
+        {
+          "text": "Identifies the per-PR getRepo/countFindings lookups inside helpers.loadPullContext (called through Promise.all over pulls) as N+1",
+          "passed": true,
+          "evidence": "Problem 6: service.ts:20 two queries per PR (getRepo, countFindings) = N+1."
+        },
+        {
+          "text": "Proposes a batched repository method (list of PR ids, or a join/group-by) instead of per-PR lookups",
+          "passed": true,
+          "evidence": "Plan step 5: replace with single listStalePulls query with repo join and count()."
+        },
+        {
+          "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate",
+          "passed": true,
+          "evidence": "Problem 6: countFindings selects all rows and takes rows.length instead of count()."
+        },
+        {
+          "text": "Flags that a failure partway through the nudge loop (e.g. addLabels succeeded, requestReviewers failed, or an error mid-batch) leaves PRs half-nudged and aborts the batch, with no retry safety",
+          "passed": true,
+          "evidence": "Problem 7: partial failure mid-loop leaves inconsistent result; count errors and return instead of crashing. Retry safety not explicitly discussed, but half-state and abort are covered."
+        },
+        {
+          "text": "Does not flag the pure functions in helpers.ts (cutoffFor, needsNudge, constants) as a layering violation",
+          "passed": true,
+          "evidence": "Keeps cutoffFor, needsNudge, STALE_AFTER_DAYS, LABEL in helpers.ts; only flags the repository import and loadPullContext."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 8,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8571428571428571,
+        "passed": 6,
+        "failed": 1,
+        "total": 7,
+        "time_seconds": 26.8,
+        "tokens": 53144,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that the GitHub postReview call is made inside the uow.run transaction (external call inside a transaction)",
+          "passed": true,
+          "evidence": "publish calls gh.postReview inside uow.run"
+        },
+        {
+          "text": "Explains the duplicate-review mechanism: the review can be posted while the transaction then fails/rolls back (or a pending row remains), and a retry posts again",
+          "passed": true,
+          "evidence": "rollback removes pending row while review stays on GitHub; user retries -> duplicate"
+        },
+        {
+          "text": "Flags that retryPending re-posts every pending row with no check of what was already posted (no idempotency)",
+          "passed": true,
+          "evidence": "retryPending: if markSent fails row stays pending, next retry re-posts; no idempotency key"
+        },
+        {
+          "text": "Proposes committing a pending row first, calling GitHub outside any transaction, then marking the row sent",
+          "passed": true,
+          "evidence": "insertPending autocommit, then external call outside tx, then markSent"
+        },
+        {
+          "text": "Proposes making the post safe to repeat (idempotency marker in the comment, unique key, or a lookup of an existing review before posting)",
+          "passed": true,
+          "evidence": "hidden marker in body plus check via listReviews"
+        },
+        {
+          "text": "Flags getPull and github() being resolved per pending row inside the retryPending loop",
+          "passed": false,
+          "evidence": "Does not mention getPull/github() being resolved per row in the retryPending loop (only getPull once in publish)"
+        },
+        {
+          "text": "Does not claim the module lacks workspace scoping, a response schema or a port for GitHub (those are fine)",
+          "passed": true,
+          "evidence": "No claim that scoping, schema or port are missing; says repo is correct, proposes adding a method only"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 8,
+      "configuration": "old_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 0.8571428571428571,
+        "passed": 6,
+        "failed": 1,
+        "total": 7,
+        "time_seconds": 24.8,
+        "tokens": 51214,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that the GitHub postReview call is made inside the uow.run transaction (external call inside a transaction)",
+          "passed": true,
+          "evidence": "postReview inside uow.run"
+        },
+        {
+          "text": "Explains the duplicate-review mechanism: the review can be posted while the transaction then fails/rolls back (or a pending row remains), and a retry posts again",
+          "passed": true,
+          "evidence": "tx rollback drops pending row, review exists, retry duplicates"
+        },
+        {
+          "text": "Flags that retryPending re-posts every pending row with no check of what was already posted (no idempotency)",
+          "passed": true,
+          "evidence": "retryPending without claim; markSent fail leaves pending, next retry duplicates; no idempotency key"
+        },
+        {
+          "text": "Proposes committing a pending row first, calling GitHub outside any transaction, then marking the row sent",
+          "passed": true,
+          "evidence": "tx1 insertPending commit, postReview outside tx, markSent"
+        },
+        {
+          "text": "Proposes making the post safe to repeat (idempotency marker in the comment, unique key, or a lookup of an existing review before posting)",
+          "passed": true,
+          "evidence": "stable marker plus listReviews check"
+        },
+        {
+          "text": "Flags getPull and github() being resolved per pending row inside the retryPending loop",
+          "passed": false,
+          "evidence": "No mention of getPull/github() per row in the loop"
+        },
+        {
+          "text": "Does not claim the module lacks workspace scoping, a response schema or a port for GitHub (those are fine)",
+          "passed": true,
+          "evidence": "States rest of architecture is fine; no false missing claims"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 9,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.7142857142857143,
+        "passed": 5,
+        "failed": 2,
+        "total": 7,
+        "time_seconds": 18.3,
+        "tokens": 49284,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies costForDay being called per agent per day (agents x days queries) as the cause of slowness",
+          "passed": true,
+          "evidence": "agents x 90 queries sequential N+1"
+        },
+        {
+          "text": "Proposes one grouped query (group by agent and day) or one query per agent instead of one per day",
+          "passed": true,
+          "evidence": "one aggregated GROUP BY agent_id, date_trunc"
+        },
+        {
+          "text": "Flags `Number(row?.total ?? 0)` in the repository as turning NULL (unknown cost) into 0 (free)",
+          "passed": true,
+          "evidence": "Number(row?.total ?? 0) turns null into 0"
+        },
+        {
+          "text": "Flags that the service totals and the per-day average treat unknown days as 0 and proposes an explicit unknown/null representation",
+          "passed": true,
+          "evidence": "totals/avg only over known days, costUsd number|null"
+        },
+        {
+          "text": "Proposes extracting the aggregation (bucketing, totals, average) into a pure function with a unit test that needs no DB",
+          "passed": false,
+          "evidence": "mentions only 'pure layout' in service; no pure-function extraction with a DB-free unit test"
+        },
+        {
+          "text": "Flags that the route has no response schema",
+          "passed": false,
+          "evidence": "mentions moving AgentCost contract to vendor/shared but never says the route lacks a response schema"
+        },
+        {
+          "text": "Does not claim missing workspace scoping or an import-direction violation in this module",
+          "passed": true,
+          "evidence": "says no arch:check violations; no scoping claim"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 9,
+      "configuration": "old_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 25.0,
+        "tokens": 50110,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies costForDay being called per agent per day (agents x days queries) as the cause of slowness",
+          "passed": true,
+          "evidence": "1 + A x 90 sequential queries N+1"
+        },
+        {
+          "text": "Proposes one grouped query (group by agent and day) or one query per agent instead of one per day",
+          "passed": true,
+          "evidence": "costByAgentAndDay single GROUP BY aggregate"
+        },
+        {
+          "text": "Flags `Number(row?.total ?? 0)` in the repository as turning NULL (unknown cost) into 0 (free)",
+          "passed": true,
+          "evidence": "Number(row?.total ?? 0) collapses null into 0"
+        },
+        {
+          "text": "Flags that the service totals and the per-day average treat unknown days as 0 and proposes an explicit unknown/null representation",
+          "passed": true,
+          "evidence": "totalUsd sum of known only, avg over days with data or null; costUsd number|null"
+        },
+        {
+          "text": "Proposes extracting the aggregation (bucketing, totals, average) into a pure function with a unit test that needs no DB",
+          "passed": true,
+          "evidence": "pure functions in helpers.ts with unit tests without DB"
+        },
+        {
+          "text": "Flags that the route has no response schema",
+          "passed": true,
+          "evidence": "add response schema in routes.ts with costUsd nullable"
+        },
+        {
+          "text": "Does not claim missing workspace scoping or an import-direction violation in this module",
+          "passed": true,
+          "evidence": "says dependencies correctly directed, arch:check won't break; workspace filter included"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 10,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 42.5,
+        "tokens": 55880,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that the signature is computed over JSON.stringify(req.body) instead of the raw request body",
+          "passed": true,
+          "evidence": "routes.ts:8 JSON.stringify(req.body) vs raw bytes; parseAs buffer fix"
+        },
+        {
+          "text": "Flags that the service reads process.env.GITHUB_WEBHOOK_SECRET instead of going through the config/secrets chokepoint",
+          "passed": true,
+          "evidence": "process.env.GITHUB_WEBHOOK_SECRET read directly; secret should come via SecretsProvider/platform/config in Deps"
+        },
+        {
+          "text": "Flags that the service imports drizzle-orm / db schema and queries the database directly (no repository)",
+          "passed": true,
+          "evidence": "service.ts imports drizzle-orm, db/client, db/schema; queries belong in repository.ts"
+        },
+        {
+          "text": "Flags that the repo lookup by owner/name is not scoped to a workspace",
+          "passed": true,
+          "evidence": "Tenancy: lookup by owner+name without workspaceId, arbitrary pick"
+        },
+        {
+          "text": "Explains that a redelivered or repeated event inserts the same PR again and fails on the unique (repo, number) index, giving a 500, and proposes an upsert or dedupe",
+          "passed": true,
+          "evidence": "Repeat delivery hits uniqueIndex (repoId, number) -> duplicate key 500; onConflictDoUpdate"
+        },
+        {
+          "text": "Flags the missing zod validation of the payload (`as never` cast)",
+          "passed": true,
+          "evidence": "req.body as never cast; Zod PullEventSchema.safeParse at edge"
+        },
+        {
+          "text": "Flags that the `action` of the event is ignored (every pull_request event inserts)",
+          "passed": true,
+          "evidence": "Notes every action inserts and status derived from action is ignored (synchronize resets status, closed not handled); weaker on explicit filtering but flags action being unused"
+        },
+        {
+          "text": "Proposes a thin route that calls one service method with narrow Deps and a repository",
+          "passed": true,
+          "evidence": "Target shape: thin routes with one service call, Deps {repo, webhookSecret}, repository.ts"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 10,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 42.7,
+        "tokens": 55721,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that the signature is computed over JSON.stringify(req.body) instead of the raw request body",
+          "passed": true,
+          "evidence": "Blocker 1: JSON.stringify re-serialization; raw body parser"
+        },
+        {
+          "text": "Flags that the service reads process.env.GITHUB_WEBHOOK_SECRET instead of going through the config/secrets chokepoint",
+          "passed": true,
+          "evidence": "Blocker 2: process.env read in service; secret via config/SecretsProvider"
+        },
+        {
+          "text": "Flags that the service imports drizzle-orm / db schema and queries the database directly (no repository)",
+          "passed": true,
+          "evidence": "service imports drizzle-orm, db/schema, db/client; drizzle moved to repository.ts"
+        },
+        {
+          "text": "Flags that the repo lookup by owner/name is not scoped to a workspace",
+          "passed": true,
+          "evidence": "Tenancy (4): repos looked up by owner/name without workspaceId"
+        },
+        {
+          "text": "Explains that a redelivered or repeated event inserts the same PR again and fails on the unique (repo, number) index, giving a 500, and proposes an upsert or dedupe",
+          "passed": true,
+          "evidence": "Duplicate/synchronize/redelivery violates unique index -> 500; onConflictDoUpdate"
+        },
+        {
+          "text": "Flags the missing zod validation of the payload (`as never` cast)",
+          "passed": true,
+          "evidence": "req.body as never, no validation; zod schema"
+        },
+        {
+          "text": "Flags that the `action` of the event is ignored (every pull_request event inserts)",
+          "passed": true,
+          "evidence": "Only handle known actions, HANDLED set"
+        },
+        {
+          "text": "Proposes a thin route that calls one service method with narrow Deps and a repository",
+          "passed": true,
+          "evidence": "Route verifies and calls service.handlePull; service takes narrow deps {repo, webhookSecret}; repository.ts"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 11,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 29.3,
+        "tokens": 52336,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that the port in vendor/shared/notifier.ts imports types from @slack/web-api (SDK types in the innermost ring)",
+          "passed": true,
+          "evidence": "vendor/shared/notifier.ts:1 imports @slack/web-api and uses its types in the signature."
+        },
+        {
+          "text": "Proposes a use-case-shaped port method with plain types (e.g. a review summary or channel + text) instead of Slack's ChatPostMessageArguments",
+          "passed": true,
+          "evidence": "Port notifyReviewDone(channel, ReviewSummaryNotice) with plain types."
+        },
+        {
+          "text": "Flags that notify.ts builds Slack-specific blocks/mrkdwn and returns Slack's `ts` in application code",
+          "passed": true,
+          "evidence": "notify.ts:13-24 builds Block Kit/mrkdwn and reads res.ts."
+        },
+        {
+          "text": "States that Slack message formatting belongs in the adapter",
+          "passed": true,
+          "evidence": "Block Kit, mrkdwn and res.ts become an adapter detail."
+        },
+        {
+          "text": "States that only the SlackNotifier adapter should import @slack/web-api",
+          "passed": true,
+          "evidence": "'The adapter is the ring that holds the SDK'; blocks in adapter; dependency only in server. Somewhat implicit but adequate."
+        },
+        {
+          "text": "Mentions adding a mock to adapters/mocks.ts and wiring through platform/container.ts (lazy getter + ContainerOverrides) so the review code receives the notifier through its deps",
+          "passed": true,
+          "evidence": "Mock in mocks.ts; SlackNotifier only in container, lazy and memoized; ContainerOverrides; deps.notifier."
+        },
+        {
+          "text": "Does not claim that notify.ts imports a concrete adapter or the Slack SDK directly",
+          "passed": true,
+          "evidence": "No such claim; it says the SDK types leak, not a direct import in notify.ts."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 11,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 26.5,
+        "tokens": 51771,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that the port in vendor/shared/notifier.ts imports types from @slack/web-api (SDK types in the innermost ring)",
+          "passed": true,
+          "evidence": "Port imports ChatPostMessageArguments/Response from @slack/web-api; core may know only zod."
+        },
+        {
+          "text": "Proposes a use-case-shaped port method with plain types (e.g. a review summary or channel + text) instead of Slack's ChatPostMessageArguments",
+          "passed": true,
+          "evidence": "Proposes Notifier.notifyReviewDone(channel, ReviewSummaryNotice) with plain types."
+        },
+        {
+          "text": "Flags that notify.ts builds Slack-specific blocks/mrkdwn and returns Slack's `ts` in application code",
+          "passed": true,
+          "evidence": "notify.ts builds Slack Block Kit (blocks, mrkdwn) and res.ts leaks the response."
+        },
+        {
+          "text": "States that Slack message formatting belongs in the adapter",
+          "passed": true,
+          "evidence": "Message formation (text, blocks) should live in the adapter."
+        },
+        {
+          "text": "States that only the SlackNotifier adapter should import @slack/web-api",
+          "passed": true,
+          "evidence": "'SDK types do not leave the adapter'; blocks/chat.postMessage built in adapter."
+        },
+        {
+          "text": "Mentions adding a mock to adapters/mocks.ts and wiring through platform/container.ts (lazy getter + ContainerOverrides) so the review code receives the notifier through its deps",
+          "passed": true,
+          "evidence": "Mock in adapters/mocks.ts; lazy SlackNotifier in container.ts; ContainerOverrides; narrow Deps."
+        },
+        {
+          "text": "Does not claim that notify.ts imports a concrete adapter or the Slack SDK directly",
+          "passed": true,
+          "evidence": "Never claims notify.ts imports the adapter or SDK; says to check no `new SlackNotifier` in the method."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 29.3,
+        "tokens": 52664,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+          "passed": true,
+          "evidence": "'\u044f \u043d\u0435 \u0440\u0430\u0434\u0436\u0443 \u0440\u043e\u0431\u0438\u0442\u0438 LabelsService, domain/-\u0448\u0430\u0440 \u0456 4 \u043a\u043b\u0430\u0441\u0438 use-case'."
+        },
+        {
+          "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+          "passed": true,
+          "evidence": "Pure CRUD, no business rules, one port, no transactions; wrappers give no gain."
+        },
+        {
+          "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+          "passed": true,
+          "evidence": "'drizzle \u0442\u0456\u043b\u044c\u043a\u0438 \u0432 repository.ts, \u0443 routes \u043d\u0435\u043c\u0430\u0454 drizzle-orm / db/*'."
+        },
+        {
+          "text": "Notes that repository methods are already scoped by workspaceId",
+          "passed": true,
+          "evidence": "'\u041a\u043e\u0436\u0435\u043d \u043c\u0435\u0442\u043e\u0434 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0456\u044e \u043f\u0440\u0438\u0439\u043c\u0430\u0454 workspaceId \u0456 \u0441\u043a\u043e\u0443\u043f\u0438\u0442\u044c \u043f\u043e \u043d\u044c\u043e\u043c\u0443.'"
+        },
+        {
+          "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+          "passed": true,
+          "evidence": "Skill signals plus labels examples: limit, in-use delete ban, merge with UnitOfWork, GitHub sync second port."
+        },
+        {
+          "text": "Does not report any fabricated architectural violation in the labels module",
+          "passed": true,
+          "evidence": "Duplicate-name 500 noted as a repository-level concern, not a layering violation; no fabricated violation."
+        },
+        {
+          "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+          "passed": true,
+          "evidence": "'\u043d\u0456\u0447\u043e\u0433\u043e \u043d\u043e\u0432\u043e\u0433\u043e \u043d\u0435 \u0441\u0442\u0432\u043e\u0440\u044e\u0432\u0430\u0442\u0438'; future service table is conditional."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 32.0,
+        "tokens": 51998,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+          "passed": true,
+          "evidence": "'\u043d\u0456, ... \u043d\u0435 \u0440\u0430\u0434\u0436\u0443 \u0441\u0442\u0432\u043e\u0440\u044e\u0432\u0430\u0442\u0438 \u0446\u0456 \u0444\u0430\u0439\u043b\u0438'."
+        },
+        {
+          "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+          "passed": true,
+          "evidence": "Anemic wrapper, no rules/calculations, cost ~9 files with zero guarantees; CRUD shape per skill."
+        },
+        {
+          "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+          "passed": true,
+          "evidence": "'\u041c\u0430\u0440\u0448\u0440\u0443\u0442 \u043d\u0435 \u0456\u043c\u043f\u043e\u0440\u0442\u0443\u0454 drizzle-orm \u0456 \u043d\u0435 \u043b\u0456\u0437\u0435 \u0432 db/*'; checklist passes; arch:check green."
+        },
+        {
+          "text": "Notes that repository methods are already scoped by workspaceId",
+          "passed": true,
+          "evidence": "'Drizzle-\u0437\u0430\u043f\u0438\u0442\u0438, \u0441\u043a\u043e\u043f\u043e\u0432\u0430\u043d\u0456 \u043f\u043e workspaceId' and test for scope by workspaceId."
+        },
+        {
+          "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+          "passed": true,
+          "evidence": "Signals table plus later list: label limit, second table/UnitOfWork, GitHub sync second port, cascade rules."
+        },
+        {
+          "text": "Does not report any fabricated architectural violation in the labels module",
+          "passed": true,
+          "evidence": "Flags a duplicate-name 500 as a functional bug explicitly '\u043d\u0435 \u0430\u0440\u0445\u0456\u0442\u0435\u043a\u0442\u0443\u0440\u0430'; not an architectural violation."
+        },
+        {
+          "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+          "passed": true,
+          "evidence": "'\u0424\u0430\u0439\u043b\u0456\u0432 \u0441\u0442\u0432\u043e\u0440\u044e\u0432\u0430\u0442\u0438 \u043d\u0435 \u0442\u0440\u0435\u0431\u0430.'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 7,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 35.7,
+        "tokens": 55445,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that service.ts/routes.ts depend on the concrete OctokitGitHubClient type (a type-only import still counts) instead of the GitHubClient port",
+          "passed": true,
+          "evidence": "Item 4: service.ts:1,7 and routes.ts:4,17 import type OctokitGitHubClient, type-only counts; should depend on GitHubClient."
+        },
+        {
+          "text": "Flags the `as OctokitGitHubClient` cast in routes.ts as hiding that addLabels/requestReviewers are not on the port",
+          "passed": true,
+          "evidence": "Item 1 says methods missing from port and service relies on concrete Octokit 'through the cast'; plan step 2 removes the cast. Somewhat implicit but present."
+        },
+        {
+          "text": "Proposes adding addLabels/requestReviewers to the port in vendor/shared/adapters.ts, implementing them in the adapter and adding them to adapters/mocks.ts",
+          "passed": true,
+          "evidence": "Plan step 1: add addLabels/requestReviewers to GitHubClient, implement in octokit.ts, add to adapters/mocks.ts."
+        },
+        {
+          "text": "Identifies the per-PR getRepo/countFindings lookups inside helpers.loadPullContext (called through Promise.all over pulls) as N+1",
+          "passed": true,
+          "evidence": "Item 3: service.ts:20 + helpers.ts:21-25, 2 queries per stale PR in Promise.all = N+1."
+        },
+        {
+          "text": "Proposes a batched repository method (list of PR ids, or a join/group-by) instead of per-PR lookups",
+          "passed": true,
+          "evidence": "Plan step 4: getReposByIds and countFindingsByPr with count()+group by."
+        },
+        {
+          "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate",
+          "passed": true,
+          "evidence": "Item 9: countFindings selects all rows and counts rows.length; should be SQL count()."
+        },
+        {
+          "text": "Flags that a failure partway through the nudge loop (e.g. addLabels succeeded, requestReviewers failed, or an error mid-batch) leaves PRs half-nudged and aborts the batch, with no retry safety",
+          "passed": true,
+          "evidence": "Item 2 and plan step 5: requestReviewers failing after addLabels leaves PR labeled without reviewer; rerun re-adds, no idempotency; per-PR error handling with failed counter."
+        },
+        {
+          "text": "Does not flag the pure functions in helpers.ts (cutoffFor, needsNudge, constants) as a layering violation",
+          "passed": true,
+          "evidence": "Says cutoffFor, needsNudge, constants stay in helpers.ts; only loadPullContext and the repository import are flagged (constants-file remark is a low-priority style note, not a layering violation)."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 7,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 35.5,
+        "tokens": 55773,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that service.ts/routes.ts depend on the concrete OctokitGitHubClient type (a type-only import still counts) instead of the GitHubClient port",
+          "passed": true,
+          "evidence": "Section 1: service.ts:1,:7 and routes.ts:4,:17 flag concrete OctokitGitHubClient (type-only counts)."
+        },
+        {
+          "text": "Flags the `as OctokitGitHubClient` cast in routes.ts as hiding that addLabels/requestReviewers are not on the port",
+          "passed": true,
+          "evidence": "routes.ts cast 'hides the real port problem'; section 3 explains methods are absent from the port and code leans on the adapter via the cast."
+        },
+        {
+          "text": "Proposes adding addLabels/requestReviewers to the port in vendor/shared/adapters.ts, implementing them in the adapter and adding them to adapters/mocks.ts",
+          "passed": true,
+          "evidence": "Plan step 1: add methods to port, implement in octokit.ts, add to adapters/mocks.ts."
+        },
+        {
+          "text": "Identifies the per-PR getRepo/countFindings lookups inside helpers.loadPullContext (called through Promise.all over pulls) as N+1",
+          "passed": true,
+          "evidence": "Section 6: service.ts:20 + helpers.ts:21-24, 2N queries in Promise.all = N+1."
+        },
+        {
+          "text": "Proposes a batched repository method (list of PR ids, or a join/group-by) instead of per-PR lookups",
+          "passed": true,
+          "evidence": "Plan step 5 and section 6: single repository join query with count/groupBy, or getReposByIds + countFindingsByPrIds."
+        },
+        {
+          "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate",
+          "passed": true,
+          "evidence": "Section 6: repository.ts:43-50 countFindings selects all rows and counts rows.length; use SQL count()."
+        },
+        {
+          "text": "Flags that a failure partway through the nudge loop (e.g. addLabels succeeded, requestReviewers failed, or an error mid-batch) leaves PRs half-nudged and aborts the batch, with no retry safety",
+          "passed": true,
+          "evidence": "Section 5: failure midway leaves labeled-without-reviewer PRs, rerun not idempotent, rest of batch unprocessed; plan step 6 per-PR errors and idempotency."
+        },
+        {
+          "text": "Does not flag the pure functions in helpers.ts (cutoffFor, needsNudge, constants) as a layering violation",
+          "passed": true,
+          "evidence": "Plan keeps pure cutoffFor, needsNudge, constants in helpers.ts; flags only the repository import and loadPullContext."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 8,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 28.6,
+        "tokens": 55228,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that the GitHub postReview call is made inside the uow.run transaction (external call inside a transaction)",
+          "passed": true,
+          "evidence": "postReview inside uow.run between insertPending and markSent"
+        },
+        {
+          "text": "Explains the duplicate-review mechanism: the review can be posted while the transaction then fails/rolls back (or a pending row remains), and a retry posts again",
+          "passed": true,
+          "evidence": "markSent/commit failure rolls back pending, review on GitHub, retry reposts"
+        },
+        {
+          "text": "Flags that retryPending re-posts every pending row with no check of what was already posted (no idempotency)",
+          "passed": true,
+          "evidence": "retryPending without transaction or idempotency; next retry sends again"
+        },
+        {
+          "text": "Proposes committing a pending row first, calling GitHub outside any transaction, then marking the row sent",
+          "passed": true,
+          "evidence": "insertPending first, send outside tx, markSent after"
+        },
+        {
+          "text": "Proposes making the post safe to repeat (idempotency marker in the comment, unique key, or a lookup of an existing review before posting)",
+          "passed": true,
+          "evidence": "marker in body plus listReviews lookup before resend"
+        },
+        {
+          "text": "Flags getPull and github() being resolved per pending row inside the retryPending loop",
+          "passed": true,
+          "evidence": "Item 3: getPull (N+1) and this.deps.github() called in loop per row"
+        },
+        {
+          "text": "Does not claim the module lacks workspace scoping, a response schema or a port for GitHub (those are fine)",
+          "passed": true,
+          "evidence": "Says layers, tenancy fine; only advises checking whether port has listReviews"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 8,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 32.0,
+        "tokens": 56408,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that the GitHub postReview call is made inside the uow.run transaction (external call inside a transaction)",
+          "passed": true,
+          "evidence": "postReview inside uow.run (service.ts:21-29)"
+        },
+        {
+          "text": "Explains the duplicate-review mechanism: the review can be posted while the transaction then fails/rolls back (or a pending row remains), and a retry posts again",
+          "passed": true,
+          "evidence": "rollback erases pending row, review already on GitHub, user retries"
+        },
+        {
+          "text": "Flags that retryPending re-posts every pending row with no check of what was already posted (no idempotency)",
+          "passed": true,
+          "evidence": "retryPending: no key, no already-sent check, no claim; re-publishes"
+        },
+        {
+          "text": "Proposes committing a pending row first, calling GitHub outside any transaction, then marking the row sent",
+          "passed": true,
+          "evidence": "insertPending separate commit, GitHub call outside tx, markSent"
+        },
+        {
+          "text": "Proposes making the post safe to repeat (idempotency marker in the comment, unique key, or a lookup of an existing review before posting)",
+          "passed": true,
+          "evidence": "marker plus findReviewByMarker check"
+        },
+        {
+          "text": "Flags getPull and github() being resolved per pending row inside the retryPending loop",
+          "passed": true,
+          "evidence": "N+1: repo.getPull and this.deps.github() called in the loop; hoist out"
+        },
+        {
+          "text": "Does not claim the module lacks workspace scoping, a response schema or a port for GitHub (those are fine)",
+          "passed": true,
+          "evidence": "States structure, workspaceId and response schema are fine; port lacks lookup method only, not missing port"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 9,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 19.2,
+        "tokens": 51747,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies costForDay being called per agent per day (agents x days queries) as the cause of slowness",
+          "passed": true,
+          "evidence": "service nested loops agent x day, N+1"
+        },
+        {
+          "text": "Proposes one grouped query (group by agent and day) or one query per agent instead of one per day",
+          "passed": true,
+          "evidence": "single costByAgentDay GROUP BY 1,2"
+        },
+        {
+          "text": "Flags `Number(row?.total ?? 0)` in the repository as turning NULL (unknown cost) into 0 (free)",
+          "passed": true,
+          "evidence": "Number(row?.total ?? 0) turns NULL to 0"
+        },
+        {
+          "text": "Flags that the service totals and the per-day average treat unknown days as 0 and proposes an explicit unknown/null representation",
+          "passed": true,
+          "evidence": "totals/avg from zeros; avg divided by days; propose null and avg over days with data"
+        },
+        {
+          "text": "Proposes extracting the aggregation (bucketing, totals, average) into a pure function with a unit test that needs no DB",
+          "passed": true,
+          "evidence": "pure function in helpers.ts, unit test on null vs 0 fill"
+        },
+        {
+          "text": "Flags that the route has no response schema",
+          "passed": true,
+          "evidence": "route lacks response schema; declare response: {200}"
+        },
+        {
+          "text": "Does not claim missing workspace scoping or an import-direction violation in this module",
+          "passed": true,
+          "evidence": "tenancy fine, import rings clean"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 9,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 21.2,
+        "tokens": 51273,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies costForDay being called per agent per day (agents x days queries) as the cause of slowness",
+          "passed": true,
+          "evidence": "900 sequential awaits from agents x days costForDay loop"
+        },
+        {
+          "text": "Proposes one grouped query (group by agent and day) or one query per agent instead of one per day",
+          "passed": true,
+          "evidence": "costByAgentAndDay with GROUP BY agent_id, date_trunc day"
+        },
+        {
+          "text": "Flags `Number(row?.total ?? 0)` in the repository as turning NULL (unknown cost) into 0 (free)",
+          "passed": true,
+          "evidence": "Number(row?.total ?? 0) turns null into 0"
+        },
+        {
+          "text": "Flags that the service totals and the per-day average treat unknown days as 0 and proposes an explicit unknown/null representation",
+          "passed": true,
+          "evidence": "zero propagates to totalUsd/perDayAvgUsd; proposes null, avg over known days"
+        },
+        {
+          "text": "Proposes extracting the aggregation (bucketing, totals, average) into a pure function with a unit test that needs no DB",
+          "passed": true,
+          "evidence": "pure function (helpers.ts) and unit test without DB"
+        },
+        {
+          "text": "Flags that the route has no response schema",
+          "passed": true,
+          "evidence": "routes.ts: AgentCost not declared as response schema; add response: {200}"
+        },
+        {
+          "text": "Does not claim missing workspace scoping or an import-direction violation in this module",
+          "passed": true,
+          "evidence": "states tenancy respected; no import violation claimed"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "old_skill": {
+      "pass_rate": {
+        "mean": 0.9182,
+        "stddev": 0.1125,
+        "min": 0.7143,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 27.45,
+        "stddev": 6.3091,
+        "min": 17.7,
+        "max": 36.2
+      },
+      "tokens": {
+        "mean": 51786.25,
+        "stddev": 2434.248,
+        "min": 49054,
+        "max": 57517
+      }
+    },
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 31.2083,
+        "stddev": 7.2615,
+        "min": 19.2,
+        "max": 42.7
+      },
+      "tokens": {
+        "mean": 53853.6667,
+        "stddev": 2018.5516,
+        "min": 51273,
+        "max": 56408
+      }
+    },
+    "delta": {
+      "pass_rate": "-0.08",
+      "time_seconds": "-3.8",
+      "tokens": "-2067"
+    }
+  },
+  "notes": []
+}

@@ -13,6 +13,7 @@
     { "cmd": ["wait", "--text", "request changes"], "label": "seeded run accordion shows its verdict" },
     { "cmd": ["wait", "--text", "3 findings"], "label": "accordion header shows the seeded finding count" },
     { "cmd": ["wait", "--text", "Hardcoded Stripe secret key in commit"], "label": "seeded FindingCard is visible (newest run is open by default)" },
+    { "cmd": ["scrollintoview", "[aria-label=\"Show only CRITICAL findings\"]"], "label": "bring the CRITICAL counter into view (find … click does not scroll <main> in CI)" },
     { "cmd": ["find", "role", "button", "click", "--name", "Show only CRITICAL findings"], "label": "click the CRITICAL severity counter" },
     { "cmd": ["wait", "--url", "severity=CRITICAL"], "label": "the filter is shareable — it lives in the URL" },
     { "cmd": ["wait", "--text", "Hardcoded Stripe secret key in commit"], "label": "the critical finding survives its own filter" }

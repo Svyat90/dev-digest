@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "Flags that routes.ts imports drizzle-orm / db schema and queries container.db directly",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags the blocked-ratio -> 'urgent'/'routine' business rule living in the route handler and proposes a pure function for it",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags manual CreateDigestBody.parse(req.body) and proposes declaring it as schema.body on the route",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags that DigestsService takes the whole Container and proposes narrow Deps",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags that the service imports drizzle-orm / db schema and proposes a repository",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags that the service imports FastifyReply / calls reply.code and proposes throwing an AppError subclass (NotFoundError)",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags that the service constructs concrete adapters (OctokitGitHubClient / AnthropicProvider) itself and proposes getting them through the container/ports",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags reading API keys from process.env in the service (secrets must go through the container / SecretsProvider)",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags that getOne and/or deliver load a digest by id without workspaceId scoping",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Mentions running pnpm arch:check (and not growing the baseline) as verification",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    }
+  ],
+  "summary": {
+    "passed": 10,
+    "failed": 0,
+    "total": 10,
+    "pass_rate": 1.0
+  }
+}

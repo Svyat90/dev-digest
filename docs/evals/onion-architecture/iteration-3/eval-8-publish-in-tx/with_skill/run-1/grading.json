@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Flags that the GitHub postReview call is made inside the uow.run transaction (external call inside a transaction)",
+      "passed": true,
+      "evidence": "postReview inside uow.run between insertPending and markSent"
+    },
+    {
+      "text": "Explains the duplicate-review mechanism: the review can be posted while the transaction then fails/rolls back (or a pending row remains), and a retry posts again",
+      "passed": true,
+      "evidence": "markSent/commit failure rolls back pending, review on GitHub, retry reposts"
+    },
+    {
+      "text": "Flags that retryPending re-posts every pending row with no check of what was already posted (no idempotency)",
+      "passed": true,
+      "evidence": "retryPending without transaction or idempotency; next retry sends again"
+    },
+    {
+      "text": "Proposes committing a pending row first, calling GitHub outside any transaction, then marking the row sent",
+      "passed": true,
+      "evidence": "insertPending first, send outside tx, markSent after"
+    },
+    {
+      "text": "Proposes making the post safe to repeat (idempotency marker in the comment, unique key, or a lookup of an existing review before posting)",
+      "passed": true,
+      "evidence": "marker in body plus listReviews lookup before resend"
+    },
+    {
+      "text": "Flags getPull and github() being resolved per pending row inside the retryPending loop",
+      "passed": true,
+      "evidence": "Item 3: getPull (N+1) and this.deps.github() called in loop per row"
+    },
+    {
+      "text": "Does not claim the module lacks workspace scoping, a response schema or a port for GitHub (those are fine)",
+      "passed": true,
+      "evidence": "Says layers, tenancy fine; only advises checking whether port has listReviews"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  }
+}

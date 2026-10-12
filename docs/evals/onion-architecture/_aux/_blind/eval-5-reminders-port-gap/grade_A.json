@@ -1,0 +1,49 @@
+{
+ "expectations": [
+  {
+   "text": "Flags that addLabel and requestReviewers are not declared on the GitHubClient port in vendor/shared/adapters.ts",
+   "passed": true,
+   "evidence": "Port section: addLabel/requestReviewers absent from GitHubClient (adapters.ts:151-177), octokit and mocks."
+  },
+  {
+   "text": "Flags the locally declared PrLabeler interface and/or the type cast in routes.ts as hiding the missing port methods",
+   "passed": true,
+   "evidence": "PrLabeler declared locally in service and glued on by cast at routes.ts:20, hiding the gap."
+  },
+  {
+   "text": "Proposes the fix in order: add the methods to the port, implement them in the Octokit adapter, add them to adapters/mocks.ts",
+   "passed": true,
+   "evidence": "Plan: 1 port, 2 adapter, 3 mock, then service/route cleanup."
+  },
+  {
+   "text": "Flags repo.getRepo called inside the loop over pulls as N+1 (same repo looked up repeatedly)",
+   "passed": true,
+   "evidence": "service.ts:36 repo.getRepo per PR in loop."
+  },
+  {
+   "text": "Flags repo.countFindings called inside the loop over pulls as N+1",
+   "passed": true,
+   "evidence": "service.ts:41 repo.countFindings per PR in loop."
+  },
+  {
+   "text": "Proposes a batched repository method that takes the list of PR ids (or joins repos and counts in one query)",
+   "passed": true,
+   "evidence": "Step 6: single repository method with join repos and count()/groupBy."
+  },
+  {
+   "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate",
+   "passed": true,
+   "evidence": "repository.ts:44-49 select id ... rows.length instead of count()."
+  },
+  {
+   "text": "Flags that a failure partway through the loop aborts the batch after some PRs were already labelled (no per-PR error handling / partial-failure handling)",
+   "passed": true,
+   "evidence": "'Один збій на PR перериває весь цикл (немає обробки помилки на рівні елемента)'; plan adds per-PR try/catch."
+  },
+  {
+   "text": "Does not claim that routes.ts or service.ts import drizzle-orm or a concrete adapter (no fabricated violation)",
+   "passed": true,
+   "evidence": "States imports are correct; service does not import drizzle/fastify/adapter."
+  }
+ ]
+}

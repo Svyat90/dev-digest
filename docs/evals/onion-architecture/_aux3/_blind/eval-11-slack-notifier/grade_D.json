@@ -1,0 +1,39 @@
+{
+ "expectations": [
+  {
+   "text": "Flags that the port in vendor/shared/notifier.ts imports types from @slack/web-api (SDK types in the innermost ring)",
+   "passed": true,
+   "evidence": "notifier.ts imports ChatPostMessageArguments/Response; core knows only zod."
+  },
+  {
+   "text": "Proposes a use-case-shaped port method with plain types (e.g. a review summary or channel + text) instead of Slack's ChatPostMessageArguments",
+   "passed": true,
+   "evidence": "Domain-language port notifyReviewDone(summary: ReviewSummary)."
+  },
+  {
+   "text": "Flags that notify.ts builds Slack-specific blocks/mrkdwn and returns Slack's `ts` in application code",
+   "passed": true,
+   "evidence": "notify.ts builds Slack blocks and mrkdwn and reads res.ts."
+  },
+  {
+   "text": "States that Slack message formatting belongs in the adapter",
+   "passed": true,
+   "evidence": "Adapter builds blocks/mrkdwn and owns channel."
+  },
+  {
+   "text": "States that only the SlackNotifier adapter should import @slack/web-api",
+   "passed": true,
+   "evidence": "'All Slack specifics stay in infrastructure'; SDK only in server adapters, not in shared or reviewer-core."
+  },
+  {
+   "text": "Mentions adding a mock to adapters/mocks.ts and wiring through platform/container.ts (lazy getter + ContainerOverrides) so the review code receives the notifier through its deps",
+   "passed": true,
+   "evidence": "MockNotifier in mocks.ts; lazy SlackNotifier construction and ContainerOverrides in container; notifier in Deps."
+  },
+  {
+   "text": "Does not claim that notify.ts imports a concrete adapter or the Slack SDK directly",
+   "passed": true,
+   "evidence": "Says notify.ts 'effectively depends' via types, not that it imports the SDK or adapter directly."
+  }
+ ]
+}

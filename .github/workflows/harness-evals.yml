@@ -1,0 +1,360 @@
+# Harness evals — the Claude Code harness itself (.claude/skills, .claude/agents, every
+# CLAUDE.md), measured by the evals/ package on OpenRouter.
+#
+# Jobs:
+#  - detect:   maps the PR diff onto suites (evals/scripts/ci-detect.mjs). A changed skill or
+#              agent with no evals prints "SKIP <name> (no evals)" and runs nothing.
+#  - quality:  free, no model — evals typecheck and deterministic unit tests. The SKILL.md static
+#              gate (eval:quality) is the one BLOCKING check and lives in harness-quality.yml.
+#  - skills:   one matrix leg per changed skill that has evals. Content tier: a direct
+#              OpenAI-format call to OpenRouter, no proxy.
+#  - agents:   one leg per changed agent that has evals. Tool tier: the Claude Agent SDK, routed
+#              through the LiteLLM proxy (evals/proxy) so a non-Anthropic model can back it.
+#  - workflow: any CLAUDE.md / agent / project settings / hooks / workflow-case change. Same proxy.
+#
+# VISIBLE BUT NOT BLOCKING: a failing eval fails its job, so the PR shows a red check named after
+# the skill / agent / tier, and the vitest "github-actions" reporter annotates each failed case
+# (test name + error) on the Checks page. Merging stays possible because none of these checks is
+# a required status check — keep them out of main's branch protection / rulesets. The raw records
+# (evals/results/) are uploaded as a run artifact for diagnosis.
+#
+# Model switch (no UI): the repo variables EVAL_MODEL / EVAL_JUDGE_MODEL (Settings → Secrets and
+# variables → Actions → Variables) set the model for every PR, and EVAL_AGENT_MODEL overrides
+# EVAL_MODEL for the agent evals only (default anthropic/claude-haiku-5.5), with its own judge
+# EVAL_AGENT_JUDGE_MODEL (default google/gemini-3.8-flash); EVAL_WORKFLOW_MODEL does the same for
+# the workflow evals (default anthropic/claude-haiku-5.5); the workflow_dispatch inputs
+# override them for one manual run. Values are OpenRouter slugs, pinned (not a ~*-latest alias)
+# so a provider-side alias move cannot change results under us. The key is the repo secret
+# OPENROUTER_API_KEY; without it (e.g. PRs from forks) the model jobs fail on the first step.
+name: harness evals
+
+on:
+  pull_request:
+    paths:
+      - '.claude/**'
+      - '**/CLAUDE.md'
+      - 'evals/**'
+      - '.github/workflows/harness-evals.yml'
+  workflow_dispatch:
+    inputs:
+      model:
+        description: OpenRouter slug for the model under test (empty = repo var EVAL_MODEL, else DeepSeek V4 Flash)
+        required: false
+        default: ''
+      agent_model:
+        description: OpenRouter slug for the agent evals only (empty = repo var EVAL_AGENT_MODEL, else Claude Haiku 5.5)
+        required: false
+        default: ''
+      workflow_model:
+        description: OpenRouter slug for the workflow evals only (empty = repo var EVAL_WORKFLOW_MODEL, else Claude Haiku 5.5)
+        required: false
+        default: ''
+      agent_judge_model:
+        description: OpenRouter slug for the judge of the agent evals only (empty = repo var EVAL_AGENT_JUDGE_MODEL, else Gemini 3.8 Flash)
+        required: false
+        default: ''
+      judge_model:
+        description: OpenRouter slug for the LLM judge (empty = repo var EVAL_JUDGE_MODEL, else the model under test)
+        required: false
+        default: ''
+      full:
+        description: Run every suite that has evals, not only the ones the diff touches
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harness-evals-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  EVAL_BACKEND: openrouter
+  EVAL_MODEL: ${{ inputs.model || vars.EVAL_MODEL || 'deepseek/deepseek-v4-flash' }}
+  EVAL_JUDGE_MODEL: ${{ inputs.judge_model || vars.EVAL_JUDGE_MODEL || inputs.model || vars.EVAL_MODEL || 'deepseek/deepseek-v4-flash' }}
+  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+  # DeepSeek V4 Flash reasons before answering: one agent case took > 240 s (the local default).
+  EVAL_TEST_TIMEOUT_MS: '600000'
+  # Claude Code reserves 64000 output tokens per request by default; OpenRouter rejects a request
+  # with 402 when the key cannot afford that reservation, even if the real answer is short. Our
+  # reports are a few thousand tokens, so reserve less.
+  CLAUDE_CODE_MAX_OUTPUT_TOKENS: '16000'
+
+jobs:
+  detect:
+    name: detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      skills: ${{ steps.detect.outputs.skills }}
+      agents: ${{ steps.detect.outputs.agents }}
+      run_workflow: ${{ steps.detect.outputs.run_workflow }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: detect
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          FULL: ${{ github.event_name == 'workflow_dispatch' && inputs.full && '1' || '0' }}
+        run: |
+          if [ -n "$BASE_SHA" ]; then
+            CHANGED_FILES="$(git diff --name-only "$BASE_SHA"...HEAD)"
+          else
+            CHANGED_FILES=""
+          fi
+          export CHANGED_FILES
+          node evals/scripts/ci-detect.mjs
+          echo "model under test: $EVAL_MODEL · judge: $EVAL_JUDGE_MODEL"
+
+  quality:
+    name: evals typecheck + unit (no model)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: evals
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: evals/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      - run: pnpm exec vitest run --exclude '**/*.eval.ts'
+
+  skills:
+    name: skill · ${{ matrix.skill }}
+    needs: detect
+    if: needs.detect.outputs.skills != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        skill: ${{ fromJSON(needs.detect.outputs.skills) }}
+    defaults:
+      run:
+        working-directory: evals
+    steps:
+      - name: require OPENROUTER_API_KEY
+        working-directory: .
+        run: |
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "::error title=harness evals::secret OPENROUTER_API_KEY is not set (Settings → Secrets and variables → Actions)"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: evals/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # Trailing slash: `skills/foo` would also match `skills/foo-bar/`.
+      - name: eval
+        env:
+          SKILL: ${{ matrix.skill }}
+        run: pnpm exec vitest run "skills/$SKILL/" --no-file-parallelism
+
+      - name: checkout unchanged by the eval run
+        if: always()
+        working-directory: .
+        run: ./evals/scripts/ci-assert-clean.sh
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-skill-${{ matrix.skill }}
+          path: evals/results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  agents:
+    name: agent · ${{ matrix.agent }}
+    needs: detect
+    if: needs.detect.outputs.agents != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      # Tool tiers on cheap OpenRouter models get rate-limited under load — one leg at a time.
+      max-parallel: 1
+      matrix:
+        agent: ${{ fromJSON(needs.detect.outputs.agents) }}
+    defaults:
+      run:
+        working-directory: evals
+    env:
+      OPENROUTER_BASE_URL: http://localhost:4000
+      # Agent evals grade a full review (verbatim evidence, cited rules, a verdict); DeepSeek V4
+      # Flash fell short there, so this tier runs on a Claude model (native tool/subagent protocol).
+      # The judge is a different family (softens self-preference) and stronger than DeepSeek V4
+      # Flash, which twice failed "quotes the line verbatim" with empty evidence on an output that
+      # did quote it. Measured locally with the Gemini 3.8 Flash judge: Sonnet 5.5 → 4/4; Haiku 5.5
+      # → 2/4 at ~1/20 of the token price (paraphrased one quote; NEEDS_CONTEXT on the benign-rename
+      # fixture, whose file is not in the tree). Haiku is the default by choice — cost over the
+      # last two cases; set EVAL_AGENT_MODEL=anthropic/claude-sonnet-5.5 for the full 4/4.
+      EVAL_MODEL: ${{ inputs.agent_model || vars.EVAL_AGENT_MODEL || 'anthropic/claude-haiku-5.5' }}
+      EVAL_JUDGE_MODEL: ${{ inputs.agent_judge_model || vars.EVAL_AGENT_JUDGE_MODEL || 'google/gemini-3.8-flash' }}
+    steps:
+      - name: require OPENROUTER_API_KEY
+        working-directory: .
+        run: |
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "::error title=harness evals::secret OPENROUTER_API_KEY is not set (Settings → Secrets and variables → Actions)"
+            exit 1
+          fi
+
+      # The reviewer agents diff against `main` (their protocol runs `git diff main...HEAD` and
+      # precheck.sh). The default checkout is a 1-commit clone of the PR merge ref with no `main`,
+      # so the agent answered "fatal: bad revision 'main'" → Status: NEEDS_CONTEXT, failing a
+      # case that expects PASS. Full history + a local `main` reproduce a developer checkout.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: create local main for the agents' diff base
+        working-directory: .
+        run: git branch -f main origin/main
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: evals/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: start LiteLLM proxy
+        run: |
+          docker compose -f proxy/docker-compose.yml up -d
+          pnpm proxy:wait
+
+      # Trailing slash: `agents/architecture-reviewer` would also match `-lite/`.
+      - name: eval
+        env:
+          AGENT: ${{ matrix.agent }}
+        run: pnpm exec vitest run "agents/$AGENT/" --no-file-parallelism
+
+      - name: proxy logs
+        if: failure()
+        run: docker compose -f proxy/docker-compose.yml logs --tail 100
+
+      - name: checkout unchanged by the eval run
+        if: always()
+        working-directory: .
+        run: ./evals/scripts/ci-assert-clean.sh
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-agent-${{ matrix.agent }}
+          path: evals/results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - if: always()
+        continue-on-error: true
+        run: docker compose -f proxy/docker-compose.yml down
+
+  workflow:
+    name: workflow (CLAUDE.md routing, activation, dispatch)
+    needs: detect
+    if: needs.detect.outputs.run_workflow == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: evals
+    env:
+      OPENROUTER_BASE_URL: http://localhost:4000
+      # Workflow cases assert real harness behaviour, including subagent dispatch. DeepSeek V4 Flash
+      # does the work inline instead of dispatching (README › Which cheap model); measured locally:
+      # Haiku 5.5 → 7/7 in ~3 min (Sonnet 5.5 also 7/7). Trace cases have no judge.
+      EVAL_MODEL: ${{ inputs.workflow_model || vars.EVAL_WORKFLOW_MODEL || 'anthropic/claude-haiku-5.5' }}
+    steps:
+      - name: require OPENROUTER_API_KEY
+        working-directory: .
+        run: |
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "::error title=harness evals::secret OPENROUTER_API_KEY is not set (Settings → Secrets and variables → Actions)"
+            exit 1
+          fi
+
+      # The reviewer agents diff against `main` (their protocol runs `git diff main...HEAD` and
+      # precheck.sh). The default checkout is a 1-commit clone of the PR merge ref with no `main`,
+      # so the agent answered "fatal: bad revision 'main'" → Status: NEEDS_CONTEXT, failing a
+      # case that expects PASS. Full history + a local `main` reproduce a developer checkout.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: create local main for the agents' diff base
+        working-directory: .
+        run: git branch -f main origin/main
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: evals/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: start LiteLLM proxy
+        run: |
+          docker compose -f proxy/docker-compose.yml up -d
+          pnpm proxy:wait
+
+      - name: eval
+        run: pnpm exec vitest run workflow --no-file-parallelism
+
+      - name: proxy logs
+        if: failure()
+        run: docker compose -f proxy/docker-compose.yml logs --tail 100
+
+      - name: checkout unchanged by the eval run
+        if: always()
+        working-directory: .
+        run: ./evals/scripts/ci-assert-clean.sh
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-workflow
+          path: evals/results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - if: always()
+        continue-on-error: true
+        run: docker compose -f proxy/docker-compose.yml down

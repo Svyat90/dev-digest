@@ -1,0 +1,39 @@
+{
+ "expectations": [
+  {
+   "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+   "passed": true,
+   "evidence": "Says 'ні, повний набір шкодить'; do not create service.ts, domain/*, *-use-case.ts."
+  },
+  {
+   "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+   "passed": true,
+   "evidence": "Says CRUD module needs only routes+repository; service would just forward calls; table shows no logic."
+  },
+  {
+   "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+   "passed": true,
+   "evidence": "'routes.ts не імпортує drizzle і db/*'; repository returns DTO; schema stays in infrastructure."
+  },
+  {
+   "text": "Notes that repository methods are already scoped by workspaceId",
+   "passed": true,
+   "evidence": "'Кожен метод приймає workspaceId і скоупить по ньому, включно з update і delete.'"
+  },
+  {
+   "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+   "passed": true,
+   "evidence": "Lists: rule duplicated in create/update (limit, reserved names), cascade delete with UnitOfWork, GitHub sync as second port."
+  },
+  {
+   "text": "Does not report any fabricated architectural violation in the labels module",
+   "passed": true,
+   "evidence": "Only optional small improvements, repo-in-route called acceptable; no violation claimed."
+  },
+  {
+   "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+   "passed": true,
+   "evidence": "Final summary: create nothing mandatory; do not create service/domain/use-case."
+  }
+ ]
+}

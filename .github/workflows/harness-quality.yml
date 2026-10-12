@@ -1,0 +1,66 @@
+# Harness quality gate — `eval:quality`, the static SKILL.md check (frontmatter, structure,
+# internal links). No model, no network, no secret. This is the ONE blocking harness check: make
+# the job "skill quality (eval:quality)" a required status check on main (Settings → Rules /
+# Branches). The model-backed evals stay non-blocking in harness-evals.yml.
+#
+# Deliberately NO `paths:` filter: a required check whose workflow is path-filtered never reports
+# on PRs outside those paths, and GitHub then waits for it forever ("Expected — waiting for status
+# to be reported"), blocking unrelated merges. Instead the job always starts and passes
+# immediately when nothing it checks has changed.
+name: harness quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harness-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  eval-quality:
+    name: skill quality (eval:quality)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          # Skills, the checker itself, and this workflow. A missing base (first push) checks all.
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "$BASE_SHA" 2>/dev/null; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$BASE_SHA"...HEAD | grep -qE '^(\.claude/skills/|evals/|\.github/workflows/harness-quality\.yml$)'; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+            echo "no skill or eval changes — nothing to check"
+          fi
+
+      - if: steps.changes.outputs.relevant == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - if: steps.changes.outputs.relevant == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: evals/pnpm-lock.yaml
+
+      - if: steps.changes.outputs.relevant == 'true'
+        working-directory: evals
+        run: pnpm install --frozen-lockfile
+
+      - if: steps.changes.outputs.relevant == 'true'
+        working-directory: evals
+        run: pnpm eval:quality

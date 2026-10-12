@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+      "passed": true,
+      "evidence": "'ні. Не раджу створювати LabelsService, доменний шар і use-case'."
+    },
+    {
+      "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+      "passed": true,
+      "evidence": "CRUD like workspace/settings; service would only forward; no logic besides 404; table of absent signals."
+    },
+    {
+      "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+      "passed": true,
+      "evidence": "'Правило залежностей виконано: route -> repository -> db'; no drizzle in routes."
+    },
+    {
+      "text": "Notes that repository methods are already scoped by workspaceId",
+      "passed": true,
+      "evidence": "'кожен метод приймає workspaceId і фільтрує по ньому'."
+    },
+    {
+      "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+      "passed": true,
+      "evidence": "Table of signals plus examples: label limit, ban on deleting used label, GitHub sync two ports, cascade with UnitOfWork."
+    },
+    {
+      "text": "Does not report any fabricated architectural violation in the labels module",
+      "passed": true,
+      "evidence": "Says module already onion-compatible; only optional tweaks; no violation."
+    },
+    {
+      "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+      "passed": true,
+      "evidence": "Creates nothing; optional renames/tests only."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "eval_id": 3,
+  "eval_name": "risk-scoring-domain-purity",
+  "prompt": "I added PR risk scoring: evals/fixtures/risk-scoring/server/src/modules/reviews/scoring.ts, and repos/service.ts uses it to compute a repo health summary (evals/fixtures/risk-scoring/server/src/modules/repos/service.ts). Writing a unit test for weightOf/scorePull turned out painful. Is the code placed right? Where should each piece live and why?",
+  "assertions": [
+    {
+      "text": "Flags the FastifyBaseLogger import in scoring.ts as a framework dependency in pure/domain code"
+    },
+    {
+      "text": "Flags the db/rows types (AgentRow / FindingRow) in scoring.ts and proposes contract/domain types instead"
+    },
+    {
+      "text": "States that type-only imports still count as a dependency (or that arch:check sees them)"
+    },
+    {
+      "text": "Flags process.env read inside weightOf and proposes passing the weight in as a parameter/config"
+    },
+    {
+      "text": "Flags Date.now() / clock inside scorePull and proposes injecting time"
+    },
+    {
+      "text": "Flags that scorePull mixes I/O (repository calls) with the calculation and splits it into a pure function + orchestration"
+    },
+    {
+      "text": "Flags repos/service.ts importing from ../reviews/* as a cross-module import"
+    },
+    {
+      "text": "Flags `new ReviewRepository(this.container.db)` inside a service method and/or the service taking the whole Container"
+    },
+    {
+      "text": "Recommends src/domain/<topic>/ (or reviewer-core) as the home for the pure scoring rule"
+    }
+  ]
+}
