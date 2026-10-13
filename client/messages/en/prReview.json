@@ -13,7 +13,24 @@
     "replyToAuthor": "Reply to author",
     "replyPlaceholder": "Reply to the author about this finding…",
     "sendReply": "Send reply",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "evalCase": {
+      "action": "Turn into eval case",
+      "exists": "Eval case exists",
+      "undecidedHint": "Accept or dismiss this finding first",
+      "creating": "Creating eval case…",
+      "errors": {
+        "eval_case_undecided": "Accept or dismiss this finding first.",
+        "eval_case_no_agent": "This finding was not produced by an agent, so it has no eval set.",
+        "eval_case_agent_missing": "The agent that produced this finding no longer exists.",
+        "eval_case_no_diff": "No stored diff for the finding's file.",
+        "eval_case_diff_too_large": "The diff for this file is too large to freeze (over 100,000 characters).",
+        "eval_case_lines_outside_diff": "The finding's lines are outside the stored diff.",
+        "no_eval_cases": "This agent has no eval cases.",
+        "eval_run_in_progress": "An eval run is already in progress for this agent.",
+        "generic": "Could not create the eval case."
+      }
+    }
   },
   "trifecta": {
     "lethal": "LETHAL TRIFECTA — ALL 3 PRESENT",

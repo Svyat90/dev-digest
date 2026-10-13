@@ -79,6 +79,16 @@ export const s = {
     marginTop: 14,
     flexWrap: "wrap",
   } satisfies CSSProperties,
+  evalNote: {
+    marginTop: 10,
+    fontSize: 12,
+    color: "var(--text-muted)",
+  } satisfies CSSProperties,
+  evalError: {
+    marginTop: 10,
+    fontSize: 12,
+    color: "var(--danger)",
+  } satisfies CSSProperties,
   composer: {
     marginTop: 12,
     display: "flex",
