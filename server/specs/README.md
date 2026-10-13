@@ -22,3 +22,7 @@ Linked from `server/CLAUDE.md` › *Read when*.
   invariants (BR1–BR13), the `BlastRadiusResponse` contract, the per-symbol
   caller-cap fix in the repo-intel facade, the Overview card, Prior PRs (PH1–PH7) and the
   `get_blast_radius` MCP tool, mapped to the P1/P2/P3 acceptance criteria.
+- **[`evals.md`](evals.md)** — the eval pipeline (SPEC-04, case storage of
+  SPEC-06): the invariants (EV1–EV17), the endpoints, the scoring rules, the run
+  lifecycle and reaping, and the data model. Links the root specs for the
+  acceptance criteria instead of restating them.

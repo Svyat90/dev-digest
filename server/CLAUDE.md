@@ -73,6 +73,9 @@ then read code.
 - Read `specs/blast-radius.md` before touching the blast module, the Prior PRs
   route or `repoIntel.getBlastRadius` — the caller grouping, the per-symbol cap,
   honest degradation and the GitHub-link sha rule.
+- Read `server/specs/evals.md` before touching the evals module, the eval tables
+  or eval scoring — the invariants (case creation, unique names, revisions,
+  one running run, reaping, null-vs-zero cost).
 - Read `src/modules/repo-intel/README.md` before working on the indexer.
 - Read `../TESTING.md` before adding or changing a test.
 - Read `../docs/agent-prompts/` before editing reviewer system prompts.

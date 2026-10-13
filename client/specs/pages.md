@@ -59,7 +59,7 @@ lives in the URL. Everything else is component state.
 | `?line=<n>` | PR detail | positive integer | refines `?file=` to a line. Anything that is not a positive integer is ignored (the file is still targeted); a line outside the file's changed lines shows a notice (`diffTarget.lineNotFound`). Both `file` and `line` are cleared when the tab changes |
 | `?severity=` | PR detail | `CRITICAL`, `WARNING`, `SUGGESTION` | filters every run's findings panel to one severity |
 | `?tab=` | skills list/detail | `config` (default), `preview`, `stats`, `versions` | active tab on the selected skill's detail pane; unrecognised → `config`, per the rule below |
-| `?tab=` | agent editor | existing set **plus** `skills` | the agent editor's `?tab=` values gain a `skills` tab (the agent's attached-skills panel) alongside whatever tabs it already had |
+| `?tab=` | agent editor | `config` (default), `skills`, `context`, `evals` | active tab. `skills` is the agent's attached-skills panel; `evals` is the Evals tab (metrics, eval cases, Run all evals, run history). Unrecognised → `config`, per the rule below (`AgentEditorView.tsx` `VALID_TABS`) |
 
 Two rules about reading them:
 
