@@ -7,11 +7,12 @@ export interface EditorTab {
   icon: IconName;
 }
 
-/** Editor tabs. Skills Lab adds Skills; Evals/Stats/CI stay out until their
-   own lessons (their i18n keys exist as placeholders — do not wire them up
-   here yet). */
+/** Editor tabs. Skills Lab adds Skills; the eval pipeline adds Evals. Stats/CI
+   stay out until their own lessons (their i18n keys exist as placeholders —
+   do not wire them up here yet). */
 export const TABS: readonly EditorTab[] = [
   { key: "config", labelKey: "editor.tabs.config", icon: "Settings" },
   { key: "skills", labelKey: "editor.tabs.skills", icon: "Sparkles" },
   { key: "context", labelKey: "editor.tabs.context", icon: "FileText" },
+  { key: "evals", labelKey: "editor.tabs.evals", icon: "FlaskConical" },
 ];
