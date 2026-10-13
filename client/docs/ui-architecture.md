@@ -112,6 +112,8 @@ Every key is built by the factory in `src/lib/hooks/keys.ts` (`keys.pulls(repoId
 | `["settings"]`, `["secrets-status"]` | `/settings*` | |
 | `["repo-intel-state", repoId]` | `/repos/:id/index-state` | polls while indexing |
 | `["context", repoId]` | project-context files | |
+| `["agent-eval-cases", agentId]` | `GET /agents/:id/eval-cases` | the agent's eval cases with their latest result; refetched after `useDeleteEvalCase` and `useCreateEvalCase` |
+| `["agent-eval-runs", agentId]` | `GET /agents/:id/eval-runs` | run history; polls every 2 s while any run is `running`; `useStartEvalRun` invalidates it. `useCreateEvalCase` also invalidates `["reviews", prId]` so the finding card flips to "Eval case exists" |
 
 Because `["reviews", prId]` is shared, a component that only needs a preview of a
 PR's findings can subscribe lazily and be served from the same cache the detail

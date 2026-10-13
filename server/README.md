@@ -76,6 +76,9 @@ flowchart TB
   subgraph Agents["Agents"]
     agents["agents<br/>/agents · /agents/:id · /agents/:id/skills"]
   end
+  subgraph Evals["Evals"]
+    evals["evals<br/>/findings/:id/eval-case · /agents/:id/eval-cases · /eval-cases/:id<br/>/agents/:id/eval-runs (GET · POST, background, 10/min) · /eval-runs/:id<br/>(scoring is code-only, no model call)"]
+  end
   subgraph Skills["Skills"]
     skills["skills<br/>/skills · /skills/:id · /skills/:id/versions(/:v)<br/>/skills/:id/stats · /skills/tokens · /skills/import/preview"]
   end

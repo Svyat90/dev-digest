@@ -147,12 +147,31 @@ re-derives tenancy, and `schemas.ts` holds `IdParams`.
 | `context.ts` | `onboarding`, `code_chunks`, `symbols`, `references` |
 | `knowledge.ts` | `conventions`, `memory` |
 | `skills.ts` | `skills`, `skill_versions` |
-| `eval.ts` | `eval_cases`, `eval_runs`, `conformance_checks`, `composed_reviews` |
+| `eval.ts` | `eval_cases`, `eval_case_revisions`, `eval_suite_runs`, `eval_runs`, `conformance_checks`, `composed_reviews` |
 | `ci.ts` | `ci_installations`, `ci_runs` |
 | `ops.ts` | `installed_plugins`, `digests`, `jobs` |
 
 The schema is **complete from day one**: most of these tables are empty and
 belong to later lessons. They are not dead code to clean up.
+
+The eval tables (`eval.ts`) split identity from content and runs from results:
+
+- `eval_cases` holds a case's identity only. Case names are unique per set —
+  `eval_cases_owner_name_uq` on `(workspace_id, owner_kind, owner_id, name)`.
+- `eval_case_revisions` holds the case content (frozen diff, files, meta,
+  expectation). It is append-only: no code updates or deletes a row, only the
+  FK cascade from the case removes them; a case's current revision is its
+  highest `revision`.
+- `eval_suite_runs` is one run of an agent over all of its cases. It stores the
+  agent version, the config snapshot, and the covered `(case, revision)` list as
+  `jsonb`, which is never nulled. A partial unique index
+  (`eval_suite_runs_one_running_uq`) allows one `running` run per agent.
+- `eval_runs` holds the per-case results of a suite run; each row records the
+  `case_revision_id` it ran. `case_id` and `case_revision_id` are `ON DELETE SET
+  NULL`, so deleting a case keeps its past results.
+
+The contract and behaviour of the pipeline live in the evals module
+(`modules/evals/`); the SPEC is `specs/04-eval-pipeline-2026-10-11.md`.
 
 Two rules hold across the schema, with one documented exception:
 
@@ -182,6 +201,14 @@ running server.
   in-flight runs of its own yet, so every `running` row at that moment is
   genuinely orphaned. This assumes a single API instance per database; replicas
   would need per-instance scoping or heartbeats.
+- **Eval runs.** `POST /agents/:id/eval-runs` answers `202` and continues the run
+  in the background (`modules/evals/service.ts`). A run a dead process left in
+  `running` would block new runs of that agent through the one-running index, so
+  `app.ts` also closes them on boot (`EvalService.reapStaleRuns`). They are not
+  marked failed blindly: each goes through the same close rule as a live run —
+  `completed` when at least one case was scored (not `errored`), `failed`
+  otherwise — with its finish time taken from the last stored result (or the start
+  time when it has none). Same single-instance assumption as above.
 
 ## repo-intel
 
