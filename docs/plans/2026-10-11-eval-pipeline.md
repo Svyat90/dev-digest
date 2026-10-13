@@ -1,6 +1,6 @@
 # Eval Pipeline (cases from findings, background runs, code-only scoring, agent Evals tab) — Implementation Plan
 
-Date: 2026-10-11 (revised 2026-10-12) · Branch: feature/l06-eval-pipeline · Status: draft
+Date: 2026-10-11 (revised 2026-10-12) · Branch: feature/l06-eval-pipeline-dashboard-case-editor · Status: done
 
 ## Goal
 A reviewer turns an accepted or dismissed finding into a frozen eval case with one click. An agent author runs the agent over all of its cases with `POST /agents/:id/eval-runs`. The run records the full agent configuration and the revision of every case it covered, scores recall, precision and citation accuracy with fixed rules and no model call, and shows the case list, live progress and run history on a new Evals tab in the agent editor. `pnpm verify:l06` at the repository root proves all of this without a real model, and the package specs describe the shipped behaviour.
@@ -942,3 +942,69 @@ Pass 2 → migration `0018_*` (drops only, nothing else in the pass): `eval_case
 
 ## Open questions
 - none. A2, A10 and A11 were confirmed by the user on 2026-10-12; the revision storage requirement from SPEC-06 is settled by A15 and Design › Database; R2 is accepted and planned as T017 (A16); the unique-name rule accepted on 2026-10-12 is settled by A17 and Design › Database.
+
+## Execution log
+
+Maintained by the `run-plan` skill. Not part of the plan's design.
+
+- Mode: multi-agent
+- Base: 4dd3dbb0e1d9e47715cfea7361ac8bf022d36268 (HEAD before the first task)
+- Started: 2026-10-13
+- Environment: Docker up (Postgres via testcontainers) · e2e stack not run
+- Next: none — done
+
+### Inputs
+- Spec: specs/04-eval-pipeline-2026-10-11.md, approved
+- Designs: none
+- Extra requirements: none
+
+### Tasks
+| Task | Wave | Agent | Result | Commit | Note |
+|---|---|---|---|---|---|
+| T001 | 0 | implementer | DONE | 6645e38 | red 3 failed; verify-task server+client PASS |
+| T002 | 0 | implementer | DONE | d237b56 | schema-only, no test; it-test migrates fresh DB |
+| T003 | 1 | implementer | DONE | 966ba2f | red: module missing; 8 tests |
+| T004 | 1 | implementer | DONE | 4a96c0b | red: module missing; 9 tests |
+| T005 | 1 | implementer | DONE | 022c176 | red 2 failed; 4 tests |
+| T006 | 1 | implementer | DONE | fc33b1a | no test (proved by T012/T014/T015) |
+| T007 | 1 | implementer | DONE | 3828034 | red: ./evals missing; 3 tests |
+| T008 | 1 | implementer | DONE | 1b9c3c3 | red 4 failed; note: also edited finding-card/styles.ts (not in Files, owned by no task) |
+| T009 | 2 | implementer | DONE | 52d6440 | red: service.js missing; 8 tests |
+| T010 | 2 | implementer | DONE | a2571e8 | red: modules missing; 8 tests |
+| T011 | 2 | implementer | DONE | 5cf0f11 | red: 2 new tests failed; 11 tests |
+| T012 | 3 | implementer | DONE | f9ea256 | red 4 failed; 5 it-tests pass |
+| T013 | 3 | implementer | DONE | aa717fc | agent's red was a query error; orchestrator proved red in scratch worktree (Unable to find Evals) |
+| T014 | 4 | implementer | DONE | 1db516a | test-only task, no red run (first-run failure was own test data) |
+| T015 | 4 | implementer | DONE_WITH_CONCERNS | 74915e2 | no red run; concern: saw eval-runs flake mid-T014 edit; not reproducible: full it suite 105 passed, eval-runs 3/3 |
+| T016 | 4 | doc-writer | DONE_WITH_CONCERNS | 41a94cb | mermaid node added by hand, no skill load |
+| T017 | 4 | doc-writer | DONE_WITH_CONCERNS | 3cb6b56 | 1st run NEEDS_CONTEXT (placement conflict) → re-run with user's R2/A16 decision |
+
+### Wave gates
+- W0 — pass (server typecheck, 307 tests, arch:check; client typecheck, 200 tests)
+- W1 — pass (server typecheck, 326 tests, arch:check; client typecheck, 208 tests)
+- W2 — pass (server typecheck, 334 tests, arch:check; client typecheck, 218 tests)
+- W3 — pass (server typecheck, arch:check, evals.it 5 passed; 3 unrelated it files timed out in the full parallel run (testcontainers flake) and passed alone; client typecheck, 219 tests)
+- W4 — pass (server typecheck, 334 unit tests, arch:check; full it suite 21 files / 105 tests)
+
+### Decisions
+- 2026-10-13 — plan approved by the user as is (R1, R3–R5 stay unaccepted, no open questions) → Status approved
+- 2026-10-13 — plan `Branch:` differs from the current branch → stay on feature/l06-eval-pipeline-dashboard-case-editor, plan header updated
+- 2026-10-13 — mode multi-agent; Docker available, run it-tests at gates
+- 2026-10-13 — T017 doc-writer placement conflict (server/specs/evals.md vs SPEC-04 rule) → followed the plan: R2 accepted by the user 2026-10-12, A16 (option a); root specs/ untouched
+
+### Checks
+| Round | architecture-reviewer | plan-verifier | Open items |
+|---|---|---|---|
+| 0 | PASS (no findings) | GAPS (MET 74 · PARTIAL 2 · UNVERIFIABLE 2; only AC26) | AC26 → closed by orchestrator: `bash scripts/verify-l06.sh` → PASS verify:l06 (2026-10-13) |
+
+### Fix tasks
+
+### Rules gaps
+
+### Insight candidates
+- Capture result 2026-10-13: 2 appended (client Tabs role query; doc-writer spec placement, root); 3 dropped (retry + reaper rule already in server/specs/evals.md; gate-while-editing is an unverified guess)
+- T017: case-name clash retry sits in the service, not inside the transaction, because a failed statement aborts the Postgres transaction — `server/src/modules/evals/service.ts`
+- T017: boot reaper closes a run by the completed/failed aggregate rule, so a reaped run with some scored cases reads `completed` with cases_scored < cases_total — `server/src/modules/evals/service.ts`
+- T017: plan task asked doc-writer for `<pkg>/specs/` invariants for a feature with a SPEC-NN; placement rule conflicted — `docs/plans/2026-10-11-eval-pipeline.md` (T017)
+- T013: client Tabs (@devdigest/ui) renders no role=tab; assert tab order via compareDocumentPosition — `client/src/app/(shell)/agents/[id]/_components/AgentEditor/AgentEditor.test.tsx`
+- W4/T015: running the full it-suite while another agent edits a test file gives a phantom failure; run the gate only after the wave's agents have stopped — `scripts/verify-l06.sh`
