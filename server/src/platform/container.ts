@@ -37,6 +37,9 @@ import { BlastRepository } from '../modules/blast/repository.js';
 import { BlastService } from '../modules/blast/service.js';
 import { ProjectContextRepository } from '../modules/project-context/repository.js';
 import { ProjectContextService } from '../modules/project-context/service.js';
+import { EvalRepository } from '../modules/evals/repository.js';
+import { EvalService } from '../modules/evals/service.js';
+import { parseUnifiedDiff } from '../adapters/git/diff-parser.js';
 import { FsRepoDocsReader } from '../adapters/repo-docs/fs.js';
 import type { RepoIntel } from '../modules/repo-intel/types.js';
 import { RepoIntelService } from '../modules/repo-intel/service.js';
@@ -74,6 +77,18 @@ export type ProjectContextUseCases = Pick<
   | 'appendAgentDoc'
   | 'appendSkillDoc'
   | 'resolveForRun'
+>;
+
+/** The eval use cases routes and the boot reaper reach through the container. */
+export type EvalUseCases = Pick<
+  EvalService,
+  | 'createCaseFromFinding'
+  | 'listCases'
+  | 'deleteCase'
+  | 'startRun'
+  | 'listRuns'
+  | 'getRun'
+  | 'reapStaleRuns'
 >;
 
 export interface ContainerOverrides {
@@ -129,6 +144,7 @@ export class Container {
   private _smartDiff?: SmartDiffUseCases;
   private _repoDocs?: RepoDocsReader;
   private _projectContext?: ProjectContextUseCases;
+  private _evals?: EvalUseCases;
 
   constructor(config: AppConfig, db: Db, private overrides: ContainerOverrides = {}) {
     this.config = config;
@@ -264,6 +280,22 @@ export class Container {
         })),
     });
     return this._projectContext;
+  }
+
+  /**
+   * Eval pipeline. `EvalService` takes a narrow structural `EvalDeps` (not the
+   * Container), so no `container.ts` <-> service cycle. The diff parser is
+   * injected here because modules may not import `adapters/**`.
+   */
+  get evals(): EvalUseCases {
+    this._evals ??= new EvalService({
+      repo: new EvalRepository(this.db),
+      llm: (p) => this.llm(p),
+      parseDiff: parseUnifiedDiff,
+      tokenizer: this.tokenizer,
+      promptLogMode: this.config.promptLog,
+    });
+    return this._evals;
   }
 
   /**
