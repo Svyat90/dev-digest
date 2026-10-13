@@ -45,4 +45,6 @@ export const keys = {
   agentContextDocsAll: () => ["agent-context-docs"] as const,
   skillContextDocs: (skillId: Id, repoId: Id) => ["skill-context-docs", skillId, repoId] as const,
   prHistory: (prId: Id) => ["pr-history", prId] as const,
+  agentEvalCases: (agentId: Id) => ["agent-eval-cases", agentId] as const,
+  agentEvalRuns: (agentId: Id) => ["agent-eval-runs", agentId] as const,
 };
