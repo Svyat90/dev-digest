@@ -71,7 +71,47 @@
     "run": "Run",
     "running": "Running…",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "runAll": "Run all evals",
+    "starting": "Starting…",
+    "blocker": {
+      "noCases": "No eval cases",
+      "inProgress": "Eval run already in progress"
+    },
+    "progress": "{done} / {total} cases",
+    "latestRun": "Latest completed run",
+    "noCompletedRun": "No completed eval run yet.",
+    "deltaLabel": "{points} points versus the previous run",
+    "passedOf": "{passed} / {total} passed",
+    "expectation": {
+      "must_find": "must find",
+      "must_not_flag": "must not flag"
+    },
+    "result": {
+      "expected": "expected {expected, plural, one {# finding} other {# findings}}, got {got}",
+      "errored": "errored",
+      "errorReason": "errored: {reason}"
+    },
+    "deleteCase": "Delete eval case {name}",
+    "deleteConfirm": {
+      "title": "Delete eval case",
+      "body": "Delete \"{name}\"? Results of past runs are kept.",
+      "confirm": "Delete case"
+    },
+    "history": {
+      "title": "Run history",
+      "empty": "No eval runs yet.",
+      "started": "Started",
+      "version": "Version",
+      "passed": "Passed",
+      "cost": "Cost",
+      "status": "Status",
+      "statusValue": {
+        "running": "running",
+        "completed": "completed",
+        "failed": "failed"
+      }
+    }
   },
   "page": {
     "crumbSkillsLab": "Skills Lab",
