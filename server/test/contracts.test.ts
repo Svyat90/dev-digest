@@ -21,6 +21,12 @@ import {
   BlastRadiusResponse,
   PrHistoryResponse,
   PutContextDocsBody,
+  AgentEvalCase,
+  AgentEvalRunDetail,
+  EvalExpectation,
+  EvalRunCaseRef,
+  EvalErrorCode,
+  FindingRecord,
 } from '@devdigest/shared';
 
 /**
@@ -409,5 +415,146 @@ describe('blast radius responses', () => {
 
   it('rejects an unknown degraded reason', () => {
     expect(() => BlastRadiusResponse.parse({ ...base, reason: 'bogus' })).toThrow();
+  });
+});
+
+describe('eval pipeline contracts', () => {
+  const expectation = { file: 'src/a.ts', start_line: 3, end_line: 5 };
+  const provenance = {
+    finding_id: 'f1',
+    review_id: 'r1',
+    pr_id: 'p1',
+    pr_number: 7,
+    repo_id: 'repo1',
+    repo_full_name: 'o/n',
+    decision: 'accepted',
+    decided_at: '2026-10-11T10:00:00Z',
+    agent_version: null,
+    severity: 'WARNING',
+    category: 'bug',
+    title: 'Null deref',
+  };
+  const evalCase = {
+    id: 'c1',
+    agent_id: 'a1',
+    name: 'null-deref',
+    revision_id: 'rev1',
+    revision: 1,
+    expectation_type: 'must_find',
+    expectation,
+    input_file: 'src/a.ts',
+    input_meta: { pr_title: 'T', pr_description: '' },
+    provenance,
+    created_at: '2026-10-11T10:00:00Z',
+  };
+  const skill = {
+    id: 's1',
+    name: 'sec',
+    description: 'd',
+    version: 2,
+    order: 0,
+    link_enabled: true,
+    skill_enabled: true,
+    body: 'rules',
+  };
+  const baseRecord = {
+    id: 'er1',
+    case_id: 'c1',
+    case_name: 'null-deref',
+    ran_at: '2026-10-11T10:00:00Z',
+    actual_output: { findings: [] },
+    pass: true,
+    recall: 1,
+    precision: 1,
+    citation_accuracy: 1,
+    duration_ms: 10,
+    cost_usd: null,
+    eval_run_id: 'run1',
+    case_revision_id: 'rev1',
+    status: 'passed',
+    error: null,
+    expectation_type: 'must_find',
+    expectation,
+    findings_returned: 1,
+    findings_grounded: 1,
+    findings_matching: 1,
+  };
+  const detail = {
+    id: 'run1',
+    agent_id: 'a1',
+    status: 'completed',
+    started_at: '2026-10-11T10:00:00Z',
+    finished_at: '2026-10-11T10:01:00Z',
+    duration_ms: 60000,
+    agent_version: 3,
+    cases_total: 2,
+    cases_done: 2,
+    cases_scored: 1,
+    cases_passed: 1,
+    recall: 1,
+    precision: 1,
+    citation_accuracy: 1,
+    cost_usd: null,
+    error: null,
+    config: {
+      agent_version: 3,
+      provider: 'openrouter',
+      model: 'm',
+      system_prompt: 'p',
+      strategy: 'single-pass',
+      skills: [skill, { ...skill, id: 's2', order: 1, skill_enabled: false, body: null }],
+    },
+    cases: [
+      { case_id: 'c1', revision_id: 'rev1', revision: 1 },
+      { case_id: 'c2', revision_id: 'rev2', revision: 1 },
+    ],
+    results: [
+      baseRecord,
+      {
+        ...baseRecord,
+        id: 'er2',
+        case_id: null,
+        case_revision_id: null,
+        status: 'errored',
+        pass: null,
+        error: 'timeout',
+        findings_returned: null,
+        findings_grounded: null,
+        findings_matching: null,
+      },
+    ],
+  };
+
+  it('parses a run detail with ordered skills, covered revisions and an errored result', () => {
+    expect(() => AgentEvalRunDetail.parse(detail)).not.toThrow();
+  });
+
+  it('parses a case that carries its revision', () => {
+    expect(() => AgentEvalCase.parse(evalCase)).not.toThrow();
+  });
+
+  it('rejects a zero line, a zero revision and an unknown error code', () => {
+    expect(() => EvalExpectation.parse({ ...expectation, start_line: 0 })).toThrow();
+    expect(() => EvalRunCaseRef.parse({ case_id: 'c', revision_id: 'r', revision: 0 })).toThrow();
+    expect(() => EvalErrorCode.parse('nope')).toThrow();
+  });
+
+  it('FindingRecord parses with and without eval_case_id', () => {
+    const rec = {
+      id: 'f1',
+      severity: 'WARNING',
+      category: 'bug',
+      title: 't',
+      file: 'a.ts',
+      start_line: 1,
+      end_line: 2,
+      rationale: 'r',
+      confidence: 0.5,
+      review_id: 'r1',
+      accepted_at: null,
+      dismissed_at: null,
+    };
+    expect(() => FindingRecord.parse(rec)).not.toThrow();
+    expect(FindingRecord.parse({ ...rec, eval_case_id: 'c1' }).eval_case_id).toBe('c1');
   });
 });
