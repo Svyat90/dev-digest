@@ -16,6 +16,17 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-13 — A plan task that asks `doc-writer` for `<pkg>/specs/<topic>.md` invariants for a feature that already has a SPEC-NN comes back `NEEDS_CONTEXT`.**
+  doc-writer's placement rules forbid a second invariants spec for the same
+  feature and route the explanation to `<pkg>/docs/`; T017 of the eval-pipeline
+  plan asked for `server/specs/evals.md` anyway and the first dispatch wrote
+  nothing. Re-dispatching with the user's recorded decision (R2/A16) and an
+  explicit "override the no-second-spec rule" line produced the file.
+  Rule: when a plan wants a package spec for a SPEC-NN feature, either route it to
+  `<pkg>/docs/` in the plan, or put the user's decision and the override into the
+  doc-writer dispatch from the start.
+  `docs/plans/2026-10-11-eval-pipeline.md` (T017 · Execution log › Decisions)
+
 - **2026-10-11 — A relative path in a package `CLAUDE.md` "Read when" row is read from the repo root.**
   `server/CLAUDE.md` said "Read `README.md` before adding a route"; in workflow
   evals the model opened the root `README.md` instead, in both runs, and never

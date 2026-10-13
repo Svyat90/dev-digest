@@ -14,6 +14,14 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-13 — `@devdigest/ui` `Tabs` renders no `role="tab"`, so `getAllByRole("tab")` finds nothing.**
+  `client/src/vendor/ui/kit/Tabs.tsx` has no `role` attribute at all; a test that
+  queries tabs by role fails with a query error that looks like the feature is
+  missing (the T013 first "red" run was this, not the missing Evals tab).
+  Rule: in a test, find a tab by its label text (`getByText`) and assert order
+  with `compareDocumentPosition`; never query it by role.
+  `client/src/app/(shell)/agents/[id]/_components/AgentEditor/AgentEditor.test.tsx:62`
+
 - **2026-10-04 — Wrapping `SectionLabel` in your own flex row next to a button misaligns it.**
   `SectionLabel` carries `marginBottom: 14` inside the primitive, so in an
   `align-items: center` row with a button the label sits above the button's
