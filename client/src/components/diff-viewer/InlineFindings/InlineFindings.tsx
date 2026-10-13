@@ -28,6 +28,7 @@ export function InlineFindings({
           pending={api.pending}
           repoFullName={api.repoFullName}
           headSha={api.headSha}
+          evalCase={api.evalCaseFor?.(f.id)}
         />
       ))}
     </div>

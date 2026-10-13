@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { FindingRecord } from "@devdigest/shared";
 import messages from "@messages/en/prReview.json";
@@ -8,9 +8,18 @@ vi.mock("@/lib/hooks/reviews", () => ({
   useFindingAction: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
+const onCreate = vi.fn();
+const evalCaseFor = vi.fn((_findingId: string) => ({ onCreate, pending: false, errorCode: null }));
+vi.mock("@/lib/hooks/evals", () => ({
+  useFindingEvalCaseAction: () => evalCaseFor,
+}));
+
 import { FindingsPanel } from "./FindingsPanel";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 const FINDINGS: FindingRecord[] = [
   {
@@ -69,5 +78,14 @@ describe("FindingsPanel (smoke)", () => {
     // every run that found none.
     renderWithIntl(<FindingsPanel findings={WITH_WARNING} prId="pr1" severityFilter="SUGGESTION" />);
     expect(screen.getByText("No findings match")).toBeInTheDocument();
+  });
+
+  it("offers 'Turn into eval case' on a decided finding and routes the click to that finding's control", () => {
+    renderWithIntl(
+      <FindingsPanel findings={[{ ...FINDINGS[0]!, accepted_at: "2026-01-01T00:00:00Z" }]} prId="pr1" />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Turn into eval case" }));
+    expect(evalCaseFor).toHaveBeenCalledWith("f1");
+    expect(onCreate).toHaveBeenCalledTimes(1);
   });
 });

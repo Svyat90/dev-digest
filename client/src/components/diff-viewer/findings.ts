@@ -14,6 +14,12 @@ export interface DiffFindingApi {
   pending: boolean;
   repoFullName?: string | null;
   headSha?: string | null;
+  /** Per-finding "Turn into eval case" control; the owner builds it from its hook. */
+  evalCaseFor?: (findingId: string) => {
+    onCreate: () => void;
+    pending: boolean;
+    errorCode: string | null;
+  };
 }
 
 /** A file (and optionally a RIGHT-side line) the viewer should open and scroll to. */

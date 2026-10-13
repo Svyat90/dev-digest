@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Toggle, EmptyState } from "@devdigest/ui";
 import type { FindingRecord } from "@devdigest/shared";
 import { FindingCard } from "@/components/finding-card";
+import { useFindingEvalCaseAction } from "@/lib/hooks/evals";
 import { useFindingAction } from "@/lib/hooks/reviews";
 import { useKeydown } from "@/lib/hooks/useKeydown";
 import { KEY_TO_ACTION } from "./constants";
@@ -30,6 +31,7 @@ export function FindingsPanel({
 }) {
   const t = useTranslations("prReview");
   const action = useFindingAction();
+  const evalCaseFor = useFindingEvalCaseAction();
   const [hideLow, setHideLow] = React.useState(false);
   const [focusIdx, setFocusIdx] = React.useState(0);
 
@@ -81,6 +83,7 @@ export function FindingsPanel({
               pending={action.isPending}
               repoFullName={repoFullName}
               headSha={headSha}
+              evalCase={evalCaseFor(f.id)}
               onAction={(act) => action.mutate({ findingId: f.id, action: act, prId })}
             />
           ))
