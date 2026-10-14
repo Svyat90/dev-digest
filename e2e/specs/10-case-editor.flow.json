@@ -1,0 +1,32 @@
+{
+  "name": "Case Editor saves a manual eval case that is listed as never run",
+  "description": "From /agents, open the seeded Security Reviewer agent, switch to its Evals tab and activate New eval case: the Case Editor opens titled New eval case (SPEC-06 AC1). Write the fixed case e2e-manual-case (a one-hunk diff of src/e2e.ts, must not flag, lines 2-2, expected output left at its default []), wait for the debounced parse to offer the file, and Save once the button is enabled. The dialog stays open titled Eval case · e2e-manual-case; Escape closes it and the new row reads never run (SPEC-06 AC9). This is the suite's one write, an accepted exception to coverage-spec.md rule 1: it adds one case to the seeded agent, runs last, is read by no other flow and assumes the hermetic empty DB (a rerun against a long-lived dev DB fails on name_taken). No model call: no run control (in the dialog, on a row or for the whole set) is clicked, and the run-after-save toggle stays at its default, off.",
+  "steps": [
+    { "cmd": ["open", "{BASE}/agents"], "label": "load the agents page" },
+    { "cmd": ["wait", "--url", "/agents"], "label": "agents route reached" },
+    { "cmd": ["wait", "--load", "networkidle"], "label": "agents fetch settles" },
+    { "cmd": ["wait", "--text", "Security Reviewer"], "label": "seeded agent card has rendered (the list loads after the URL settles)" },
+    { "cmd": ["find", "text", "Security Reviewer", "click"], "label": "open the seeded Security Reviewer agent" },
+    { "cmd": ["wait", "--load", "networkidle"], "label": "agent editor data settles" },
+    { "cmd": ["find", "role", "button", "click", "--name", "Evals", "--exact"], "label": "switch to the Evals tab" },
+    { "cmd": ["wait", "--url", "tab=evals"], "label": "Evals tab is active in the URL" },
+    { "cmd": ["wait", "--text", "New eval case"], "label": "the cases section with its New eval case button has rendered" },
+    { "cmd": ["find", "role", "button", "click", "--name", "New eval case", "--exact"], "label": "open the Case Editor for a new case" },
+    { "cmd": ["wait", "[aria-label='Name']"], "label": "the Case Editor dialog is open" },
+    { "cmd": ["get", "text", "[role='dialog']"], "assert": { "stdoutIncludes": "New eval case" }, "label": "the dialog is titled New eval case (SPEC-06 AC1; the page button has the same text, so the check is scoped to the dialog)" },
+    { "cmd": ["fill", "[aria-label='Name']", "e2e-manual-case"], "label": "name the case" },
+    { "cmd": ["fill", "[aria-label='Diff']", "--- a/src/e2e.ts\n+++ b/src/e2e.ts\n@@ -1,2 +1,3 @@\n const a = 1;\n+const b = 2;\n export { a };"], "label": "paste a valid one-hunk diff" },
+    { "cmd": ["check", "[aria-label='must not flag']"], "label": "expect nothing to be flagged" },
+    { "cmd": ["wait", "--fn", "document.querySelector(\"[aria-label='File'] option[value='src/e2e.ts']\") !== null"], "label": "the debounced parse offers the diff's file (an <option> is never visible, so wait for it in the DOM)" },
+    { "cmd": ["select", "[aria-label='File']", "src/e2e.ts"], "label": "pick the file of the diff" },
+    { "cmd": ["fill", "[aria-label='Start line']", "2"], "label": "start line 2" },
+    { "cmd": ["fill", "[aria-label='End line']", "2"], "label": "end line 2 (expected output keeps its default [])" },
+    { "cmd": ["wait", "button[aria-label='Save']:not([disabled])"], "label": "Save is enabled once the draft is valid" },
+    { "cmd": ["scrollintoview", "button[aria-label='Save']"], "label": "bring Save into view (find … click does not scroll in CI)" },
+    { "cmd": ["find", "role", "button", "click", "--name", "Save", "--exact"], "label": "save the case" },
+    { "cmd": ["wait", "--text", "Eval case · e2e-manual-case"], "label": "the dialog stays open, now titled with the saved case's name" },
+    { "cmd": ["press", "Escape"], "label": "close the Case Editor" },
+    { "cmd": ["wait", "--text", "e2e-manual-case"], "label": "the new case is listed" },
+    { "cmd": ["wait", "--text", "never run"], "label": "the new case reads never run (SPEC-06 AC9)" }
+  ]
+}

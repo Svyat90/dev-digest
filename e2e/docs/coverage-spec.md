@@ -51,6 +51,7 @@ same commit.
 | `07-settings` | settings | `/settings/api-keys` and `/settings/models` render their sections |
 | `08-smart-diff` | Smart Diff | the Files changed tab's Smart-order header renders, and all five role groups render with their labels and the core role description; Docs and Boilerplate start collapsed by default, and expanding Boilerplate reveals the seeded `pnpm-lock.yaml`; the Smart/Original segmented toggle switches to the flat GitHub-order diff and back. Group **order** is asserted only in `client/.../DiffTab/DiffTab.test.tsx` — this runner can prove presence, never absence (see "Deliberately not covered" below). No model call; grouping is the deterministic `classifyFile` path classifier (`server/specs/smart-diff.md`) |
 | `09-pr-brief` | PR Brief | the Overview tab renders the PR Brief block with the Generate brief button (present, never clicked) and the newest seeded review's verdict banner (`PR SCORE` label). No model call — generating a brief and the Files changed navigation are covered by server integration and client unit tests |
+| `10-case-editor` | Case Editor | from `/agents`, the seeded Security Reviewer's Evals tab (`?tab=evals`) opens the Case Editor through New eval case, titled "New eval case" (SPEC-06 AC1); a fixed manual case `e2e-manual-case` (one-hunk diff of `src/e2e.ts`, must not flag, lines 2–2, expected output `[]`) saves once Save is enabled, the dialog stays open as "Eval case · e2e-manual-case", and after Escape the new row reads "never run" (SPEC-06 AC9). Controls are selected by the accessible names the editor's unit tests pin. The suite's one write (see rule 1); no run and no model call — Run case, row runs, Run all evals and the Run on save toggle are never touched. Validation refusals, edits and runs are covered by the client and server suites |
 
 Together these cover the main path a first-time user walks — boot, find a PR,
 read its review, look at the diff — plus the two configuration screens that make
@@ -63,13 +64,18 @@ the rest possible.
 | hover interactions (finding previews) | the runner's deterministic verbs are `open` / `wait` / `find … click`; there is no hover command. Hover behaviour is pinned in the client's jsdom tests, where it can also be asserted precisely |
 | absence of an element | `wait --text` can only prove presence. Flows assert what survives plus the URL that caused it |
 | running an actual review | it would need a model key, spend money, and make the suite non-deterministic. The review pipeline is covered by the server integration suite with a mock provider |
-| writes of any kind (add repo, edit agent, delete run) | flows share one seeded database in filename order; a write in flow *n* would silently change the world flow *n+1* asserts on |
+| writes of any kind (add repo, edit agent, delete run), except flow 10's one eval case | flows share one seeded database in filename order; a write in flow *n* would silently change the world flow *n+1* asserts on |
 | visual / pixel regressions | out of scope; failure screenshots exist for debugging, not for comparison |
 | error states and offline behaviour | asserted in the client suite where the API can be mocked |
 
 ## Rules a new flow must keep
 
 1. **Read-only.** No flow may mutate seeded data or trigger a model call.
+   One accepted exception: `10-case-editor` writes a single eval case,
+   `e2e-manual-case`, on the seeded Security Reviewer agent. It mutates no
+   seeded row (it adds one), runs last in filename order, is read by no other
+   flow, and assumes the hermetic stack's empty database — a rerun against a
+   long-lived dev DB fails on `name_taken`. No other flow may write.
 2. **Deterministic locators only** — `--url`, `--text`, `find role|text|label`.
    The AI `chat` command is banned.
 3. **Self-contained entry.** Start from `open {BASE}/` and navigate in; never
