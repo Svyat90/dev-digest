@@ -85,7 +85,8 @@
     "passedOf": "{passed} / {total} passed",
     "expectation": {
       "must_find": "must find",
-      "must_not_flag": "must not flag"
+      "must_not_flag": "must not flag",
+      "empty": "empty []"
     },
     "result": {
       "expected": "expected {expected, plural, one {# finding} other {# findings}}, got {got}",
@@ -112,7 +113,8 @@
         "failed": "failed"
       }
     },
-    "viewDashboard": "View full dashboard →"
+    "viewDashboard": "View full dashboard →",
+    "passingPill": "{passed} / {total} passing"
   },
   "page": {
     "crumbSkillsLab": "Skills Lab",
@@ -129,7 +131,7 @@
   },
   "workspace": {
     "title": "Eval Dashboard",
-    "subtitle": "Latest eval result of every agent",
+    "subtitle": "Regression harness across all reviewer agents · pick an agent to see its runs",
     "empty": "No agents yet. Create an agent to run evals.",
     "lastRun": "Last run v{version} · {startedAt} · {passed}/{total} pass",
     "neverRun": "Never run",
@@ -164,7 +166,13 @@
       "no_eval_cases": "no eval cases",
       "eval_run_in_progress": "eval run already in progress"
     },
-    "rateLimited": "Too many runs — try again in a minute"
+    "rateLimited": "Too many runs — try again in a minute",
+    "agentsHeading": "Agents",
+    "metricShort": {
+      "recall": "RECALL",
+      "precision": "PREC",
+      "citation": "CITE"
+    }
   },
   "agentDashboard": {
     "allAgents": "All agents",
@@ -204,7 +212,8 @@
       "status": "Status"
     },
     "compare": "Compare",
-    "compareHint": "Select exactly 2 runs"
+    "compareHint": "Select exactly 2 runs",
+    "selectedCount": "{count} selected"
   },
   "alert": {
     "dropped": "{metric} dipped {points}pts on v{version} — {cause}.",
@@ -267,6 +276,9 @@
       "eval_run_not_completed": "Only completed runs can be compared or promoted.",
       "not_found": "This run is no longer available.",
       "generic": "Promote failed."
-    }
+    },
+    "systemPromptDiff": "System prompt diff",
+    "legendOld": "v{version} (old)",
+    "legendNew": "v{version} (new)"
   }
 }

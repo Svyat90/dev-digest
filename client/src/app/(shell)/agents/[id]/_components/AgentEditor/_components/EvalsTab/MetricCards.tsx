@@ -1,12 +1,10 @@
 import { useTranslations } from "next-intl";
 import type { AgentEvalRunSummary } from "@devdigest/shared";
 import { NO_DATA } from "@/lib/format";
-import { deltaPoints, formatDelta, formatPercent } from "./helpers";
-import { s } from "./styles";
+import { EVAL_METRIC_COLOR, MetricTile, evalUi, type EvalMetricKey } from "@/components/eval-ui";
+import { deltaPoints, formatDelta } from "./helpers";
 
-type Metric = "recall" | "precision" | "citation_accuracy";
-
-const CARDS: { metric: Metric; label: "recall" | "precision" | "citationAccuracy" }[] = [
+const CARDS: { metric: EvalMetricKey; label: "recall" | "precision" | "citationAccuracy" }[] = [
   { metric: "recall", label: "recall" },
   { metric: "precision", label: "precision" },
   { metric: "citation_accuracy", label: "citationAccuracy" },
@@ -22,27 +20,25 @@ export function MetricCards({
 }) {
   const t = useTranslations("eval");
   return (
-    <div style={s.cards}>
+    <div style={evalUi.tilesGrid}>
       {CARDS.map(({ metric, label }) => {
         const delta = latest && previous ? deltaPoints(latest[metric], previous[metric]) : null;
         return (
-          <div key={metric} role="group" aria-label={t(`dashboard.metrics.${label}`)} style={s.card}>
-            <div style={s.cardLabel}>{t(`dashboard.metrics.${label}`)}</div>
-            <div style={s.cardValue}>{formatPercent(latest?.[metric])}</div>
-            {delta != null ? (
-              <div style={s.cardSub} title={t("evalsTab.deltaLabel", { points: formatDelta(delta) })}>
-                <span>{formatDelta(delta)}</span>
-              </div>
-            ) : null}
-          </div>
+          <MetricTile
+            key={metric}
+            label={t(`dashboard.metrics.${label}`)}
+            value={latest?.[metric]}
+            color={EVAL_METRIC_COLOR[metric]}
+            deltaPoints={delta}
+            deltaText={delta != null ? formatDelta(delta) : null}
+          />
         );
       })}
-      <div role="group" aria-label={t("dashboard.table.pass")} style={s.card}>
-        <div style={s.cardLabel}>{t("dashboard.table.pass").toUpperCase()}</div>
-        <div style={s.cardValue}>
-          {latest ? t("evalsTab.passedOf", { passed: latest.cases_passed, total: latest.cases_total }) : NO_DATA}
-        </div>
-      </div>
+      <MetricTile
+        label={t("dashboard.table.pass").toUpperCase()}
+        color="var(--text-primary)"
+        raw={latest ? t("evalsTab.passedOf", { passed: latest.cases_passed, total: latest.cases_total }) : NO_DATA}
+      />
     </div>
   );
 }

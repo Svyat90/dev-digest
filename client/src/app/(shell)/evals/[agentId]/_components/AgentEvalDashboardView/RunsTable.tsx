@@ -2,7 +2,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { Checkbox } from "@devdigest/ui";
 import type { AgentEvalRunSummary } from "@devdigest/shared";
 import { formatUsd } from "@/lib/format";
-import { formatPercent } from "@/lib/eval-metrics";
+import { EVAL_METRIC_COLOR, MetricBar, RunStatus, evalUi } from "@/components/eval-ui";
 import { s } from "./styles";
 
 export function RunsTable({
@@ -18,16 +18,17 @@ export function RunsTable({
   const format = useFormatter();
 
   const col = (k: string) => (
-    <th scope="col" style={s.th}>
+    <th scope="col" style={evalUi.th}>
       {t(`agentDashboard.table.${k}`)}
     </th>
   );
 
   return (
-    <table style={s.table} aria-label={t("dashboard.recentRuns")}>
+    <div style={evalUi.panel}>
+    <table style={evalUi.table} aria-label={t("dashboard.recentRuns")}>
       <thead>
         <tr>
-          <th style={s.th} />
+          <th style={evalUi.th} />
           {col("startedAt")}
           {col("version")}
           {col("recall")}
@@ -42,19 +43,19 @@ export function RunsTable({
         {runs.map((r) => {
           const metrics =
             r.status === "failed" ? (
-              <td style={s.td} colSpan={3}>
+              <td style={evalUi.td} colSpan={3}>
                 {r.error}
               </td>
             ) : (
               <>
-                <td style={s.td}>{formatPercent(r.recall)}</td>
-                <td style={s.td}>{formatPercent(r.precision)}</td>
-                <td style={s.td}>{formatPercent(r.citation_accuracy)}</td>
+                <td style={evalUi.td}><MetricBar value={r.recall} color={EVAL_METRIC_COLOR.recall} /></td>
+                <td style={evalUi.td}><MetricBar value={r.precision} color={EVAL_METRIC_COLOR.precision} /></td>
+                <td style={evalUi.td}><MetricBar value={r.citation_accuracy} color={EVAL_METRIC_COLOR.citation_accuracy} /></td>
               </>
             );
           return (
             <tr key={r.id}>
-              <td style={s.td}>
+              <td style={evalUi.td}>
                 {r.status === "completed" && (
                   <Checkbox
                     checked={selected.includes(r.id)}
@@ -63,22 +64,27 @@ export function RunsTable({
                   />
                 )}
               </td>
-              <td style={s.td}>
-                {format.dateTime(new Date(r.started_at), { dateStyle: "medium", timeStyle: "short" })}
+              <td style={evalUi.td}>
+                <span style={evalUi.mono}>
+                  {format.dateTime(new Date(r.started_at), { dateStyle: "medium", timeStyle: "short" })}
+                </span>
               </td>
-              <td style={s.td}>v{r.agent_version}</td>
+              <td style={evalUi.td}>
+                <span style={evalUi.version}>v{r.agent_version}</span>
+              </td>
               {metrics}
-              <td style={s.td}>
+              <td style={{ ...evalUi.td, ...evalUi.strong }}>
                 {r.status === "running"
                   ? t("agentDashboard.progress", { done: r.cases_done, total: r.cases_total })
                   : `${r.cases_passed} / ${r.cases_total}`}
               </td>
-              <td style={s.td}>{formatUsd(r.cost_usd)}</td>
-              <td style={s.td}>{r.status === "completed" ? "" : t(`runStatus.${r.status}`)}</td>
+              <td style={evalUi.td}>{formatUsd(r.cost_usd)}</td>
+              <td style={evalUi.td}><RunStatus status={r.status} /></td>
             </tr>
           );
         })}
       </tbody>
     </table>
+    </div>
   );
 }

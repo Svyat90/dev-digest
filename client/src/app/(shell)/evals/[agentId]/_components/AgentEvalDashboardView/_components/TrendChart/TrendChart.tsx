@@ -2,19 +2,21 @@
 
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { EvalTrendPoint } from "@/vendor/shared";
+import { Icon } from "@devdigest/ui";
+import { EVAL_METRIC_COLOR, evalUi } from "@/components/eval-ui";
 import { trendRows } from "./helpers";
 import { TrendTooltip } from "./TrendTooltip";
 import { s } from "./styles";
 
 const SERIES = [
-  { key: "recall", legend: "recall", color: "var(--accent, #4f46e5)", dash: undefined },
-  { key: "precision", legend: "precision", color: "var(--warn, #d97706)", dash: "6 3" },
-  { key: "citation", legend: "citation", color: "var(--ok, #059669)", dash: "2 3" },
+  { key: "recall", legend: "recall", color: EVAL_METRIC_COLOR.recall },
+  { key: "precision", legend: "precision", color: EVAL_METRIC_COLOR.precision },
+  { key: "citation", legend: "citation", color: EVAL_METRIC_COLOR.citation_accuracy },
 ] as const;
 
-const MARGIN = { top: 14, right: 14, bottom: 8, left: -10 };
+const MARGIN = { top: 14, right: 14, bottom: 14, left: 4 };
 const Y_DOMAIN: [number, number] = [0, 100];
 
 interface TooltipContentProps {
@@ -33,7 +35,21 @@ export function TrendChart({ points, truncated }: { points: EvalTrendPoint[]; tr
   };
 
   return (
-    <div style={s.wrap}>
+    <div style={{ ...evalUi.card, ...s.wrap }}>
+      <div style={s.header}>
+        <span style={s.title}>
+          <Icon.TrendingUp size={14} aria-hidden />
+          <span style={evalUi.kicker}>{t("dashboard.metricTrend")}</span>
+        </span>
+        <span style={s.legend}>
+          {SERIES.map((l) => (
+            <span key={l.key} style={s.legendItem}>
+              <span style={{ ...s.swatch, background: l.color }} aria-hidden />
+              {t(`dashboard.legend.${l.legend}`)}
+            </span>
+          ))}
+        </span>
+      </div>
       {truncated && <div style={s.note}>{t("agentDashboard.trendTruncated")}</div>}
       <div style={s.chart}>
         <ResponsiveContainer width="100%" height="100%">
@@ -46,10 +62,9 @@ export function TrendChart({ points, truncated }: { points: EvalTrendPoint[]; tr
               tickFormatter={(v: number) => `${v}%`}
               axisLine={false}
               tickLine={false}
-              width={44}
+              width={52}
             />
             <Tooltip content={renderTooltip as never} />
-            <Legend />
             {SERIES.map((l) => (
               <Line
                 key={l.key}
@@ -57,7 +72,6 @@ export function TrendChart({ points, truncated }: { points: EvalTrendPoint[]; tr
                 dataKey={l.key}
                 type="linear"
                 stroke={l.color}
-                strokeDasharray={l.dash}
                 strokeWidth={2}
                 dot
                 connectNulls={false}

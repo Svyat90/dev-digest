@@ -5,6 +5,7 @@ import type { EvalDashboard, EvalDashboardRange } from "@devdigest/shared";
 import { ApiError } from "@/lib/api";
 import { useAgents } from "@/lib/hooks/agents";
 import { useStartEvalRun } from "@/lib/hooks/evals";
+import { evalUi } from "@/components/eval-ui";
 import { RANGES, parseRange, runEvalBlocker } from "./helpers";
 import { s } from "./styles";
 
@@ -41,14 +42,17 @@ export function DashboardHeader({
   return (
     <div style={s.header}>
       <div>
-        <h1 style={s.h1}>{data.agent.name}</h1>
+        <div style={s.titleLine}>
+          <h1 style={s.h1}>{data.agent.name}</h1>
+          <span style={evalUi.chip}>{data.agent.model}</span>
+        </div>
         <div style={s.model}>
-          {data.agent.provider} · {data.agent.model}
+          {t("dashboard.casesSummary", { count: data.cases_total, runs: data.runs.length })}
         </div>
       </div>
       <div style={s.controls}>
         <label style={s.field}>
-          {t("agentDashboard.switcherLabel")}
+          <span style={s.srOnly}>{t("agentDashboard.switcherLabel")}</span>
           <SelectInput
             value={agentId}
             options={agentOptions}
@@ -57,7 +61,7 @@ export function DashboardHeader({
           />
         </label>
         <label style={s.field}>
-          {t("agentDashboard.rangeLabel")}
+          <span style={s.srOnly}>{t("agentDashboard.rangeLabel")}</span>
           <SelectInput
             value={range}
             mono={false}
@@ -68,6 +72,7 @@ export function DashboardHeader({
         <div style={s.runBox}>
           <Button
             kind="primary"
+            icon="Play"
             onClick={() => start.mutate()}
             disabled={!!blocker || start.isPending}
           >

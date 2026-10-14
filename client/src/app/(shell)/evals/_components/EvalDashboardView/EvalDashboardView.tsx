@@ -44,8 +44,9 @@ export function EvalDashboardView() {
 
       {data && data.agents.length > 0 && (
         <>
+          <SectionLabel icon="Cpu">{t("workspace.agentsHeading")}</SectionLabel>
           <AgentRows agents={data.agents} />
-          <SectionLabel>{t("workspace.recentHeading")}</SectionLabel>
+          <SectionLabel icon="History">{t("workspace.recentHeading")}</SectionLabel>
           <RecentRunsAll runs={data.recent_runs} />
         </>
       )}

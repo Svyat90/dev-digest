@@ -7,7 +7,7 @@ import React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Button, EmptyState, ErrorState, Skeleton } from "@devdigest/ui";
+import { Button, EmptyState, ErrorState, Icon, SectionLabel, Skeleton } from "@devdigest/ui";
 import { useCrumb } from "@/components/app-shell";
 import { ApiError } from "@/lib/api";
 import { useAgentEvalDashboard } from "@/lib/hooks/eval-dashboard";
@@ -82,7 +82,8 @@ export function AgentEvalDashboardView() {
   return (
     <div style={s.page}>
       <Link href="/evals" style={s.back}>
-        ← {t("agentDashboard.allAgents")}
+        <Icon.ChevronLeft size={14} aria-hidden />
+        {t("agentDashboard.allAgents")}
       </Link>
 
       <DashboardHeader data={data} agentId={agentId} range={range} onRange={setRangeParam} />
@@ -110,8 +111,16 @@ export function AgentEvalDashboardView() {
 
       {data.runs.length > 0 && (
         <>
-          <div style={s.tableBar}>
-            <Button
+          <SectionLabel
+            icon="History"
+            right={
+              <span style={s.tableBar}>
+                {!pair && (
+                  <span id="eval-compare-hint" style={s.note}>
+                    {t("agentDashboard.compareHint")}
+                  </span>
+                )}
+                <Button
               kind="secondary"
               size="sm"
               disabled={!pair}
@@ -120,12 +129,16 @@ export function AgentEvalDashboardView() {
             >
               {t("agentDashboard.compare")}
             </Button>
-            {!pair && (
-              <span id="eval-compare-hint" style={s.note}>
-                {t("agentDashboard.compareHint")}
+              </span>
+            }
+          >
+            {t("dashboard.recentRuns")}
+            {selected.length > 0 && (
+              <span style={{ marginLeft: 12, textTransform: "none", letterSpacing: 0, fontWeight: 500 }}>
+                {t("agentDashboard.selectedCount", { count: selected.length })}
               </span>
             )}
-          </div>
+          </SectionLabel>
           <RunsTable runs={data.runs} selected={selected} onToggle={toggle} />
         </>
       )}

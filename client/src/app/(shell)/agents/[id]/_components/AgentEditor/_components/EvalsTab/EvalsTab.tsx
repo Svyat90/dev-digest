@@ -3,7 +3,7 @@
 import { useId } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Button } from "@devdigest/ui";
+import { Button, SectionLabel } from "@devdigest/ui";
 import type { AgentEvalCaseListItem } from "@devdigest/shared";
 import {
   useAgentEvalCases,
@@ -48,24 +48,35 @@ export function EvalsTab({ agentId }: { agentId: string }) {
   return (
     <div>
       <section style={s.section}>
-        <div style={s.header}>
-          <h2 style={s.h2}>{t("evalsTab.metricsTitle")}</h2>
-          <span style={s.meta}>{t("evalsTab.metricsSubtitle")}</span>
-          <Link href={`/evals/${agentId}`} style={{ ...s.meta, ...s.spacer }}>
-            {t("evalsTab.viewDashboard")}
-          </Link>
-        </div>
+        <SectionLabel
+          icon="Gauge"
+          right={
+            <Link href={`/evals/${agentId}`} style={{ ...s.meta, textDecoration: "none" }}>
+              {t("evalsTab.viewDashboard")}
+            </Link>
+          }
+        >
+          {t("evalsTab.metricsTitle")}
+        </SectionLabel>
         <MetricCards latest={latestCompleted(runs)} previous={previousCompleted(runs)} />
       </section>
 
       <section style={s.section}>
         <div style={s.header}>
           <h2 style={s.h2}>{t("evalsTab.casesHeading")}</h2>
+          {cases.length > 0 && (
+            <span style={s.pill}>
+              {t("evalsTab.passingPill", {
+                passed: cases.filter((c) => c.latest_result?.status === "passed").length,
+                total: cases.length,
+              })}
+            </span>
+          )}
           <span style={{ ...s.meta, ...s.spacer }} aria-live="polite">
             {progress ? t("evalsTab.progress", progress) : ""}
           </span>
           <Button
-            kind="primary"
+            kind="secondary"
             size="sm"
             icon="Play"
             disabled={blocker !== null || start.isPending}

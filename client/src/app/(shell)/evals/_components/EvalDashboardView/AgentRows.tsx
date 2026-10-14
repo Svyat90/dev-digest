@@ -1,10 +1,17 @@
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
-import { Badge, Sparkline } from "@devdigest/ui";
+import { Badge, Icon, Sparkline } from "@devdigest/ui";
 import type { EvalWorkspaceAgentRow } from "@devdigest/shared";
 import { formatPercent } from "@/lib/eval-metrics";
+import { EVAL_METRIC_COLOR, evalUi } from "@/components/eval-ui";
 import { agentRowState } from "./helpers";
 import { s } from "./styles";
+
+const METRICS = [
+  { key: "recall", label: "recall" },
+  { key: "precision", label: "precision" },
+  { key: "citation_accuracy", label: "citation" },
+] as const;
 
 export function AgentRows({ agents }: { agents: EvalWorkspaceAgentRow[] }) {
   const t = useTranslations("eval");
@@ -18,13 +25,16 @@ export function AgentRows({ agents }: { agents: EvalWorkspaceAgentRow[] }) {
         return (
           <li key={a.id}>
             <Link href={`/evals/${a.id}`} style={s.row}>
+              <span style={s.tile} aria-hidden>
+                <Icon.Cpu size={18} />
+              </span>
               <div style={s.rowMain}>
-                <div style={s.name}>
-                  {a.name}{" "}
+                <div style={s.nameLine}>
+                  <span style={s.name}>{a.name}</span>
+                  <span style={evalUi.chip}>{a.model}</span>
                   {!a.enabled && <Badge>{t("workspace.disabled")}</Badge>}
                 </div>
                 <div style={s.sub}>
-                  {a.model} ·{" "}
                   {latest
                     ? t("workspace.lastRun", {
                         version: latest.agent_version,
@@ -41,13 +51,19 @@ export function AgentRows({ agents }: { agents: EvalWorkspaceAgentRow[] }) {
                 </div>
               </div>
               {a.recall_trend.length >= 2 && (
-                <Sparkline data={a.recall_trend.map((v) => v * 100)} />
+                <Sparkline data={a.recall_trend.map((v) => v * 100)} color={EVAL_METRIC_COLOR.recall} w={72} h={28} />
               )}
               <div style={s.metrics}>
-                <span>{formatPercent(latest?.recall)}</span>
-                <span>{formatPercent(latest?.precision)}</span>
-                <span>{formatPercent(latest?.citation_accuracy)}</span>
+                {METRICS.map(({ key, label }) => (
+                  <div key={key} style={s.metric}>
+                    <span style={s.metricLabel}>{t(`workspace.metricShort.${label}`)}</span>
+                    <span style={{ ...s.metricValue, color: EVAL_METRIC_COLOR[key] }}>
+                      {formatPercent(latest?.[key])}
+                    </span>
+                  </div>
+                ))}
               </div>
+              <Icon.ChevronRight size={16} style={s.chevron} aria-hidden />
             </Link>
           </li>
         );

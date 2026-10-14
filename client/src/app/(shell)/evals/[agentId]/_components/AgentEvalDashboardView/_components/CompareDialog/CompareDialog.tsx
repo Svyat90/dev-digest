@@ -82,7 +82,19 @@ export function CompareDialog({
                 </div>
               )}
               <section style={s.section}>
-                <h3 style={s.heading}>{t("compare.systemPrompt")}</h3>
+                <h3 style={s.heading}>{t("compare.systemPromptDiff")}</h3>
+                {data.earlier.config.system_prompt !== data.later.config.system_prompt && (
+                  <div style={s.legend}>
+                    <span style={s.legendItem}>
+                      <span style={{ ...s.swatch, background: "var(--crit-bg)" }} aria-hidden />
+                      {t("compare.legendOld", { version: data.earlier.agent_version })}
+                    </span>
+                    <span style={s.legendItem}>
+                      <span style={{ ...s.swatch, background: "var(--ok-bg)" }} aria-hidden />
+                      {t("compare.legendNew", { version: data.later.agent_version })}
+                    </span>
+                  </div>
+                )}
                 {data.earlier.config.system_prompt === data.later.config.system_prompt ? (
                   <div style={s.muted}>{t("compare.promptUnchanged")}</div>
                 ) : (
