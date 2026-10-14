@@ -1,4 +1,5 @@
-/* Eval metric formatting shared by the workspace and agent eval dashboards.
+/* Eval metric formatting shared by the workspace and agent eval dashboards
+   and the agent and skill Evals tabs (`components/eval-suite`).
    Pure and React-free: whole-point percents, signed deltas, em dash for unknown. */
 import { formatUsd, NO_DATA } from "./format";
 

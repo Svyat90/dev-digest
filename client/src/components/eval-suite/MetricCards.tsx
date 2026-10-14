@@ -1,7 +1,8 @@
 import { useTranslations } from "next-intl";
 import { NO_DATA } from "@/lib/format";
 import { EVAL_METRIC_COLOR, MetricTile, evalUi, type EvalMetricKey } from "@/components/eval-ui";
-import { deltaPoints, formatDelta, type EvalSuiteRunLike } from "./helpers";
+import { deltaPoints, signedNumber } from "@/lib/eval-metrics";
+import type { EvalSuiteRunLike } from "./helpers";
 
 const CARDS: { metric: EvalMetricKey; label: "recall" | "precision" | "citationAccuracy" }[] = [
   { metric: "recall", label: "recall" },
@@ -29,7 +30,7 @@ export function MetricCards({
             value={latest?.[metric]}
             color={EVAL_METRIC_COLOR[metric]}
             deltaPoints={delta}
-            deltaText={delta != null ? formatDelta(delta) : null}
+            deltaText={delta != null ? signedNumber(delta) : null}
           />
         );
       })}

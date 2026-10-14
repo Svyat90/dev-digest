@@ -9,6 +9,7 @@ describe("eval-metrics", () => {
   it("computes whole-point deltas", () => {
     expect(deltaPoints(0.82, 0.78)).toBe(4);
     expect(deltaPoints(0.82, null)).toBeNull();
+    expect(deltaPoints(null, 0.5)).toBeNull();
   });
   it("signs numbers and usd", () => {
     expect(signedNumber(-2)).toBe("−2");

@@ -4,8 +4,6 @@ import { ApiError } from "@/lib/api";
 import {
   caseRowState,
   checkToLastRun,
-  deltaPoints,
-  formatPercent,
   latestCompleted,
   previousCompleted,
   rateLimitedUntil,
@@ -63,14 +61,6 @@ const check = (over: Partial<EvalCaseCheck> = {}): EvalCaseCheck => ({
 });
 
 describe("eval-suite helpers", () => {
-  it("deltaPoints is the whole-percent difference and null when a side is missing", () => {
-    expect(deltaPoints(0.82, 0.78)).toBe(4);
-    expect(deltaPoints(0.82, null)).toBeNull();
-    expect(deltaPoints(null, 0.5)).toBeNull();
-    expect(formatPercent(null)).toBe("—");
-    expect(formatPercent(0.825)).toBe("83%");
-  });
-
   it("latest and previous skip failed and running runs", () => {
     const runs = [run("r4", "running"), run("r3", "failed"), run("r2", "completed"), run("r1", "completed")];
     expect(latestCompleted(runs)?.id).toBe("r2");
