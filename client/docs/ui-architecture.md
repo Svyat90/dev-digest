@@ -114,6 +114,9 @@ Every key is built by the factory in `src/lib/hooks/keys.ts` (`keys.pulls(repoId
 | `["context", repoId]` | project-context files | |
 | `["agent-eval-cases", agentId]` | `GET /agents/:id/eval-cases` | the agent's eval cases with their latest result; refetched after `useDeleteEvalCase` and `useCreateEvalCase` |
 | `["agent-eval-runs", agentId]` | `GET /agents/:id/eval-runs` | run history; polls every 2 s while any run is `running`; `useStartEvalRun` invalidates it. `useCreateEvalCase` also invalidates `["reviews", prId]` so the finding card flips to "Eval case exists" |
+| `["eval-dashboard"]` | `GET /eval-dashboard` | every agent's latest eval result and the 20 newest runs; polls every 3 s while any agent is running; `useRunAllEvals` invalidates it, `["agent-eval-dashboard"]` and `["agent-eval-runs"]` |
+| `["agent-eval-dashboard", agentId, range]` | `GET /agents/:id/eval-dashboard?range=` | per-agent metrics, trend, alert and runs; polls every 3 s while a run is `running`. Invalidated by Run all, Run eval and Promote |
+| `["eval-run-comparison", agentId, a, b]` | `GET /agents/:id/eval-runs/compare?a=&b=` | Compare dialog data, no model call. `usePromoteEvalRun` invalidates the comparison prefix plus the dashboards, `["agents"]`, `["agent", id]`, the agent's skills and `["skills"]` / skill versions |
 
 Because `["reviews", prId]` is shared, a component that only needs a preview of a
 PR's findings can subscribe lazily and be served from the same cache the detail

@@ -31,6 +31,7 @@ flowchart TD
   AGENTS["/agents"] --> AGENT["/agents/:id<br/>editor (config · skills · context tab)"]
   SKILLS["/skills"] --> SKILL["/skills/:id<br/>detail (context tab)"]
   SETTINGS["/settings/:section<br/>API keys · models"]
+  EVALS["/evals<br/>Eval Dashboard"] --> AGENTEVAL["/evals/:agentId?range=<br/>agent dashboard · compare · promote"]
 
   PULLS -->|"GET /repos/:id/pulls · /repos/:id/index-state"| API
   PR -->|"GET /pulls/:id · /reviews · /pulls/:id/comments · /pulls/:id/smart-diff · /pulls/:id/blast · /pulls/:id/history<br/>GET · POST /pulls/:id/brief<br/>POST /pulls/:id/review · /findings/:id/(accept|dismiss) · /repos/:id/resync"| API
@@ -39,6 +40,8 @@ flowchart TD
   SKILL -->|"GET · PUT · POST /skills/:id/context-docs"| API
   AGENTS -->|"/agents · /agents/:id"| API
   SETTINGS -->|"/settings · /providers"| API
+  EVALS -->|"GET /eval-dashboard · POST /eval-dashboard/run-all"| API
+  AGENTEVAL -->|"GET /agents/:id/eval-dashboard?range= · GET /agents/:id/eval-runs/compare · POST /agents/:id/eval-runs(/:runId/promote)"| API
 ```
 
 Cross-cutting chrome lives in `src/components/app-shell` (nav, breadcrumbs,

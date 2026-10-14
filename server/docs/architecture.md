@@ -80,6 +80,15 @@ instance, decorated onto Fastify as `app.container`.
   `reviewRepo` and the `repoIntel` facade are cross-cutting, so consumers reach
   them through the container instead of importing another module's folder.
 
+- **Run-start limit.** `container.runStartLimiter` (`platform/run-start-limiter.ts`)
+  is one in-memory counter per container: 10 eval run starts per minute per
+  workspace, unlimited under `nodeEnv=test`, overridable through
+  `ContainerOverrides.runStartLimiter`. Routes reach it only through the
+  `modules/_shared/run-start-guard.ts` preHandler (`runStartGuard(container)`),
+  which answers 429 `run_start_rate_limited` before the handler runs.
+  `POST /agents/:id/eval-runs` and `POST /eval-dashboard/run-all` share it; a
+  run-all costs one start. Counts reset on restart (single API instance per DB).
+
 ### Ports
 
 | Port | Default implementation | Notes |
@@ -129,7 +138,13 @@ switch.
 
 Cross-cutting helpers live in `modules/_shared/` — `getContext(container, req)`
 resolves `{ workspaceId, userId }` through the `AuthProvider` so no module
-re-derives tenancy, and `schemas.ts` holds `IdParams`.
+re-derives tenancy, `schemas.ts` holds `IdParams`, and `run-start-guard.ts`
+holds the preHandler every eval run-start route uses.
+
+The `eval-dashboard` module (`modules/eval-dashboard/`) calls no model: its
+service receives only repository `Pick`s and a structural `EvalRunStarter` port
+(`const r: Port = container.evals`), so run-all reaches `startRun` without
+importing the `evals` module.
 
 ## Data layer
 
@@ -169,6 +184,12 @@ The eval tables (`eval.ts`) split identity from content and runs from results:
 - `eval_runs` holds the per-case results of a suite run; each row records the
   `case_revision_id` it ran. `case_id` and `case_revision_id` are `ON DELETE SET
   NULL`, so deleting a case keeps its past results.
+
+Promote (`POST /agents/:id/eval-runs/:runId/promote`) is written by
+`eval-dashboard/repository/promotion.repo.ts` in ONE `db.transaction`: it
+updates `skills` and `agents`, relinks `agent_skills`, and appends
+`skill_versions` and `agent_versions` rows. Versions are only ever appended,
+never updated or deleted.
 
 The contract and behaviour of the pipeline live in the evals module
 (`modules/evals/`); the SPEC is `specs/04-eval-pipeline-2026-10-11.md`.

@@ -77,7 +77,8 @@ flowchart TB
     agents["agents<br/>/agents · /agents/:id · /agents/:id/skills"]
   end
   subgraph Evals["Evals"]
-    evals["evals<br/>/findings/:id/eval-case · /agents/:id/eval-cases · /eval-cases/:id<br/>/agents/:id/eval-runs (GET · POST, background, 10/min) · /eval-runs/:id<br/>(scoring is code-only, no model call)"]
+    evals["evals<br/>/findings/:id/eval-case · /agents/:id/eval-cases · /eval-cases/:id<br/>/agents/:id/eval-runs (GET · POST, background, shared 10 starts/min per workspace) · /eval-runs/:id<br/>(scoring is code-only, no model call)"]
+    evalDashboard["eval-dashboard<br/>GET /eval-dashboard · POST /eval-dashboard/run-all (shared 10 starts/min per workspace, 429 run_start_rate_limited)<br/>GET /agents/:id/eval-dashboard?range= · GET /agents/:id/eval-runs/compare?a=&b=<br/>POST /agents/:id/eval-runs/:runId/promote (one transaction)<br/>(no model call in any route)"]
   end
   subgraph Skills["Skills"]
     skills["skills<br/>/skills · /skills/:id · /skills/:id/versions(/:v)<br/>/skills/:id/stats · /skills/tokens · /skills/import/preview"]
