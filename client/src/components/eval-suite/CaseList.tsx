@@ -54,12 +54,15 @@ export function CaseList({
   onEdit,
   onRun,
   runDisabledReason,
+  deleting = false,
 }: {
   cases: readonly EvalCaseListItem[];
   onDelete: (item: EvalCaseListItem) => void;
   onEdit?: (item: EvalCaseListItem, trigger: HTMLElement) => void;
   onRun?: (item: EvalCaseListItem) => void;
   runDisabledReason?: (item: EvalCaseListItem) => string | null;
+  /** A delete is pending: every row's delete button is disabled. */
+  deleting?: boolean;
 }) {
   const t = useTranslations("eval");
   const idBase = useId();
@@ -121,6 +124,7 @@ export function CaseList({
             <button
               type="button"
               style={s.iconBtn}
+              disabled={deleting}
               aria-label={t("evalsTab.deleteCase", { name: c.name })}
               onClick={() => onDelete(c)}
             >

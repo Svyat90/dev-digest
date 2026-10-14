@@ -92,6 +92,19 @@ describe("CaseList", () => {
     expect(screen.getByText("Already running")).toBeInTheDocument();
   });
 
+  it("disables delete while a delete is pending and enables it otherwise", () => {
+    const cases = [mkCase("c1", "case-one")];
+    const { rerender } = renderList({ cases });
+    const name = /Delete eval case.*case-one/;
+    expect(screen.getByRole("button", { name })).toBeEnabled();
+    rerender(
+      <NextIntlClientProvider locale="en" messages={{ eval: evalMessages }}>
+        <CaseList cases={cases} onDelete={vi.fn()} deleting />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByRole("button", { name })).toBeDisabled();
+  });
+
   it("renders no edit or run button when their callbacks are absent", () => {
     renderList({ cases: [mkCase("c1", "case-one")] });
     expect(screen.getByText("never run")).toBeInTheDocument();

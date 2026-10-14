@@ -150,6 +150,7 @@ export function EvalsTab({ agentId }: { agentId: string }) {
             onEdit={(item, trigger) => setEditor({ caseId: item.id, trigger })}
             onRun={runCase}
             runDisabledReason={runDisabledReason}
+            deleting={del.isPending}
           />
         )}
       </section>
