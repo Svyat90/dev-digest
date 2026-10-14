@@ -10,7 +10,7 @@ import {
 } from '@devdigest/shared';
 import { getContext } from '../_shared/context.js';
 import { IdParams } from '../_shared/schemas.js';
-import { EVAL_RUN_START_RATE_LIMIT } from './constants.js';
+import { runStartGuard } from '../_shared/run-start-guard.js';
 
 /**
  * Evals module (SPEC-04). Cases are frozen from decided findings; a run scores an
@@ -56,12 +56,12 @@ export default async function evalsRoutes(appBase: FastifyInstance) {
     return { ok: true };
   });
 
-  // Tight per-route limit: a run is many paid model calls.
+  // Shared per-workspace start limit: a run is many paid model calls.
   app.post(
     '/agents/:id/eval-runs',
     {
       schema: { params: IdParams, response: { 202: StartEvalRunResponse } },
-      config: { rateLimit: EVAL_RUN_START_RATE_LIMIT },
+      preHandler: runStartGuard(container),
     },
     async (req, reply) => {
       const { workspaceId } = await getContext(container, req);

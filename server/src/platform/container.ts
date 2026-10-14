@@ -25,6 +25,7 @@ import { HttpWebFetchClient } from '../adapters/http/web-fetch.js';
 import { OpenRouterProvider } from '@devdigest/reviewer-core';
 import { estimateCost } from '../adapters/llm/pricing.js';
 import { PriceBook } from './price-book.js';
+import { RunStartLimiter } from './run-start-limiter.js';
 import { ConfigError } from './errors.js';
 import { AgentsRepository } from '../modules/agents/repository.js';
 import { ReviewRepository } from '../modules/reviews/repository.js';
@@ -113,6 +114,8 @@ export interface ContainerOverrides {
   repoDocs?: RepoDocsReader;
   /** Project-context use cases — tests inject a double. */
   projectContext?: ProjectContextUseCases;
+  /** Shared eval run-start counter — tests inject a small `max`. */
+  runStartLimiter?: RunStartLimiter;
 }
 
 export class Container {
@@ -145,6 +148,7 @@ export class Container {
   private _repoDocs?: RepoDocsReader;
   private _projectContext?: ProjectContextUseCases;
   private _evals?: EvalUseCases;
+  private _runStartLimiter?: RunStartLimiter;
 
   constructor(config: AppConfig, db: Db, private overrides: ContainerOverrides = {}) {
     this.config = config;
@@ -296,6 +300,18 @@ export class Container {
       promptLogMode: this.config.promptLog,
     });
     return this._evals;
+  }
+
+  /**
+   * One per-workspace counter of eval run starts, shared by every run-start
+   * route. Unlimited under `nodeEnv === 'test'`, like the global IP limit.
+   */
+  get runStartLimiter(): RunStartLimiter {
+    if (this.overrides.runStartLimiter) return this.overrides.runStartLimiter;
+    this._runStartLimiter ??= new RunStartLimiter(
+      this.config.nodeEnv === 'test' ? { max: Number.POSITIVE_INFINITY } : {},
+    );
+    return this._runStartLimiter;
   }
 
   /**

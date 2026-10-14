@@ -11,6 +11,3 @@ export const EVAL_CASE_CONCURRENCY = 3;
 /** Per-case bound around the engine call (A7). */
 export const EVAL_CASE_TIMEOUT_MS = 180_000;
 export const MAX_ERROR_REASON_CHARS = 200;
-
-/** Route-level rate limit of `POST /agents/:id/eval-runs`. */
-export const EVAL_RUN_START_RATE_LIMIT = { max: 10, timeWindow: '1 minute' } as const;
