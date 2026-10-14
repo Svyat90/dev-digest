@@ -409,6 +409,39 @@ d('eval compare and promote (Testcontainers pg)', () => {
     });
     expect(foreignPromote.statusCode).toBe(404);
 
+    // A run row of ANOTHER workspace that names agent X is not reachable either: the run lookup
+    // itself is workspace-scoped, not only the agent lookup.
+    const foreignRun = await pg.handle.db
+      .insert(t.evalSuiteRuns)
+      .values({
+        workspaceId: other!.id,
+        agentId: x.id,
+        status: 'completed',
+        startedAt: new Date(Date.now() - HOUR),
+        agentVersion: r1.agentVersion,
+        config: r1.config as EvalRunConfig,
+        cases: [],
+        casesTotal: 0,
+        casesDone: 0,
+        casesScored: 0,
+        casesPassed: 0,
+        recall: 1,
+        precision: 1,
+        citationAccuracy: 1,
+        costUsd: null,
+      })
+      .returning();
+    const foreignRunCompare = await app.inject({
+      method: 'GET',
+      url: `/agents/${x.id}/eval-runs/compare?a=${r1.id}&b=${foreignRun[0]!.id}`,
+    });
+    expect(foreignRunCompare.statusCode).toBe(404);
+    const foreignRunPromote = await app.inject({
+      method: 'POST',
+      url: `/agents/${x.id}/eval-runs/${foreignRun[0]!.id}/promote`,
+    });
+    expect(foreignRunPromote.statusCode).toBe(404);
+
     // A running run can be neither compared nor promoted.
     const running = await insertRun(
       x.id,
