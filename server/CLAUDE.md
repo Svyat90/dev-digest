@@ -79,6 +79,10 @@ then read code.
 - Read `server/specs/eval-dashboard.md` before touching the eval-dashboard module,
   Promote, the regression alert or `runStartGuard` — the invariants (range vs
   latest, alert rule, shared run-start limit, one-transaction Promote).
+- Read `server/specs/case-editor.md` before touching eval cases, single-case
+  runs, skill eval runs or `vendor/shared/contracts/eval-case.ts` — the
+  invariants (shared validation, revisions on edit, scratch checks, the
+  remembered agent, skill runs kept off the agent views).
 - Read `src/modules/repo-intel/README.md` before working on the indexer.
 - Read `../TESTING.md` before adding or changing a test.
 - Read `../docs/agent-prompts/` before editing reviewer system prompts.

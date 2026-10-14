@@ -8,4 +8,5 @@ Linked from `client/CLAUDE.md` › *Read when*.
   `?severity=`, `?range=`) and the presentation invariants that hold across
   screens. Includes the Conventions page (`server/specs/conventions.md`) and
   the eval dashboards, `/evals` and `/evals/:agentId`
-  (`server/specs/eval-dashboard.md`).
+  (`server/specs/eval-dashboard.md`), the skill detail's `?tab=evals` and the
+  Case Editor dialog on both Evals tabs (`server/specs/case-editor.md`).
