@@ -26,3 +26,7 @@ Linked from `server/CLAUDE.md` › *Read when*.
   SPEC-06): the invariants (EV1–EV17), the endpoints, the scoring rules, the run
   lifecycle and reaping, and the data model. Links the root specs for the
   acceptance criteria instead of restating them.
+- **[`eval-dashboard.md`](eval-dashboard.md)** — the Eval Dashboard (SPEC-05):
+  the invariants (ED1–ED14), the endpoints, the regression alert and trend
+  rules, Run all agents, the shared per-workspace run-start limit, Compare and
+  the one-transaction Promote. Links `evals.md` for the run records.

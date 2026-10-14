@@ -76,6 +76,9 @@ then read code.
 - Read `server/specs/evals.md` before touching the evals module, the eval tables
   or eval scoring — the invariants (case creation, unique names, revisions,
   one running run, reaping, null-vs-zero cost).
+- Read `server/specs/eval-dashboard.md` before touching the eval-dashboard module,
+  Promote, the regression alert or `runStartGuard` — the invariants (range vs
+  latest, alert rule, shared run-start limit, one-transaction Promote).
 - Read `src/modules/repo-intel/README.md` before working on the indexer.
 - Read `../TESTING.md` before adding or changing a test.
 - Read `../docs/agent-prompts/` before editing reviewer system prompts.

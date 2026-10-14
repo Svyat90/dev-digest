@@ -21,6 +21,8 @@ Architecture: [`../docs/ui-architecture.md`](../docs/ui-architecture.md).
 | `/skills` (and `/skills/:id`) | client's choice — a `[id]` route or a `[[...id]]` catch-all | the skills list/detail route: master-detail; no selection renders the list only, selecting a skill opens its detail pane | `GET /skills`, `GET /skills/:id` + its sub-resources (`server/specs/skills.md`) |
 | `/skills/new` | client's choice | create-skill form | `POST /skills` (`server/specs/skills.md`) |
 | `/repos/:repoId/conventions` | `app/(shell)/repos/[repoId]/conventions/page.tsx` | convention candidates for the repo, Run Scan / Re-scan, Create skill | `useConventions(repoId)`, `useExtractConventions`, `usePatchConvention`, `useCreateConventionsSkill` (`server/specs/conventions.md`) |
+| `/evals` | `app/(shell)/evals/page.tsx` | Eval Dashboard: every agent's latest result with a recall sparkline, Run all agents, the 20 newest runs | `useEvalDashboard`, `useRunAllEvals` (`server/specs/eval-dashboard.md`) |
+| `/evals/:agentId` | `app/(shell)/evals/[agentId]/page.tsx` | one agent's dashboard: agent and range switchers, Run eval, regression alert, metric cards, trend chart, run table, Compare dialog with Promote | `useAgentEvalDashboard`, `useEvalRunComparison`, `usePromoteEvalRun`, `useStartEvalRun`, `useAgents` (`server/specs/eval-dashboard.md`) |
 
 `(shell)` is a route group (no URL segment): its `layout.tsx` mounts the app shell
 once, so the sidebar/top bar survive navigation. Views set the breadcrumb with
@@ -60,6 +62,7 @@ lives in the URL. Everything else is component state.
 | `?severity=` | PR detail | `CRITICAL`, `WARNING`, `SUGGESTION` | filters every run's findings panel to one severity |
 | `?tab=` | skills list/detail | `config` (default), `preview`, `stats`, `versions` | active tab on the selected skill's detail pane; unrecognised → `config`, per the rule below |
 | `?tab=` | agent editor | `config` (default), `skills`, `context`, `evals` | active tab. `skills` is the agent's attached-skills panel; `evals` is the Evals tab (metrics, eval cases, Run all evals, run history). Unrecognised → `config`, per the rule below (`AgentEditorView.tsx` `VALID_TABS`) |
+| `?range=` | agent eval dashboard | `7d`, `30d` (default), `90d`, `all` | the time range of the trend chart and the run table; the latest result, the previous run and the alert ignore it. Unrecognised → `30d`, per the rule below (`AgentEvalDashboardView/helpers.ts` `parseRange`). The agent switcher keeps it |
 
 Two rules about reading them:
 
@@ -95,6 +98,11 @@ change:
    row, which is the same signal the CI gate uses.
 5. **Severity counters always count the full set**, never the filtered subset —
    otherwise clicking one counter makes the others appear to vanish.
+6. **Eval metrics are whole percent points.** A metric shows as `round(value ×
+   100)%` and a change as a signed number of points with an arrow (`+3 pt`,
+   `−2 pt`; zero reads `0 pt` with no arrow), through `lib/eval-metrics.ts`. No
+   change is shown when either side is unknown. An unknown cost is an em dash on
+   the eval dashboards too (`formatUsd`).
 
 ## Conventions page
 
@@ -139,19 +147,19 @@ stay on screen with a dismissible error banner, never a blank page.
 
 ## Screens deliberately absent
 
-`pulls`, `skills`, `agents`, and `conventions` are live entries in the nav
-today (`vendor/ui/nav.ts`'s `NAV` — its own comment notes "the visual design
-shows more Skills Lab entries, but the rest lead to pages that do not exist
-yet and are deliberately excluded"). Conventions is a nav entry pointing at a
-route this lesson builds (see the route table above); Memory, Eval,
-Multi-Agent Review, CI Runs, Agent Performance and a few others do **not**
-have nav entries yet — only their i18n namespaces exist in `messages/en/` as
-placeholders (e.g. `shell.json`'s `nav` namespace already carries
-translation keys — `eval`, `memory`, `multi-agent`, `agent-performance`,
-`ci-runs` — for labels the `NAV` array does not render). Neither the
-existing nav entries nor the unused namespaces are dead code to remove.
+`pulls`, `skills`, `agents`, `conventions` and `eval` are live entries in the
+nav today (`vendor/ui/nav.ts`'s `NAV` — its own comment notes "the visual
+design shows more Skills Lab entries, but the rest lead to pages that do not
+exist yet and are deliberately excluded"). Conventions and Eval Dashboard are
+nav entries pointing at routes this lesson builds (see the route table above);
+Memory, Multi-Agent Review, CI Runs, Agent Performance and a few others do
+**not** have nav entries yet — only their i18n namespaces exist in
+`messages/en/` as placeholders (e.g. `shell.json`'s `nav` namespace already
+carries translation keys — `memory`, `multi-agent`, `agent-performance`,
+`ci-runs` — for labels the `NAV` array does not render). Neither the existing
+nav entries nor the unused namespaces are dead code to remove.
 
 `nav.ts` sits under the client's `src/vendor/ui/**` do-not-touch path, but it
 is a plain data registry, not vendored component code — adding the
-Conventions nav item is a one-line, agreed exception (`client/INSIGHTS.md`,
-2026-09-22).
+Conventions and Eval Dashboard nav items are one-line, agreed exceptions
+(`client/INSIGHTS.md`, 2026-09-22).
