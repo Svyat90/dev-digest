@@ -91,6 +91,8 @@ const REFUSAL_MESSAGES: Record<EvalErrorCode, string> = {
   eval_case_lines_outside_diff: 'The finding lines are outside the stored diff',
   no_eval_cases: 'The agent has no eval cases',
   eval_run_in_progress: 'An eval run is already in progress for this agent',
+  eval_run_not_completed: 'The eval run has not completed',
+  eval_promote_noop: "The agent already matches this run's configuration",
 };
 
 export class EvalService {
