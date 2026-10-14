@@ -86,8 +86,9 @@ instance, decorated onto Fastify as `app.container`.
   `ContainerOverrides.runStartLimiter`. Routes reach it only through the
   `modules/_shared/run-start-guard.ts` preHandler (`runStartGuard(container)`),
   which answers 429 `run_start_rate_limited` before the handler runs.
-  `POST /agents/:id/eval-runs` and `POST /eval-dashboard/run-all` share it; a
-  run-all costs one start. Counts reset on restart (single API instance per DB).
+  `POST /agents/:id/eval-runs`, `POST /skills/:id/eval-runs`,
+  `POST /{agents|skills}/:id/eval-cases/:caseId/check` and
+  `POST /eval-dashboard/run-all` share it; a run-all costs one start. Counts reset on restart (single API instance per DB).
 
 ### Ports
 
@@ -146,6 +147,45 @@ service receives only repository `Pick`s and a structural `EvalRunStarter` port
 (`const r: Port = container.evals`), so run-all reaches `startRun` without
 importing the `evals` module.
 
+The `evals` module outgrew the three-file shape, the way `reviews/` did:
+
+```
+src/modules/evals/
+  routes.ts                    # case routes registered for both owners (agents, skills)
+  service.ts                   # EvalService: agent and skill runs, remembered agent, getRun
+  case-service.ts              # EvalCaseService: get, create, edit (revisions), single-case runs
+  run-executor.ts              # runCaseReview (one case through the engine, scored)
+                               # and resolveRunConfig (agent config, or agent + skill)
+  repository.ts                # EvalRepository: SPEC-04 cases and agent runs, getRun
+  repository/case.repo.ts      # EvalCaseRepository: cases per owner, revisions, checks
+  repository/skill-eval.repo.ts  # SkillEvalRepository + the shared toSkillRunSummary mapper
+```
+
+Full runs, skill runs and single-case runs all go through `runCaseReview`, so a
+case is executed and scored the same way whichever path started it.
+`resolveRunConfig` throws every refusal (unknown owner, no agent, a deleted
+agent) before any model call. For a skill it takes the remembered agent's
+config and turns the skill on for that run only (`withSkillForRun` in
+`domain/evals/case-editor.ts`): at its linked position when the agent links
+it, otherwise after the agent's other skills; `agent_skills` is never written.
+`repository.ts` imports `toSkillRunSummary` from `repository/skill-eval.repo.ts`
+— never the other way round, so no import cycle forms.
+
+The case rules live in a contract file, not in the module:
+`vendor/shared/contracts/eval-case.ts` holds the strict diff parser
+(`parseCaseDiff`), the draft validator (`validateCaseDraft`) and the limits.
+It imports only zod and `eval-ci.ts`, and it is byte-identical in the client
+copy. The Case Editor runs `validateCaseDraft` while the user types and
+`EvalCaseService` runs the same function on every create and save, so a form
+the editor accepts does not fail on save for a rule it could have shown.
+
+The engine's own diff parser (`adapters/git/diff-parser.ts`, used by the review
+path and injected into eval runs) skips a `\ No newline at end of file` line
+inside a hunk: the line takes no new-side number and does not move the cursor.
+The strict parser treats the marker the same way (a `meta` line with no new-side
+number), so line numbers written in the editor match the numbers a run grounds
+and scores against.
+
 ## Data layer
 
 `db/schema.ts` is a barrel over thirteen domain files in `db/schema/`:
@@ -162,7 +202,7 @@ importing the `evals` module.
 | `context.ts` | `onboarding`, `code_chunks`, `symbols`, `references` |
 | `knowledge.ts` | `conventions`, `memory` |
 | `skills.ts` | `skills`, `skill_versions` |
-| `eval.ts` | `eval_cases`, `eval_case_revisions`, `eval_suite_runs`, `eval_runs`, `conformance_checks`, `composed_reviews` |
+| `eval.ts` | `eval_cases`, `eval_case_revisions`, `eval_suite_runs`, `eval_runs`, `eval_case_checks`, `skill_eval_agents`, `conformance_checks`, `composed_reviews` |
 | `ci.ts` | `ci_installations`, `ci_runs` |
 | `ops.ts` | `installed_plugins`, `digests`, `jobs` |
 
@@ -171,19 +211,44 @@ belong to later lessons. They are not dead code to clean up.
 
 The eval tables (`eval.ts`) split identity from content and runs from results:
 
-- `eval_cases` holds a case's identity only. Case names are unique per set —
+- `eval_cases` holds a case's identity only. A case belongs to an agent
+  (`agent_id`) or to a skill (`skill_id`); both FKs cascade, so deleting the
+  owner deletes its cases. Case names are unique per set —
   `eval_cases_owner_name_uq` on `(workspace_id, owner_kind, owner_id, name)`.
+  `EvalCaseService` checks the name first to name the reason; the index is the
+  guarantee, and a clash it catches (a concurrent save) is answered as the same
+  `name_taken` issue.
 - `eval_case_revisions` holds the case content (frozen diff, files, meta,
-  expectation). It is append-only: no code updates or deletes a row, only the
-  FK cascade from the case removes them; a case's current revision is its
-  highest `revision`.
-- `eval_suite_runs` is one run of an agent over all of its cases. It stores the
-  agent version, the config snapshot, and the covered `(case, revision)` list as
-  `jsonb`, which is never nulled. A partial unique index
-  (`eval_suite_runs_one_running_uq`) allows one `running` run per agent.
+  expectation, and `expected_output` for a hand-written case). It is
+  append-only: no code updates or deletes a row, only the FK cascade from the
+  case removes them; a case's current revision is its highest `revision`. A
+  save that changes the content appends the next revision; a name-only save
+  appends none.
+- `eval_suite_runs` is one run over all cases of one owner. It stores the
+  version, the config snapshot, and the covered `(case, revision)` list as
+  `jsonb`, which is never nulled. An agent run sets `agent_id`; a skill run
+  leaves `agent_id` NULL and sets `skill_id` (cascade), `skill_version`,
+  `via_agent_id` (`ON DELETE SET NULL`) and `agent_name`, so it outlives the
+  agent it ran through. Two partial unique indexes allow one `running` run per
+  agent (`eval_suite_runs_one_running_uq`) and one per skill
+  (`eval_suite_runs_one_running_skill_uq`); since a skill run has a NULL
+  `agent_id`, it never blocks the agent's own run.
 - `eval_runs` holds the per-case results of a suite run; each row records the
   `case_revision_id` it ran. `case_id` and `case_revision_id` are `ON DELETE SET
   NULL`, so deleting a case keeps its past results.
+- `eval_case_checks` holds single-case runs — scratch results that never enter
+  run history. One row per revision (`eval_case_checks_revision_uq`): starting a
+  check again resets that row, so it always holds the newest result.
+  `eval_case_checks_one_running_uq` allows one `running` check per case.
+- `skill_eval_agents` remembers, per skill, the agent its cases run through.
+  `agent_id` is `ON DELETE SET NULL` and `agent_name` is kept, so the UI can say
+  which agent no longer exists.
+
+Every agent view — the agent's run history, the eval dashboards, compare and
+Promote — reads `eval_suite_runs` with `agent_id IS NOT NULL`, so skill runs
+never reach them. The one owner-neutral read is `EvalRepository.getRun`
+(`GET /eval-runs/:id`): it maps a skill run through `toSkillRunSummary` and an
+agent run through its own mapper, and tags the result with `owner_kind`.
 
 Promote (`POST /agents/:id/eval-runs/:runId/promote`) is written by
 `eval-dashboard/repository/promotion.repo.ts` in ONE `db.transaction`: it
@@ -192,7 +257,9 @@ updates `skills` and `agents`, relinks `agent_skills`, and appends
 never updated or deleted.
 
 The contract and behaviour of the pipeline live in the evals module
-(`modules/evals/`); the SPEC is `specs/04-eval-pipeline-2026-10-11.md`.
+(`modules/evals/`); the SPECs are `specs/04-eval-pipeline-2026-10-11.md` and,
+for the Case Editor, single-case runs and skill evals,
+`specs/06-case-editor-2026-10-12.md`.
 
 Two rules hold across the schema, with one documented exception:
 
@@ -229,7 +296,14 @@ running server.
   marked failed blindly: each goes through the same close rule as a live run —
   `completed` when at least one case was scored (not `errored`), `failed`
   otherwise — with its finish time taken from the last stored result (or the start
-  time when it has none). Same single-instance assumption as above.
+  time when it has none). The reaper reads every `running` suite run, so skill
+  runs are closed the same way. Same single-instance assumption as above.
+- **Single-case runs.** `POST …/eval-cases/:caseId/check` answers `202` and
+  runs the case in the background (`EvalCaseService.startCheck`). A check a
+  dead process left `running` would block the next check of that case through
+  the one-running index, so `app.ts` closes every such row on boot as `errored`
+  with the reason "interrupted by a server restart"
+  (`EvalCaseService.reapStaleChecks`).
 
 ## repo-intel
 

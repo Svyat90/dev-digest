@@ -28,16 +28,19 @@ flowchart TD
   PULLS --> PR["/pulls/:number<br/>review detail<br/>(overview · diff · findings)"]
 
   PULLS -.->|"sidebar Project Context · g c"| CTX["/repos/:repoId/context<br/>document browser"]
-  AGENTS["/agents"] --> AGENT["/agents/:id<br/>editor (config · skills · context tab)"]
-  SKILLS["/skills"] --> SKILL["/skills/:id<br/>detail (context tab)"]
+  AGENTS["/agents"] --> AGENT["/agents/:id<br/>editor (config · skills · context · evals tab)"]
+  SKILLS["/skills"] --> SKILL["/skills/:id?tab=evals<br/>detail (context · evals tab, Run on evals)"]
+  AGENT -->|"New eval case · Edit row"| CASEED["Case Editor dialog<br/>(components/case-editor)"]
+  SKILL -->|"New eval case · Edit row"| CASEED
   SETTINGS["/settings/:section<br/>API keys · models"]
   EVALS["/evals<br/>Eval Dashboard"] --> AGENTEVAL["/evals/:agentId?range=<br/>agent dashboard · compare · promote"]
 
   PULLS -->|"GET /repos/:id/pulls · /repos/:id/index-state"| API
   PR -->|"GET /pulls/:id · /reviews · /pulls/:id/comments · /pulls/:id/smart-diff · /pulls/:id/blast · /pulls/:id/history<br/>GET · POST /pulls/:id/brief<br/>POST /pulls/:id/review · /findings/:id/(accept|dismiss) · /repos/:id/resync"| API
   CTX -->|"GET /repos/:id/context/docs(/content) · /context-docs/usage"| API
-  AGENT -->|"GET · PUT · POST /agents/:id/context-docs"| API
-  SKILL -->|"GET · PUT · POST /skills/:id/context-docs"| API
+  AGENT -->|"GET · PUT · POST /agents/:id/context-docs<br/>GET /agents/:id/eval-cases · GET · POST /agents/:id/eval-runs<br/>DELETE /eval-cases/:id"| API
+  SKILL -->|"GET · PUT · POST /skills/:id/context-docs<br/>GET /skills/:id/eval-cases · GET · POST /skills/:id/eval-runs<br/>GET · PUT /skills/:id/eval-agent · GET /agents (agent picker) · DELETE /eval-cases/:id"| API
+  CASEED -->|"GET · POST · PUT /(agents|skills)/:id/eval-cases(/:caseId)<br/>POST …/eval-cases/:caseId/check"| API
   AGENTS -->|"/agents · /agents/:id"| API
   SETTINGS -->|"/settings · /providers"| API
   EVALS -->|"GET /eval-dashboard · POST /eval-dashboard/run-all"| API

@@ -112,7 +112,11 @@ Every key is built by the factory in `src/lib/hooks/keys.ts` (`keys.pulls(repoId
 | `["settings"]`, `["secrets-status"]` | `/settings*` | |
 | `["repo-intel-state", repoId]` | `/repos/:id/index-state` | polls while indexing |
 | `["context", repoId]` | project-context files | |
-| `["agent-eval-cases", agentId]` | `GET /agents/:id/eval-cases` | the agent's eval cases with their latest result; refetched after `useDeleteEvalCase` and `useCreateEvalCase` |
+| `["agent-eval-cases", agentId]` | `GET /agents/:id/eval-cases` | the agent's eval cases with their latest result and newest single-case result; the agent Evals tab polls it every 2 s while a run or a single-case run is running. Invalidated by `useDeleteEvalCase`, `useCreateEvalCase`, and — for an agent case — by the Case Editor's save and run-case mutations |
+| `["eval-case", kind, ownerId, caseId]` | `GET /{agents\|skills}/:id/eval-cases/:caseId` | one case in the Case Editor (`useEvalCase`); polls every 2 s while its single-case run is `running`. `useCreateEvalCaseDraft` and `useUpdateEvalCase` write the saved case with `setQueryData`, then invalidate it and the owner's case list; `useStartEvalCaseCheck` invalidates it and the owner's case list |
+| `["skill-eval-cases", skillId]` | `GET /skills/:id/eval-cases` | the skill's eval cases; the skill Evals tab polls it every 2 s while a skill run or a single-case run is running. Invalidated by the Case Editor (for a skill case), `useDeleteSkillEvalCase` and `useStartSkillEvalRun` |
+| `["skill-eval-runs", skillId]` | `GET /skills/:id/eval-runs` | the skill's run history; polls every 2 s while any run is `running`; `useStartSkillEvalRun` invalidates it |
+| `["skill-eval-agent", skillId]` | `GET /skills/:id/eval-agent` | the agent the skill's cases run through, or the name of a deleted one; `useSetSkillEvalAgent` writes the answer with `setQueryData` |
 | `["agent-eval-runs", agentId]` | `GET /agents/:id/eval-runs` | run history; polls every 2 s while any run is `running`; `useStartEvalRun` invalidates it. `useCreateEvalCase` also invalidates `["reviews", prId]` so the finding card flips to "Eval case exists" |
 | `["eval-dashboard"]` | `GET /eval-dashboard` | every agent's latest eval result and the 20 newest runs; polls every 3 s while any agent is running; `useRunAllEvals` invalidates it, `["agent-eval-dashboard"]` and `["agent-eval-runs"]` |
 | `["agent-eval-dashboard", agentId, range]` | `GET /agents/:id/eval-dashboard?range=` | per-agent metrics, trend, alert and runs; polls every 3 s while a run is `running`. Invalidated by Run all, Run eval and Promote |
@@ -147,7 +151,15 @@ self-clears by polling when runs finish. SSE is for progress, not for truth.
   kit — primitives, kit widgets, charts, shell — and is **do-not-touch**;
   `src/components/*` holds app-level shared pieces (`app-shell`, `page-shell`,
   `diff-viewer`, `findings-preview`, `mermaid-diagram`, `repo-not-found`,
-  `showcase`); everything else is colocated under a route.
+  `showcase`, …); everything else is colocated under a route. A piece moves to
+  the shared tier when a second route needs it: `components/case-editor` (the
+  Case Editor dialog) and `components/eval-suite` (case list, metric cards, run
+  history) serve both the agent editor's and the skill detail's Evals tabs.
+- **Eval metric formatting has one home: `lib/eval-metrics.ts`.** `toPercent`,
+  `formatPercent`, `deltaPoints` and `signedNumber` are shared by the Evals tabs
+  and the eval dashboards, so a percentage or a delta reads the same everywhere
+  (a negative delta uses the Unicode minus, "−2"). Import them from there rather
+  than adding a local copy to a component's `helpers.ts`.
 - **No second UI library.** If a primitive is missing, the shared tier is where
   it goes — not a new dependency.
 - **Every user-facing string goes through next-intl**, namespaced by filename

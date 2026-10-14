@@ -77,7 +77,7 @@ flowchart TB
     agents["agents<br/>/agents · /agents/:id · /agents/:id/skills"]
   end
   subgraph Evals["Evals"]
-    evals["evals<br/>/findings/:id/eval-case · /agents/:id/eval-cases · /eval-cases/:id<br/>/agents/:id/eval-runs (GET · POST, background, shared 10 starts/min per workspace) · /eval-runs/:id<br/>(scoring is code-only, no model call)"]
+    evals["evals<br/>/findings/:id/eval-case · DELETE /eval-cases/:id<br/>/(agents|skills)/:id/eval-cases (GET · POST) · …/eval-cases/:caseId (GET · PUT)<br/>POST …/eval-cases/:caseId/check (single-case run, 202)<br/>/agents/:id/eval-runs · /skills/:id/eval-runs (GET · POST, background)<br/>/skills/:id/eval-agent (GET · PUT, the remembered agent)<br/>GET /eval-runs/:id (either owner, tagged by owner_kind)<br/>(every run start shares 10 starts/min per workspace;<br/>validation and scoring are code-only, no model call)"]
     evalDashboard["eval-dashboard<br/>GET /eval-dashboard · POST /eval-dashboard/run-all (shared 10 starts/min per workspace, 429 run_start_rate_limited)<br/>GET /agents/:id/eval-dashboard?range= · GET /agents/:id/eval-runs/compare?a=&b=<br/>POST /agents/:id/eval-runs/:runId/promote (one transaction)<br/>(no model call in any route)"]
   end
   subgraph Skills["Skills"]
@@ -96,6 +96,15 @@ flowchart TB
   end
   HEALTH["/health (liveness) · /health/ready (DB ping → 200/503)"]
 ```
+
+The `evals` case routes are registered once per owner: `/agents/:id/…` and
+`/skills/:id/…` run the same handlers, scoped to the caller's workspace and that
+owner. Every run start — `POST …/eval-runs`, `POST …/eval-cases/:caseId/check`
+and `POST /eval-dashboard/run-all` — goes through `runStartGuard`, so they share
+one limit of 10 starts per minute per workspace (429 `run_start_rate_limited`).
+`GET /eval-runs/:id` names no owner in its path: it answers an agent run or a
+skill run, told apart by `owner_kind`. The Case Editor and skill evals are
+specified in [`specs/06-case-editor-2026-10-12.md`](../specs/06-case-editor-2026-10-12.md).
 
 ## Environment
 
