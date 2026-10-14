@@ -47,4 +47,15 @@ export const keys = {
   prHistory: (prId: Id) => ["pr-history", prId] as const,
   agentEvalCases: (agentId: Id) => ["agent-eval-cases", agentId] as const,
   agentEvalRuns: (agentId: Id) => ["agent-eval-runs", agentId] as const,
+  /** Prefix matching every agent's eval runs — for invalidation only. */
+  agentEvalRunsAll: () => ["agent-eval-runs"] as const,
+  evalDashboard: () => ["eval-dashboard"] as const,
+  agentEvalDashboard: (agentId: Id, range: Id) => ["agent-eval-dashboard", agentId, range] as const,
+  /** Prefix matching every range of one agent's dashboard — for invalidation only. */
+  agentEvalDashboardAll: (agentId: Id) => ["agent-eval-dashboard", agentId] as const,
+  /** Prefix matching every agent's dashboard — for invalidation only. */
+  agentEvalDashboardPrefix: () => ["agent-eval-dashboard"] as const,
+  evalRunComparison: (agentId: Id, a: Id, b: Id) => ["eval-run-comparison", agentId, a, b] as const,
+  /** Prefix matching every comparison — for invalidation only. */
+  evalRunComparisonAll: () => ["eval-run-comparison"] as const,
 };

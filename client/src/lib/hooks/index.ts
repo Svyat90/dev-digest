@@ -14,3 +14,4 @@ export * from "./blast";
 export * from "./brief";
 export * from "./project-context";
 export * from "./evals";
+export * from "./eval-dashboard";

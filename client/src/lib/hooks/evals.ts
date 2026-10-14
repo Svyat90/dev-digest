@@ -45,6 +45,8 @@ export function useStartEvalRun(agentId: string) {
     mutationFn: () => api.post<StartEvalRunResponse>(`/agents/${agentId}/eval-runs`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.agentEvalRuns(agentId) });
+      qc.invalidateQueries({ queryKey: keys.evalDashboard() });
+      qc.invalidateQueries({ queryKey: keys.agentEvalDashboardAll(agentId) });
     },
   });
 }
