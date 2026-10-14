@@ -49,6 +49,13 @@ export const keys = {
   agentEvalRuns: (agentId: Id) => ["agent-eval-runs", agentId] as const,
   /** Prefix matching every agent's eval runs — for invalidation only. */
   agentEvalRunsAll: () => ["agent-eval-runs"] as const,
+  /** One case of either owner, opened in the Case Editor. */
+  evalCase: (kind: Id, ownerId: Id, caseId: Id) => ["eval-case", kind, ownerId, caseId] as const,
+  /** Prefix matching every opened case — for invalidation only. */
+  evalCasesAll: () => ["eval-case"] as const,
+  skillEvalCases: (skillId: Id) => ["skill-eval-cases", skillId] as const,
+  skillEvalRuns: (skillId: Id) => ["skill-eval-runs", skillId] as const,
+  skillEvalAgent: (skillId: Id) => ["skill-eval-agent", skillId] as const,
   evalDashboard: () => ["eval-dashboard"] as const,
   agentEvalDashboard: (agentId: Id, range: Id) => ["agent-eval-dashboard", agentId, range] as const,
   /** Prefix matching every range of one agent's dashboard — for invalidation only. */
