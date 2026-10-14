@@ -111,7 +111,8 @@
         "completed": "completed",
         "failed": "failed"
       }
-    }
+    },
+    "viewDashboard": "View full dashboard →"
   },
   "page": {
     "crumbSkillsLab": "Skills Lab",
@@ -120,5 +121,152 @@
     "crumbEvals": "Evals",
     "crumbNewCase": "New case",
     "crumbEvalCase": "Eval case"
+  },
+  "runStatus": {
+    "running": "running",
+    "completed": "completed",
+    "failed": "failed"
+  },
+  "workspace": {
+    "title": "Eval Dashboard",
+    "subtitle": "Latest eval result of every agent",
+    "empty": "No agents yet. Create an agent to run evals.",
+    "lastRun": "Last run v{version} · {startedAt} · {passed}/{total} pass",
+    "neverRun": "Never run",
+    "noCases": "No eval cases",
+    "disabled": "disabled",
+    "recentHeading": "Recent eval runs · all agents",
+    "recentEmpty": "No eval runs yet.",
+    "columns": {
+      "agent": "Agent",
+      "model": "Model",
+      "lastRun": "Last run",
+      "trend": "Recall · 30 days",
+      "startedAt": "Started",
+      "version": "Version",
+      "recall": "Recall",
+      "precision": "Precision",
+      "citation": "Citation",
+      "passed": "Passed",
+      "status": "Status"
+    },
+    "runAll": "Run all agents",
+    "runAllBlocked": {
+      "noCases": "No agent has eval cases",
+      "allRunning": "Every agent with eval cases already has an eval run in progress"
+    },
+    "runAllConfirmTitle": "Run all agents?",
+    "runAllConfirmBody": "{agents, plural, one {# agent} other {# agents}} will run {cases, plural, one {# case} other {# cases}} in total.",
+    "runAllSkipped": "Skipped: {name} — {reason}",
+    "runAllConfirm": "Run",
+    "runAllStarted": "{count, plural, =0 {No eval runs started} one {Started # eval run} other {Started # eval runs}}",
+    "skipReason": {
+      "no_eval_cases": "no eval cases",
+      "eval_run_in_progress": "eval run already in progress"
+    },
+    "rateLimited": "Too many runs — try again in a minute"
+  },
+  "agentDashboard": {
+    "allAgents": "All agents",
+    "switcherLabel": "Agent",
+    "rangeLabel": "Time range",
+    "range": {
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "all": "All"
+    },
+    "runEval": "Run eval",
+    "runBlocked": {
+      "noCases": "no eval cases",
+      "inProgress": "eval run already in progress"
+    },
+    "progress": "{done} / {total} cases",
+    "notFoundTitle": "Agent not found",
+    "notFoundBody": "This agent does not exist in your workspace.",
+    "backToDashboard": "Back to Eval Dashboard",
+    "deltaPoints": "{value} pt",
+    "emptyRange": "No eval runs in the last {days} days",
+    "emptyAll": "No eval runs yet",
+    "showAll": "Show all",
+    "trendTruncated": "Showing the newest 200 runs",
+    "tooltipVersion": "v{version}",
+    "tooltipCost": "Cost {cost}",
+    "table": {
+      "select": "Select run v{version}",
+      "startedAt": "Started",
+      "version": "Version",
+      "recall": "Recall",
+      "precision": "Precision",
+      "citation": "Citation",
+      "passed": "Passed",
+      "cost": "Cost",
+      "status": "Status"
+    },
+    "compare": "Compare",
+    "compareHint": "Select exactly 2 runs"
+  },
+  "alert": {
+    "dropped": "{metric} dipped {points}pts on v{version} — {cause}.",
+    "cause": {
+      "precision": "a new false positive slipped in",
+      "recall": "an expected finding was missed",
+      "citation_accuracy": "findings cited lines outside the diff"
+    },
+    "metricName": {
+      "recall": "Recall",
+      "precision": "Precision",
+      "citation_accuracy": "Citation"
+    },
+    "metricNameLower": {
+      "recall": "recall",
+      "precision": "precision",
+      "citation_accuracy": "citation"
+    },
+    "othersBoth": "{a} and {b} both {direction}.",
+    "othersEach": "{a} {directionA}, {b} {directionB}.",
+    "otherOne": "{a} {direction}.",
+    "direction": {
+      "up": "up",
+      "down": "down",
+      "same": "unchanged"
+    },
+    "caseSetsDiffer": "Case sets differ: {added} added, {removed} removed"
+  },
+  "compare": {
+    "title": "Compare runs · v{from} → v{to}",
+    "oldNew": "{old} → {new}",
+    "cost": "Cost",
+    "systemPrompt": "System prompt",
+    "promptUnchanged": "System prompt unchanged",
+    "configHeading": "Configuration",
+    "noConfigChanges": "No other configuration changes",
+    "configChange": "{field}: {from} → {to}",
+    "field": {
+      "provider": "Provider",
+      "model": "Model",
+      "strategy": "Strategy"
+    },
+    "skillAdded": "Skill {name} added (v{version})",
+    "skillRemoved": "Skill {name} removed (v{version})",
+    "skillVersionChanged": "Skill {name}: v{from} → v{to}",
+    "bodyUnavailable": "Body not available",
+    "loadError": "Could not load the comparison.",
+    "close": "Close",
+    "promote": "Promote v{version}",
+    "promoteCurrent": "This is the current configuration",
+    "promoteConfirmTitle": "Promote run v{version}?",
+    "promoteReplaces": "Replaces the agent's current version v{version}.",
+    "promoteSkill": "Skill {name}: v{current} gets the body of v{recorded}",
+    "promoteAffects": "Also changes these agents: {agents}",
+    "promoteDeleted": "{name}: deleted — left out",
+    "promoteConfirm": "Promote",
+    "promoted": "Promoted run v{run} as v{version}",
+    "errors": {
+      "eval_promote_noop": "This is already the current configuration.",
+      "eval_run_not_completed": "Only completed runs can be compared or promoted.",
+      "not_found": "This run is no longer available.",
+      "generic": "Promote failed."
+    }
   }
 }
