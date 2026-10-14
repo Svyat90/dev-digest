@@ -1,14 +1,18 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
+import { act, render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import type { AgentEvalCaseListItem, AgentEvalRunSummary } from "@devdigest/shared";
+import type { AgentEvalRunSummary, EvalCaseListItem } from "@devdigest/shared";
+import type { CaseEditorProps } from "@/components/case-editor";
 import evalMessages from "@messages/en/eval.json";
 import commonMessages from "@messages/en/common.json";
 
-let cases: AgentEvalCaseListItem[] = [];
+let cases: EvalCaseListItem[] = [];
 let runs: AgentEvalRunSummary[] = [];
 const startMutate = vi.fn();
 const deleteMutate = vi.fn();
+const checkMutate = vi.fn();
+const checkHookOwner = vi.fn();
+let editorProps: CaseEditorProps | null = null;
 
 vi.mock("@/lib/hooks/evals", () => ({
   useAgentEvalCases: () => ({ data: cases, isLoading: false }),
@@ -17,9 +21,27 @@ vi.mock("@/lib/hooks/evals", () => ({
   useDeleteEvalCase: () => ({ mutate: deleteMutate, isPending: false }),
 }));
 
+vi.mock("@/lib/hooks/eval-cases", () => ({
+  useStartEvalCaseCheck: (owner: unknown) => {
+    checkHookOwner(owner);
+    return { mutate: checkMutate, isPending: false };
+  },
+}));
+
+vi.mock("@/lib/hooks/agents", () => ({
+  useAgent: () => ({ data: { id: "ag1", name: "Security Reviewer" } }),
+}));
+
+vi.mock("@/components/case-editor", () => ({
+  CaseEditor: (props: CaseEditorProps) => {
+    editorProps = props;
+    return <div role="dialog" aria-label="case editor" />;
+  },
+}));
+
 import { EvalsTab } from "./EvalsTab";
 
-const mkCase = (id: string, name: string, over: Partial<AgentEvalCaseListItem> = {}): AgentEvalCaseListItem => ({
+const mkCase = (id: string, name: string, over: Partial<EvalCaseListItem> = {}): EvalCaseListItem => ({
   id,
   agent_id: "ag1",
   name,
@@ -45,6 +67,7 @@ const mkCase = (id: string, name: string, over: Partial<AgentEvalCaseListItem> =
   },
   created_at: "2026-10-12T10:00:00.000Z",
   latest_result: null,
+  check: null,
   ...over,
 });
 
@@ -80,6 +103,9 @@ afterEach(() => {
   cleanup();
   startMutate.mockClear();
   deleteMutate.mockClear();
+  checkMutate.mockClear();
+  checkHookOwner.mockClear();
+  editorProps = null;
 });
 
 describe("Agent EvalsTab", () => {
@@ -143,5 +169,68 @@ describe("Agent EvalsTab", () => {
     expect(deleteMutate).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Delete case" }));
     expect(deleteMutate).toHaveBeenCalledWith("c1");
+  });
+
+  it("opens the Case Editor for a new case of this agent from New eval case", () => {
+    cases = [mkCase("c1", "case-one")];
+    runs = [];
+    renderTab();
+    expect(screen.queryByRole("dialog", { name: "case editor" })).toBeNull();
+    const trigger = screen.getByRole("button", { name: "New eval case" });
+    fireEvent.click(trigger);
+    expect(screen.getByRole("dialog", { name: "case editor" })).toBeInTheDocument();
+    expect(editorProps).toMatchObject({
+      caseId: null,
+      owner: { kind: "agent", id: "ag1" },
+      ownerName: "Security Reviewer",
+      otherNames: ["case-one"],
+      runBlocker: null,
+      viaAgentName: null,
+    });
+    expect(editorProps?.returnFocusTo).toBe(trigger);
+  });
+
+  it("opens a row's case in the editor, with the other cases' names", () => {
+    cases = [mkCase("c1", "case-one"), mkCase("c2", "case-two")];
+    runs = [];
+    renderTab();
+    const edit = screen.getByRole("button", { name: "Edit case-two" });
+    fireEvent.click(edit);
+    expect(editorProps).toMatchObject({ caseId: "c2", otherNames: ["case-one"] });
+    expect(editorProps?.returnFocusTo).toBe(edit);
+    act(() => editorProps?.onClose());
+    expect(screen.queryByRole("dialog", { name: "case editor" })).toBeNull();
+  });
+
+  it("runs one case from its row through the agent's check mutation", () => {
+    cases = [mkCase("c1", "case-one")];
+    runs = [];
+    renderTab();
+    fireEvent.click(screen.getByRole("button", { name: "Run case-one" }));
+    expect(checkHookOwner).toHaveBeenCalledWith({ kind: "agent", id: "ag1" });
+    expect(checkMutate).toHaveBeenCalledWith("c1", expect.anything());
+  });
+
+  it("disables a row's run with the reason while its single-case run is running", () => {
+    cases = [
+      mkCase("c1", "case-one", {
+        check: {
+          id: "k1",
+          case_revision_id: "rev-c1",
+          status: "running",
+          started_at: "2026-10-12T10:00:00.000Z",
+          finished_at: null,
+          duration_ms: null,
+          expected: 1,
+          got: null,
+          error: null,
+          cost_usd: null,
+        },
+      }),
+    ];
+    runs = [];
+    renderTab();
+    expect(screen.getByRole("button", { name: "Run case-one" })).toBeDisabled();
+    expect(screen.getByText("Already running")).toBeInTheDocument();
   });
 });
