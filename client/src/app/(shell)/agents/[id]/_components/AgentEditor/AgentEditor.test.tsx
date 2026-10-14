@@ -11,6 +11,8 @@ import { ToastProvider } from "@/lib/toast";
 vi.mock("@/lib/hooks/agents", () => ({
   useUpdateAgent: () => ({ mutate: vi.fn(), isPending: false, isSuccess: false, data: undefined }),
   useProviderModels: () => ({ data: [{ id: "gpt-4.1", provider: "openai" }] }),
+  // Called at render time, after AGENT below is initialised.
+  useAgent: () => ({ data: AGENT, isLoading: false }),
 }));
 
 vi.mock("@/lib/hooks/evals", () => ({
@@ -18,6 +20,10 @@ vi.mock("@/lib/hooks/evals", () => ({
   useAgentEvalRuns: () => ({ data: [], isLoading: false }),
   useStartEvalRun: () => ({ mutate: vi.fn(), isPending: false }),
   useDeleteEvalCase: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
+vi.mock("@/lib/hooks/eval-cases", () => ({
+  useStartEvalCaseCheck: () => ({ mutate: vi.fn(), isPending: false, variables: undefined }),
 }));
 
 import { AgentEditor } from "./AgentEditor";
