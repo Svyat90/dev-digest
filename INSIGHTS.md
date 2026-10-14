@@ -117,6 +117,15 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
 
+- **2026-10-14 — A scratch tsconfig for `server/test/**` also needs `typeRoots` when it lives outside `server/` (amends 2026-10-03).**
+  A scratch tsconfig in the session scratchpad that `extends` `server/tsconfig.json`
+  resolves `types: ["node"]` from its own directory and fails with
+  `TS2688: Cannot find type definition file for 'node'` — a failure that says nothing
+  about the tests (hit by four implementers in the SPEC-06 plan).
+  Rule: add `"typeRoots": ["<repo>/server/node_modules/@types"]` next to
+  `"rootDir": ".."`, or create the scratch file inside `server/` and delete it after.
+  `server/tsconfig.json` · `tsc -p <scratch>` → `error TS2688`
+
 - **2026-10-12 — Evals on OpenRouter hit 402 on a low-limit key because Claude Code reserves 64000 output tokens.**
   The Agent SDK sends `max_tokens=64000` on every `/v1/messages` call (captured
   with a stub upstream: 21 of 21 calls), and OpenRouter refuses any call whose
