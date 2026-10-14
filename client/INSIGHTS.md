@@ -14,6 +14,16 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-13 — `var(--warning, #d97706)` never fails: the token is `--warn`.**
+  The vendored kit defines `--warn` and `--warn-bg` (`styles.css:27`, `:66`); there
+  is no `--warning`, so a `var(--warning, <fallback>)` silently always renders the
+  hard-coded fallback, in both themes. Nothing errors and tests pass (the alert
+  banner shipped that way; `ContextTab/styles.ts:24` has the same pattern).
+  Rule: before using `var(--x, fallback)`, `grep -n "^  --x:" client/src/vendor/ui/styles.css`;
+  an undefined token is a bug even though a fallback hides it.
+  `client/src/vendor/ui/styles.css:27`
+
+
 - **2026-10-13 — `borderColor` + `borderLeftColor` is the same shorthand trap as `border` + `borderColor` (extends 2026-09-19).**
   `FindingCard`'s `card` style was "all-longhand" by its own comment, yet clicking
   Accept logged "Updating a style property during rerender (borderColor) when a

@@ -37,6 +37,36 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-13 — Widening the `EvalErrorCode` enum breaks an exhaustive `Record<EvalErrorCode, string>` outside the contract.**
+  Adding `eval_run_not_completed` and `eval_promote_noop` to the zod enum made
+  `server/src/modules/evals/service.ts:85` (`REFUSAL_MESSAGES`) fail typecheck with
+  TS2739 although no plan task owned that file; the wave gate was red until a fix
+  task added two strings.
+  Rule: before editing a contract enum, `grep -rn "Record<EvalErrorCode" server/src`
+  (and the same for any enum you widen) and put the dependent files in the task's
+  Files.
+  `server/src/modules/evals/service.ts:85`
+
+- **2026-10-13 — "Foreign agent as route agent" cannot pin a workspace predicate that the agent lookup already enforces.**
+  `promotion.repo.ts:33` scopes a stored run by `workspaceId`, `agentId` and `runId`;
+  the route also resolves the agent by workspace first. Deleting the workspace
+  predicate left all 3 tests of `eval-promote.it.test.ts` green (found by mutation
+  in a detached scratch worktree). Only a run row with `workspaceId` = another
+  workspace and `agentId` = the first workspace's own agent turns it red
+  (`expected 200 to be 404`).
+  Rule: to test a redundant tenancy predicate, insert a row that violates only
+  that predicate, then prove red by removing it in a scratch worktree.
+  `server/test/eval-promote.it.test.ts`, `server/src/modules/eval-dashboard/repository/promotion.repo.ts:33`
+
+- **2026-10-13 — A run-all integration test sees every agent with cases in the shared test DB, not only its own.**
+  `POST /eval-dashboard/run-all` started the seed agents and agents left by earlier
+  tests of `eval-dashboard.it.test.ts`, so asserting `started` equals an exact
+  array fails depending on test order.
+  Rule: assert on your own agent ids (`toContain` / filter by id), never on array
+  equality, for any endpoint that fans out over all agents of the workspace.
+  `server/test/eval-dashboard.it.test.ts`
+
+
 - **2026-10-13 — Two eval cases from two findings on the same hunk are the SAME input, and one can pass while the other fails.**
   "Turn into eval case" freezes the file diff, PR title and the finding's lines, not
   the finding's wording. On PR #20 two findings on `errors.ts` produced cases with
@@ -340,6 +370,17 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 ## Tool & Library Notes
 
 Quirks of the dependencies this package pins.
+
+- **2026-10-13 — A `ResponseSerializationError` shows its message only with `LOG_LEVEL=error` in a vitest run.**
+  Without it every response-schema mismatch in an `app.inject` test is the bare
+  `{"error":{"code":"internal_error","message":"Internal error"}}`, which reads like
+  a handler bug.
+  Rule: when an it-test returns an unexplained 500, rerun it with
+  `LOG_LEVEL=error` before touching the handler; the Fastify log names the
+  failing field.
+  `server/test/eval-dashboard.it.test.ts`
+  Confidence: low
+
 
 - **2026-09-22 — `pnpm exec vitest run .it.test` is flaky in a sandboxed shell: testcontainers' Reaper handshake and its Postgres connection both time out non-deterministically.**
   Running a single `*.it.test.ts` file (or the whole `.it.test` glob) here
