@@ -4,7 +4,7 @@ import { useId } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button, SectionLabel } from "@devdigest/ui";
-import type { AgentEvalCaseListItem } from "@devdigest/shared";
+import type { EvalCaseListItem } from "@devdigest/shared";
 import {
   useAgentEvalCases,
   useAgentEvalRuns,
@@ -12,10 +12,15 @@ import {
   useStartEvalRun,
 } from "@/lib/hooks/evals";
 import { useConfirm } from "@/components/confirm-dialog/useConfirm";
-import { CaseList } from "./CaseList";
-import { MetricCards } from "./MetricCards";
-import { RunHistory } from "./RunHistory";
-import { latestCompleted, previousCompleted, progressOf, runAllBlocker } from "./helpers";
+import {
+  CaseList,
+  MetricCards,
+  RunHistory,
+  latestCompleted,
+  previousCompleted,
+  progressOf,
+  runAllBlocker,
+} from "@/components/eval-suite";
 import { s } from "./styles";
 
 /** Agent editor "Evals" tab: metrics, eval cases, Run all evals, run history. */
@@ -35,7 +40,7 @@ export function EvalsTab({ agentId }: { agentId: string }) {
   const blocker = runAllBlocker(cases, runs);
   const progress = running ? progressOf(running) : null;
 
-  const askDelete = (item: AgentEvalCaseListItem) =>
+  const askDelete = (item: EvalCaseListItem) =>
     confirm(
       {
         title: t("evalsTab.deleteConfirm.title"),
@@ -97,7 +102,7 @@ export function EvalsTab({ agentId }: { agentId: string }) {
         ) : cases.length === 0 ? (
           <div style={s.message}>{t("evalsTab.emptyCases")}</div>
         ) : (
-          <CaseList cases={cases} onDelete={askDelete} deleting={del.isPending} />
+          <CaseList cases={cases} onDelete={askDelete} />
         )}
       </section>
 

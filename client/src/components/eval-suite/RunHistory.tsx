@@ -1,11 +1,19 @@
 import { useTranslations } from "next-intl";
-import type { AgentEvalRunSummary } from "@devdigest/shared";
 import { formatUsd } from "@/lib/format";
-import { formatStarted } from "./helpers";
 import { EVAL_METRIC_COLOR, MetricBar, evalUi } from "@/components/eval-ui";
+import { formatStarted, type EvalSuiteRunLike } from "./helpers";
 
-/** Eval runs of the agent, newest first. */
-export function RunHistory({ runs }: { runs: AgentEvalRunSummary[] }) {
+/**
+ * Eval runs of one set, newest first. `viaLabel` replaces the version cell
+ * (the skill tab: "via <agent> v<n> · skill v<m>").
+ */
+export function RunHistory<R extends EvalSuiteRunLike>({
+  runs,
+  viaLabel,
+}: {
+  runs: readonly R[];
+  viaLabel?: (run: R) => string;
+}) {
   const t = useTranslations("eval");
   return (
     <div style={evalUi.panel}>
@@ -29,7 +37,7 @@ export function RunHistory({ runs }: { runs: AgentEvalRunSummary[] }) {
               <span style={evalUi.mono}>{formatStarted(r.started_at)}</span>
             </td>
             <td style={evalUi.td}>
-              <span style={evalUi.version}>{`v${r.agent_version}`}</span>
+              <span style={evalUi.version}>{viaLabel ? viaLabel(r) : `v${r.agent_version}`}</span>
             </td>
             <td style={evalUi.td}><MetricBar value={r.recall} color={EVAL_METRIC_COLOR.recall} /></td>
             <td style={evalUi.td}><MetricBar value={r.precision} color={EVAL_METRIC_COLOR.precision} /></td>
