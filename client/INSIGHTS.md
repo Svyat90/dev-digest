@@ -14,6 +14,31 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-13 — `borderColor` + `borderLeftColor` is the same shorthand trap as `border` + `borderColor` (extends 2026-09-19).**
+  `FindingCard`'s `card` style was "all-longhand" by its own comment, yet clicking
+  Accept logged "Updating a style property during rerender (borderColor) when a
+  conflicting property is set (borderLeftColor)": `borderColor` and `borderWidth`
+  are themselves shorthands for four sides. Only the rerender after the colour
+  changed (focus / decided) fires it; tests and the first render stay silent.
+  Rule: when one side has its own colour or width, set ALL four sides
+  (`borderTopColor`, `borderRightColor`, …) — never `borderColor`/`borderWidth`
+  next to a `borderLeft*`.
+  `client/src/components/finding-card/styles.ts:5`
+
+- **2026-10-13 — A runtime import from the `@devdigest/shared` barrel breaks `next build`/dev while `tsc` and vitest stay green.**
+  `src/vendor/shared/index.ts` re-exports `./contracts/findings.js` (NodeNext
+  style). tsc and vitest map `.js` to `.ts`; webpack does not. Every earlier
+  client import of the barrel was `import type` (erased by SWC), so nothing
+  resolved it until `EvalCaseAction.tsx` imported the zod enum `EvalErrorCode`.
+  Fixed with `resolve.extensionAlias` (`.js` → `.ts`, `.tsx`, `.js`) in
+  `next.config.mjs`; a deep import of `contracts/eval-ci` would not have helped,
+  that file imports `./findings.js` itself.
+  Rule: after a client change that adds a non-type import from `@devdigest/shared`,
+  run `NEXT_DIST_DIR=.next-e2e-fixcheck pnpm exec next build` — typecheck and
+  tests cannot see this. Delete that dir and `git restore next-env.d.ts tsconfig.json` afterwards.
+  `Module not found: Can't resolve './contracts/findings.js'` ·
+  `client/next.config.mjs`, `client/src/components/finding-card/EvalCaseAction.tsx:7`
+
 - **2026-10-13 — `@devdigest/ui` `Tabs` renders no `role="tab"`, so `getAllByRole("tab")` finds nothing.**
   `client/src/vendor/ui/kit/Tabs.tsx` has no `role` attribute at all; a test that
   queries tabs by role fails with a query error that looks like the feature is

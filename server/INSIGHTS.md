@@ -37,6 +37,22 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-13 — Two eval cases from two findings on the same hunk are the SAME input, and one can pass while the other fails.**
+  "Turn into eval case" freezes the file diff, PR title and the finding's lines, not
+  the finding's wording. On PR #20 two findings on `errors.ts` produced cases with
+  an identical `md5(input_diff)`, title and `file:21-23`; one run gave "passed"
+  and "failed · expected 1, got 0" for them. The cause is not the prompt: EV9
+  matches only by path + overlapping line range, the raw diff carries no line
+  numbers (the model counts from the `@@` header) and returned `20-20`, `16-20`,
+  `20-23` for the same bug that sits at new-side lines 24-25. Only `20-23`
+  overlaps `21-23`. Case 1 also failed in the earlier run, so it is flaky too.
+  Rule: before editing an agent prompt over a failed case, compare `input_diff`
+  hashes and the case's range against the real changed lines, and read
+  `eval_runs.actual_output` for the lines the model returned; fix the case (or
+  keep one case per hunk), not the prompt, when the expected range is wrong.
+  `docker exec devdigest-postgres psql -U devdigest -d devdigest -c "select case_name, actual_output from eval_runs"` ·
+  `server/specs/evals.md` (EV9), `server/src/domain/evals/scoring.ts`
+
 - **2026-10-05 — `POST /repos/:id/refresh` neither pulls the clone nor moves a PR's `head_sha`.**
   Its clone job is a no-op for an existing clone (the dev-digest clone stayed 60
   commits behind `origin/main`), and PR rows are upserted only by
