@@ -1,6 +1,6 @@
 # Case Editor, single-case runs and the skills' Evals tab — Implementation Plan
 
-Date: 2026-10-12 (revised 2026-10-13) · Branch: feature/l06-eval-pipeline-dashboard-case-editor · Status: approved
+Date: 2026-10-12 (revised 2026-10-13) · Branch: feature/l06-eval-pipeline-dashboard-case-editor · Status: done
 
 ## Goal
 An agent or skill author writes an eval case by hand: pastes a diff fragment, picks `must_find` or `must_not_flag`, a file and a line range, and the expected finding, with every rule checked while typing and again on the server. Editing a case's content stores a new revision, so earlier runs keep their meaning. One case can be run on demand (or on save) as a scratch check that never enters run history. A skill gets its own Evals tab with its own case set, run through an agent the user picks and remembers, with the skill and agent versions recorded on every run.
@@ -1382,3 +1382,106 @@ Files owned twice or three times are always in different waves (W0/W3/W4, W1/W2,
 
 ## Open questions
 - none. The spec has no open question; every point settled here is listed under Assumptions (A1–A18). R2 and R3 were accepted by the user on 2026-10-12, R1, R4 and R5 on 2026-10-13; all five are planned.
+
+## Execution log
+
+Maintained by the `run-plan` skill. Not part of the plan's design.
+
+- Mode: multi-agent
+- Base: 1e81e9c (HEAD before the first task)
+- Started: 2026-10-13
+- Environment: Postgres up · stack down
+- Next: none — done
+
+### Inputs
+- Spec: specs/06-case-editor-2026-10-12.md, approved
+- Designs: none
+- Extra requirements: none
+
+### Tasks
+| Task | Wave | Agent | Result | Commit | Note |
+|---|---|---|---|---|---|
+| T001 | 0 | implementer | DONE_WITH_CONCERNS | 6f6310e | accepted; foreign TS errors in evals/service.ts (T013) and EvalsTab/CaseList.tsx (T011) from the widened contract |
+| T002 | 0 | implementer | DONE | 5061b61 | edge calls for T010/T012: `\` after a finished hunk = meta; empty expected output = json_syntax; expected-output checks run even with a diff issue |
+| T003 | 0 | implementer | DONE | 81af331 | — |
+| T004 | 0 | implementer | DONE | e619141 | migration 0019_rich_peter_quill (+ meta/_journal.json, meta/0019_snapshot.json) generated, not applied to dev DB |
+| T005 | 0 | implementer | DONE | 9bbd8c0 | — |
+| T006 | 1 | implementer | DONE_WITH_CONCERNS | 91e958e | updateCase returns conflict for a missing case → T012 must getCase first; isUniqueViolationOn duplicated in case.repo.ts and skill-eval.repo.ts |
+| T007 | 1 | implementer | DONE | c974f61 | — |
+| T008 | 1 | implementer | DONE | f319c3f | — |
+| T009 | 1 | implementer | DONE | 402b3f5 | — |
+| T010 | 1 | implementer | DONE | 2a401d2 | — |
+| T011 | 1 | implementer | DONE_WITH_CONCERNS | 3bf3001 | delete button no longer disabled while pending (no `deleting` prop in the Interface); row action names: "Edit <name>", "Run <name>", "Delete eval case <name>" → T017/T025 |
+| T022 | 1 | implementer | DONE | ab2fdff | — |
+| T012 | 2 | implementer | DONE | 9c2a397 | — |
+| T013 | 2 | implementer | DONE | 4b34164 | added 6 REFUSAL_MESSAGES for T001 codes (service.ts typecheck fix) |
+| T014 | 2 | implementer | DONE_WITH_CONCERNS | 51b9374 | CaseEditor.tsx 221 lines (>~200 target) |
+| T015 | 2 | implementer | DONE | 673cb99 | — |
+| T024 | 2 | implementer | DONE | fb71588 | — |
+| T016 | 3 | implementer | DONE | 3519fb0 | — |
+| T017 | 3 | implementer | DONE_WITH_CONCERNS | 2138ca5 | New eval case button sits in the plain flex cases header (no SectionLabel); AgentEditor.test.tsx needed mocks → F3.1 |
+| T018 | 3 | implementer | DONE_WITH_CONCERNS | 3787fd0 | useSkillEvalCases called twice (poll interval) — a function-form interval in T009 hook would be cleaner; header action uses inline marginLeft:auto |
+| T019 | 4 | implementer | DONE_WITH_CONCERNS | 8d853f5 | no red run (test over shipped T016 code) — accepted, TESTING.md mutation check not done |
+| T023 | 4 | implementer | DONE | 6da0ab7 | — |
+| T025 | 4 | implementer | DONE_WITH_CONCERNS | 5d79b40 | e2e.sh hermetic run 10/10 passed after user stopped server-postgres-1; agent dry-run hit dev stack (Save 500, nothing written); locator deviations: wait --fn for option, get text dialog |
+| T020 | 5 | doc-writer | DONE_WITH_CONCERNS | a76578b | mermaid diagrams checked by hand (mmdc not installed) |
+| T021 | 6 | doc-writer | DONE_WITH_CONCERNS | 4c8de00 | server/specs/evals.md now stale (Out-of-scope section, GET /eval-runs/:id owner_kind union, eval-cases check field) — not owned by T021, left as known gap |
+
+### Wave gates
+- W0 — pass (server: tests 396, arch:check; client: tests 259; typecheck red only in evals/service.ts (T013) and EvalsTab/CaseList.tsx (T011), accepted per decision) · committed T001–T005
+- W1 — pass (server tests 406, arch:check; client typecheck + tests 277; server typecheck red only in evals/service.ts (T013), accepted) · committed T006–T011, T022
+- W2 — pass (server typecheck + tests 428 + arch:check; client typecheck + tests 295) · committed T012–T015, T024
+- W3 — server pass (544 incl. it); client FAIL AgentEditor.test.tsx (unowned) → F3.1 · after fix client typecheck + 305 tests pass · committed T016–T018, F3.1
+- W4 — server pass (550 incl. it), client pass (305); T025 e2e.sh 10/10 pass · committed T019, T023, T025
+
+### Decisions
+- 2026-10-13 — Accept R1/R4/R5? → yes; planner revised the plan (T023, T024, T025), committed 1e81e9c
+- 2026-10-13 — R1 e2e flow writes a case despite the read-only e2e rule → allow the exception as planned (A16)
+- 2026-10-13 — R5 negative delta reads "−2" (Unicode minus) → yes, as planned (A17)
+- 2026-10-13 — Branch → stay on feature/l06-eval-pipeline-dashboard-case-editor (plan header updated by the planner)
+- 2026-10-13 — Every dispatched agent runs on Opus (user switched the session model)
+- 2026-10-13 — Red typecheck after T001 in evals/service.ts (T013) and EvalsTab/CaseList.tsx (T011) → accepted temporarily: W0/W1 gates pass when only those files fail; T011 and T013 clear them
+- 2026-10-13 — T025 has no verify-task.sh line (lint WARN) → verified with ./scripts/e2e.sh, needs the stack
+- 2026-10-13 — W3 gate: AgentEditor.test.tsx fails on missing useAgent mock (T017) → fix task F3.1 (mock only)
+- 2026-10-13 — e2e port 5433 held by user container server-postgres-1 → user stopped it, e2e.sh run
+- 2026-10-14 — T021 placement: doc-writer rule says server/docs/case-editor.md, plan says server/specs/case-editor.md (CE1…) + S11 → user: as in the plan (server/specs), like evals.md and eval-dashboard.md (affects T021)
+- 2026-10-14 — insights capture: written to root (scratch tsconfig typeRoots) and e2e (agent-browser option/dialog waits); held back because server/ and client/ INSIGHTS.md are past the ~30-entry ceiling (needs review mode): T004 isNotNull does not narrow Drizzle row type · T001 nulling a shared contract field breaks client consumers · T014 Node 22+ localStorage hides jsdom · T015 Modal has no Escape, SelectInput no label · F3.1 ancestor smoke tests mocking hook modules · T017 toMatchObject on a rendered HTMLElement hangs vitest
+
+### Checks
+| Round | architecture-reviewer | plan-verifier | Open items |
+|---|---|---|---|
+| 0 | PASS (0 findings; next build ok) | GAPS (MET 84 · PARTIAL 2 · NOT MET 5 · UNVERIFIABLE 10) | T011 delete-disabled regression → F1.1 · T020/T021 held for step 7 · UNVERIFIABLE verified by orchestrator: server --gate --it 550 passed, e2e.sh 10/10 |
+| 1 | PASS (F1.1 files) | VERIFIED (re-checked T011 + F1.1: MET 3) | none |
+
+### Fix tasks
+#### F1.1 — Restore "delete disabled while pending" on the agent Evals tab
+- Source: plan-verifier T011 · "agent Evals tab renders exactly as before" PARTIAL — base `EvalsTab/CaseList.tsx:69` had `disabled={deleting}` wired as `deleting={del.isPending}`; `eval-suite/CaseList.tsx:121-128` has no disabled state, so delete stays clickable while a delete is pending.
+- Area: frontend
+- Files (exclusive): `client/src/components/eval-suite/CaseList.tsx` (modified), `client/src/components/eval-suite/CaseList.test.tsx` (modified), `client/src/app/(shell)/agents/[id]/_components/AgentEditor/_components/EvalsTab/EvalsTab.tsx` (modified)
+- Rules: add an optional `deleting?: boolean` prop to eval-suite `CaseList` (default false) that disables the delete button; the agent `EvalsTab` passes `deleting={del.isPending}`; the skill Evals tab is not touched — frontend-ui-architecture §3 (shared component keeps a generic prop surface); react-testing-library §queries (assert by role/name)
+- Constraints: every other behaviour of CaseList and both tabs unchanged; row-action accessible names unchanged ("Edit <name>", "Run <name>", "Delete eval case <name>"); no relative paths in `vi.mock()`
+- Acceptance criterion: the delete button of a row is disabled while `deleting` is true and enabled otherwise; the agent EvalsTab passes the pending state of its delete mutation
+- Verify: `scripts/verify-task.sh client client/src/components/eval-suite/CaseList.tsx client/src/components/eval-suite/CaseList.test.tsx "client/src/app/(shell)/agents/[id]/_components/AgentEditor/_components/EvalsTab/EvalsTab.tsx"` then `scripts/verify-task.sh client --gate`
+- Result: DONE · 088721b
+#### F3.1 — Add `useAgent` to the AgentEditor smoke test's hooks mock
+- Source: W3 gate — `AgentEditor.test.tsx > lists Evals after Context and renders the Evals tab for tab=evals` fails: `EvalsTab.tsx:35` (T017) calls `useAgent`, which the `vi.mock("@/lib/hooks/agents")` factory does not provide. No plan task owns this test file.
+- Area: frontend
+- Files (exclusive): `client/src/app/(shell)/agents/[id]/_components/AgentEditor/AgentEditor.test.tsx` (modified)
+- Rules: mock only what the component under test calls; extend the existing factory (`vi.mock("@/lib/hooks/agents", …)` at line 11) with a `useAgent` returning `{ data: <the agent the test already uses>, isLoading: false }` — react-testing-library §mocking
+- Constraints: production code is not touched; the two existing tests keep their intent and assertions; no relative paths in `vi.mock()`
+- Acceptance criterion: the full client suite passes, including both AgentEditor smoke tests
+- Verify: `scripts/verify-task.sh client "client/src/app/(shell)/agents/[id]/_components/AgentEditor/AgentEditor.test.tsx"` then `scripts/verify-task.sh client --gate`
+- Result: DONE_WITH_CONCERNS · e1cdaa1 (also mocked eval-cases hook; mock-only, accepted)
+
+### Rules gaps
+
+### Insight candidates
+- T004: Drizzle `.where(isNotNull(col))` does not narrow the row type; readers passing rows to helpers typed `agentId: string` still need `rows.filter(isAgentRunRow)` — server/src/modules/eval-dashboard/repository/dashboard.repo.ts
+- T002: a scratch tsconfig for server/test placed in the session scratchpad fails TS2688 (types resolve from the tsconfig's dir); put it inside server/ and delete after — amends root INSIGHTS 2026-09-26/2026-10-03
+- T001: nulling a shared contract field (AgentEvalCase.provenance) breaks client consumers outside the task's Files, like widening an enum breaks Record<Enum,…>; grep both packages for `.<field>.` first — client EvalsTab/CaseList.tsx:63
+- T015: @devdigest/ui Modal has no Escape handling and SelectInput no label/aria prop; use useKeydown and a wrapping <label> — client/src/vendor/ui/kit/Modal.tsx
+- T014: Node 22+ global localStorage is undefined and hides jsdom's in vitest; vi.stubGlobal("localStorage", …) — client/src/components/case-editor/CaseEditor.test.tsx
+- F3.1: a component gaining a hook call breaks ancestor smoke tests that mock hook modules by factory, one missing export at a time; grep every vi.mock of its hook modules in ancestor tests — client/src/app/(shell)/agents/[id]/_components/AgentEditor/AgentEditor.test.tsx:11
+- T017: toMatchObject/deep equality with a React-rendered HTMLElement hangs vitest (walks the fiber graph); assert DOM elements with toBe — client EvalsTab.test.tsx
+- T025: an <option> is never visible to agent-browser wait <selector>; use wait --fn "document.querySelector(...) !== null"; wait --state is read as the global state-file flag — e2e/specs/10-case-editor.flow.json
+- T025: a wait --text that matches both a page button and a dialog title proves nothing; use get text "[role=dialog]" + assert.stdoutIncludes — e2e/specs/10-case-editor.flow.json
