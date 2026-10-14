@@ -40,7 +40,9 @@ import { ProjectContextRepository } from '../modules/project-context/repository.
 import { ProjectContextService } from '../modules/project-context/service.js';
 import { EvalRepository } from '../modules/evals/repository.js';
 import { SkillEvalRepository } from '../modules/evals/repository/skill-eval.repo.js';
+import { EvalCaseRepository } from '../modules/evals/repository/case.repo.js';
 import { EvalService } from '../modules/evals/service.js';
+import { EvalCaseService } from '../modules/evals/case-service.js';
 import { parseUnifiedDiff } from '../adapters/git/diff-parser.js';
 import { FsRepoDocsReader } from '../adapters/repo-docs/fs.js';
 import type { RepoIntel } from '../modules/repo-intel/types.js';
@@ -85,7 +87,6 @@ export type ProjectContextUseCases = Pick<
 export type EvalUseCases = Pick<
   EvalService,
   | 'createCaseFromFinding'
-  | 'listCases'
   | 'deleteCase'
   | 'startRun'
   | 'listRuns'
@@ -95,6 +96,12 @@ export type EvalUseCases = Pick<
   | 'listSkillRuns'
   | 'getSkillEvalAgent'
   | 'setSkillEvalAgent'
+>;
+
+/** The case editor use cases routes and the boot reaper reach through the container. */
+export type EvalCaseUseCases = Pick<
+  EvalCaseService,
+  'listCases' | 'getCase' | 'createCase' | 'updateCase' | 'startCheck' | 'reapStaleChecks'
 >;
 
 export interface ContainerOverrides {
@@ -153,6 +160,7 @@ export class Container {
   private _repoDocs?: RepoDocsReader;
   private _projectContext?: ProjectContextUseCases;
   private _evals?: EvalUseCases;
+  private _evalCases?: EvalCaseUseCases;
   private _runStartLimiter?: RunStartLimiter;
 
   constructor(config: AppConfig, db: Db, private overrides: ContainerOverrides = {}) {
@@ -306,6 +314,32 @@ export class Container {
       promptLogMode: this.config.promptLog,
     });
     return this._evals;
+  }
+
+  /**
+   * Case editor (SPEC-06). `EvalCaseService` takes a narrow structural
+   * `EvalCaseDeps` (not the Container); the run-config reads come from the eval
+   * repositories and the diff parser is injected here, as for `evals`.
+   */
+  get evalCases(): EvalCaseUseCases {
+    if (this._evalCases) return this._evalCases;
+    const evalRepo = new EvalRepository(this.db);
+    const skillRepo = new SkillEvalRepository(this.db);
+    this._evalCases = new EvalCaseService({
+      cases: new EvalCaseRepository(this.db),
+      config: {
+        agentConfigSource: (w, a) => evalRepo.agentConfigSource(w, a),
+        skillForRun: (w, s) => skillRepo.skillForRun(w, s),
+        evalAgent: (w, s) => skillRepo.evalAgent(w, s),
+      },
+      runner: {
+        llm: (p) => this.llm(p),
+        parseDiff: parseUnifiedDiff,
+        tokenizer: this.tokenizer,
+        promptLogMode: this.config.promptLog,
+      },
+    });
+    return this._evalCases;
   }
 
   /**

@@ -1,5 +1,4 @@
 import type {
-  AgentEvalCaseListItem,
   AgentEvalRunDetail,
   AgentEvalRunSummary,
   CreateEvalCaseResponse,
@@ -48,7 +47,6 @@ export interface EvalDeps extends CaseRunnerDeps {
     | 'prFilePatch'
     | 'agentCaseNames'
     | 'insertCase'
-    | 'listCases'
     | 'deleteCase'
     | 'casesForRun'
     | 'agentConfigSource'
@@ -175,13 +173,6 @@ export class EvalService {
       if (inserted) return inserted;
     }
     throw new Error(`eval case name still taken after ${MAX_CASE_NAME_ATTEMPTS} attempts`);
-  }
-
-  async listCases(workspaceId: string, agentId: string): Promise<AgentEvalCaseListItem[]> {
-    if (!(await this.deps.repo.agentExists(workspaceId, agentId))) {
-      throw new NotFoundError('Agent not found');
-    }
-    return this.deps.repo.listCases(workspaceId, agentId);
   }
 
   async deleteCase(workspaceId: string, caseId: string): Promise<void> {

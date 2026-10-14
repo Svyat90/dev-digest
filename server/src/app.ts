@@ -101,6 +101,15 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
     app.log.warn({ err: (err as Error).message }, 'stale eval-run reaping failed (non-fatal)');
   }
 
+  // Single-case runs a dead process left 'running' close as errored (SPEC-06 A11),
+  // so a stale row cannot block the next check of that case.
+  try {
+    const closed = await container.evalCases.reapStaleChecks();
+    if (closed > 0) app.log.info({ closed }, 'closed stale running eval case checks on boot');
+  } catch (err) {
+    app.log.warn({ err: (err as Error).message }, 'stale eval-check reaping failed (non-fatal)');
+  }
+
   // Security headers (X-Content-Type-Options, X-Frame-Options, …). The API
   // serves JSON only, so the default CSP is fine.
   await app.register(helmet);

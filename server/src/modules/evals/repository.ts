@@ -1,13 +1,11 @@
-import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
 import { isAgentRunRow } from '../../domain/evals/run-owner.js';
 import type {
   AgentEvalCase,
-  AgentEvalCaseListItem,
   AgentEvalRunDetail,
   AgentEvalRunSummary,
-  EvalCaseLatestResult,
   EvalCaseProvenance,
   EvalRunRecord,
 } from '@devdigest/shared';
@@ -293,56 +291,6 @@ export class EvalRepository {
       (a, b) =>
         a.c.createdAt.getTime() - b.c.createdAt.getTime() || a.c.id.localeCompare(b.c.id),
     );
-  }
-
-  async listCases(workspaceId: string, agentId: string): Promise<AgentEvalCaseListItem[]> {
-    const cases = await this.currentCases(workspaceId, agentId);
-    if (cases.length === 0) return [];
-
-    const [latest] = await this.db
-      .select({ id: t.evalSuiteRuns.id })
-      .from(t.evalSuiteRuns)
-      .where(
-        and(
-          eq(t.evalSuiteRuns.workspaceId, workspaceId),
-          isNotNull(t.evalSuiteRuns.agentId),
-          eq(t.evalSuiteRuns.agentId, agentId),
-          eq(t.evalSuiteRuns.status, 'completed'),
-        ),
-      )
-      .orderBy(desc(t.evalSuiteRuns.startedAt))
-      .limit(1);
-
-    const results = new Map<string, EvalCaseLatestResult>();
-    if (latest) {
-      const rows = await this.db
-        .select()
-        .from(t.evalRuns)
-        .where(
-          and(
-            eq(t.evalRuns.suiteRunId, latest.id),
-            eq(t.evalRuns.workspaceId, workspaceId),
-            inArray(
-              t.evalRuns.caseId,
-              cases.map((x) => x.c.id),
-            ),
-          ),
-        );
-      for (const r of rows) {
-        if (!r.caseId) continue;
-        results.set(r.caseId, {
-          eval_run_id: r.suiteRunId,
-          case_revision_id: r.caseRevisionId,
-          status: r.status,
-          // A1: one finding is expected from a must_find case, none from a must_not_flag.
-          expected: r.expectationType === 'must_find' ? 1 : 0,
-          got: r.findingsMatching,
-          error: r.error,
-        });
-      }
-    }
-
-    return cases.map((x) => ({ ...toCase(x), latest_result: results.get(x.c.id) ?? null }));
   }
 
   /** Deletes the case only; the FK cascade removes its revisions, results keep a null `case_id`. */
