@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type {
   AgentEvalCase,
-  AgentEvalRunDetail,
+  EvalRunDetail,
   EvalRunRecord,
   LLMProvider,
   Provider,
@@ -171,7 +171,7 @@ class FakeRepo {
   async listRuns() {
     return [];
   }
-  async getRun(): Promise<AgentEvalRunDetail | undefined> {
+  async getRun(): Promise<EvalRunDetail | undefined> {
     return undefined;
   }
   async runningRuns() {

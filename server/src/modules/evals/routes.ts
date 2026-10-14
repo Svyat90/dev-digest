@@ -2,12 +2,12 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import {
-  AgentEvalRunDetail,
   AgentEvalRunSummary,
   CreateEvalCaseResponse,
   EvalCaseDetail,
   EvalCaseDraft,
   EvalCaseListItem,
+  EvalRunDetail,
   SaveEvalCaseResponse,
   SetSkillEvalAgentBody,
   SkillEvalAgent,
@@ -209,7 +209,7 @@ export default async function evalsRoutes(appBase: FastifyInstance) {
 
   app.get(
     '/eval-runs/:id',
-    { schema: { params: IdParams, response: { 200: AgentEvalRunDetail } } },
+    { schema: { params: IdParams, response: { 200: EvalRunDetail } } },
     async (req) => {
       const { workspaceId } = await getContext(container, req);
       return container.evals.getRun(workspaceId, req.params.id);

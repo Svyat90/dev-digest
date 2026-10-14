@@ -4,11 +4,12 @@ import * as t from '../../db/schema.js';
 import { isAgentRunRow } from '../../domain/evals/run-owner.js';
 import type {
   AgentEvalCase,
-  AgentEvalRunDetail,
   AgentEvalRunSummary,
   EvalCaseProvenance,
+  EvalRunDetail,
   EvalRunRecord,
 } from '@devdigest/shared';
+import { toSkillRunSummary } from './repository/skill-eval.repo.js';
 import type {
   AgentConfigSource,
   CaseForRun,
@@ -450,25 +451,35 @@ export class EvalRepository {
     return rows.filter(isAgentRunRow).map(toSummary);
   }
 
-  // Agent runs only for now; a skill run id answers 404 until SPEC-06 T023 widens it.
-  async getRun(workspaceId: string, runId: string): Promise<AgentEvalRunDetail | undefined> {
+  /**
+   * One run of either owner, tagged by `owner_kind` (SPEC-06 R4). Scoped to the
+   * workspace only: the path names no owner. A skill run maps through the shared
+   * `toSkillRunSummary`, an agent run through `toSummary`.
+   */
+  async getRun(workspaceId: string, runId: string): Promise<EvalRunDetail | undefined> {
     const [row] = await this.db
       .select()
       .from(t.evalSuiteRuns)
-      .where(
-        and(
-          eq(t.evalSuiteRuns.id, runId),
-          eq(t.evalSuiteRuns.workspaceId, workspaceId),
-          isNotNull(t.evalSuiteRuns.agentId),
-        ),
-      )
+      .where(and(eq(t.evalSuiteRuns.id, runId), eq(t.evalSuiteRuns.workspaceId, workspaceId)))
       .limit(1);
-    if (!row || !isAgentRunRow(row)) return undefined;
+    if (!row) return undefined;
+    const detail = { config: row.config, cases: row.cases };
+    if (row.skillId !== null) {
+      const summary = toSkillRunSummary(row);
+      if (!summary) return undefined;
+      return {
+        ...summary,
+        ...detail,
+        results: await this.runResults(runId),
+        owner_kind: 'skill',
+      };
+    }
+    if (!isAgentRunRow(row)) return undefined;
     return {
       ...toSummary(row),
-      config: row.config,
-      cases: row.cases,
+      ...detail,
       results: await this.runResults(runId),
+      owner_kind: 'agent',
     };
   }
 

@@ -1,9 +1,9 @@
 import type {
-  AgentEvalRunDetail,
   AgentEvalRunSummary,
   CreateEvalCaseResponse,
   EvalErrorCode,
   EvalRunConfig,
+  EvalRunDetail,
   EvalRunCaseRef,
   FindingCategory,
   Severity,
@@ -303,7 +303,7 @@ export class EvalService {
     return this.deps.repo.listRuns(workspaceId, agentId);
   }
 
-  async getRun(workspaceId: string, runId: string): Promise<AgentEvalRunDetail> {
+  async getRun(workspaceId: string, runId: string): Promise<EvalRunDetail> {
     const run = await this.deps.repo.getRun(workspaceId, runId);
     if (!run) throw new NotFoundError('Eval run not found');
     return run;
