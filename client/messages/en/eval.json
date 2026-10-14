@@ -42,7 +42,8 @@
     "inputLabel": "Input",
     "tabs": {
       "diff": "Diff",
-      "prMeta": "PR meta"
+      "prMeta": "PR meta",
+      "files": "Files"
     },
     "diffPlaceholder": "--- a/src/config.ts\n+++ b/src/config.ts\n@@ -10,6 +10,7 @@\n+  stripeKey: \"sk_live_...\"",
     "titleLabel": "Title",
@@ -55,7 +56,89 @@
     "invalidJson": "invalid JSON",
     "lastRunPassed": "Last run passed",
     "lastRunFailed": "Last run failed",
-    "resultSummary": "recall {recall}% · precision {precision}% · citation {citation}% · {duration}s"
+    "resultSummary": "recall {recall}% · precision {precision}% · citation {citation}% · {duration}s",
+    "ownerAgent": "Agent · {name}",
+    "ownerSkill": "Skill · {name}",
+    "cancel": "Cancel",
+    "close": "Close",
+    "filesEmpty": "No files yet — paste a diff in the Diff tab.",
+    "fileStats": "+{added} −{removed}",
+    "previewEmpty": "The preview appears here.",
+    "expectationLabel": "Expectation",
+    "fileLabel": "File",
+    "filePlaceholder": "Choose a file of the diff",
+    "startLineLabel": "Start line",
+    "endLineLabel": "End line",
+    "findingSkeleton": "+ Finding skeleton",
+    "skeletonDisabledHint": "Nothing is expected for must_not_flag",
+    "runOnSave": "Run on save",
+    "fromFindingHint": "Created from a finding — input and expectation are fixed",
+    "counter": "{count} / {limit}",
+    "viaAgent": "via {name}",
+    "runBlocked": {
+      "unsaved": "Save first",
+      "running": "Already running",
+      "rateLimited": "Too many runs — try again in a minute",
+      "noAgent": "Choose an agent for this skill first"
+    },
+    "lastRun": {
+      "passed": "Last run passed",
+      "failed": "Last run failed",
+      "errored": "Last run errored",
+      "expectedGot": "expected {expected, plural, one {# finding} other {# findings}}, got {got}",
+      "duration": "{seconds}s",
+      "running": "Running…",
+      "never": "Not run yet"
+    },
+    "errors": {
+      "eval_case_content_fixed": "Created from a finding — input and expectation are fixed",
+      "eval_case_edit_conflict": "The case changed while you were editing — reopen it",
+      "eval_case_check_in_progress": "Already running",
+      "eval_agent_required": "Choose an agent for this skill first",
+      "eval_agent_missing": "The skill's agent no longer exists — choose another",
+      "run_start_rate_limited": "Too many runs — try again in a minute",
+      "generic": "Could not save or run the case."
+    },
+    "issues": {
+      "name": {
+        "required": "Name is required",
+        "too_long": "Name is longer than {limit} characters",
+        "name_charset": "Use only lowercase letters, digits and hyphens",
+        "name_taken": "Another case in this set already has this name"
+      },
+      "input_diff": {
+        "required": "Line {line}: the diff is empty",
+        "too_long": "Line {line}: the diff is longer than {limit} characters",
+        "diff_no_hunk": "Line {line}: the diff has no hunk",
+        "diff_hunk_count_mismatch": "Line {line}: the hunk's line counts disagree with its header",
+        "diff_stray_line": "Line {line} is outside a hunk and is not a file header"
+      },
+      "pr_title": {
+        "too_long": "Title is longer than {limit} characters"
+      },
+      "pr_description": {
+        "too_long": "Description is longer than {limit} characters"
+      },
+      "expectation": {
+        "file_not_in_diff": "The file is not a file of the diff",
+        "start_below_one": "Start line must be 1 or more",
+        "start_after_end": "Start line must not be after the end line",
+        "lines_outside_hunks": "The lines intersect no hunk of this file"
+      },
+      "expected_output": {
+        "too_long": "Expected output is longer than {limit} characters",
+        "json_syntax": "Not valid JSON",
+        "json_not_array": "Expected output must be a JSON array",
+        "json_must_be_empty": "must_not_flag expects []",
+        "json_one_finding": "must_find expects exactly one finding",
+        "json_unknown_key": "Unknown key \"{key}\"",
+        "json_missing_key": "Missing key \"{key}\"",
+        "json_bad_severity": "severity must be CRITICAL, WARNING or SUGGESTION",
+        "json_bad_category": "category must be bug, security, perf, style or test",
+        "json_bad_title": "title must be 1–{limit} characters",
+        "json_mismatch": "\"{key}\" must equal the expectation's value"
+      }
+    }
   },
   "evalsTab": {
     "metricsTitle": "Eval metrics",
@@ -114,7 +197,40 @@
       }
     },
     "viewDashboard": "View full dashboard →",
-    "passingPill": "{passed} / {total} passing"
+    "passingPill": "{passed} / {total} passing",
+    "editedSinceLastRun": "edited since last run"
+  },
+  "skillEvals": {
+    "metricsSubtitle": "Recall / Precision / Citation for this skill's eval cases, run through an agent",
+    "casesHeading": "Eval cases",
+    "emptyCases": "No eval cases yet. Create one to measure this skill.",
+    "passing": "{passed} / {total} passing",
+    "runAll": "Run all evals",
+    "via": "via {name}",
+    "changeAgent": "Change agent",
+    "blocked": {
+      "noCases": "no eval cases",
+      "inProgress": "eval run already in progress"
+    },
+    "picker": {
+      "title": "Choose an agent",
+      "body": "This skill's cases run through the agent you pick, with the skill enabled for that run only. The agent's saved skills do not change.",
+      "label": "Agent",
+      "missing": "{name} no longer exists",
+      "noAgents": "Create an agent first",
+      "confirm": "Use this agent",
+      "cancel": "Cancel"
+    },
+    "historyVia": "via {agent} v{agentVersion} · skill v{skillVersion}",
+    "agentDeleted": "{name} (deleted)",
+    "errors": {
+      "eval_agent_required": "Choose an agent first",
+      "eval_agent_missing": "The agent no longer exists — choose another",
+      "no_eval_cases": "no eval cases",
+      "eval_run_in_progress": "eval run already in progress",
+      "run_start_rate_limited": "Too many runs — try again in a minute",
+      "generic": "Could not start the run."
+    }
   },
   "page": {
     "crumbSkillsLab": "Skills Lab",

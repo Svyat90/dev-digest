@@ -47,8 +47,10 @@
       "preview": "Preview",
       "stats": "Stats",
       "versions": "Versions",
-      "context": "Context"
-    }
+      "context": "Context",
+      "evals": "Evals"
+    },
+    "runOnEvals": "Run on evals"
   },
   "drawer": {
     "title": "Add a skill",
