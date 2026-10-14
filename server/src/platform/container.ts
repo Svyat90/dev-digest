@@ -39,6 +39,7 @@ import { BlastService } from '../modules/blast/service.js';
 import { ProjectContextRepository } from '../modules/project-context/repository.js';
 import { ProjectContextService } from '../modules/project-context/service.js';
 import { EvalRepository } from '../modules/evals/repository.js';
+import { SkillEvalRepository } from '../modules/evals/repository/skill-eval.repo.js';
 import { EvalService } from '../modules/evals/service.js';
 import { parseUnifiedDiff } from '../adapters/git/diff-parser.js';
 import { FsRepoDocsReader } from '../adapters/repo-docs/fs.js';
@@ -90,6 +91,10 @@ export type EvalUseCases = Pick<
   | 'listRuns'
   | 'getRun'
   | 'reapStaleRuns'
+  | 'startSkillRun'
+  | 'listSkillRuns'
+  | 'getSkillEvalAgent'
+  | 'setSkillEvalAgent'
 >;
 
 export interface ContainerOverrides {
@@ -294,6 +299,7 @@ export class Container {
   get evals(): EvalUseCases {
     this._evals ??= new EvalService({
       repo: new EvalRepository(this.db),
+      skills: new SkillEvalRepository(this.db),
       llm: (p) => this.llm(p),
       parseDiff: parseUnifiedDiff,
       tokenizer: this.tokenizer,

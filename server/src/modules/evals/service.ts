@@ -1,4 +1,3 @@
-import { reviewPullRequest } from '@devdigest/reviewer-core';
 import type {
   AgentEvalCaseListItem,
   AgentEvalRunDetail,
@@ -8,46 +7,40 @@ import type {
   EvalRunConfig,
   EvalRunCaseRef,
   FindingCategory,
-  LLMProvider,
-  Provider,
   Severity,
+  SkillEvalAgent,
+  SkillEvalRunSummary,
   StartEvalRunResponse,
-  UnifiedDiff,
 } from '@devdigest/shared';
-import { aggregateRun, scoreCase } from '../../domain/evals/scoring.js';
+import { aggregateRun } from '../../domain/evals/scoring.js';
 import { AppError, NotFoundError } from '../../platform/errors.js';
-import {
-  createPromptMeasure,
-  logPromptAssembled,
-  type PromptLogMode,
-} from '../../platform/prompt-log.js';
-import { withTimeout } from '../../platform/resilience.js';
-import {
-  EVAL_CASE_CONCURRENCY,
-  EVAL_CASE_TIMEOUT_MS,
-  MAX_CASE_NAME_ATTEMPTS,
-} from './constants.js';
+import { EVAL_CASE_CONCURRENCY, MAX_CASE_NAME_ATTEMPTS } from './constants.js';
 import {
   buildRunConfig,
   capDescription,
   caseNameFromTitle,
   decideCaseCreation,
   errorReason,
-  evalTaskLine,
   frozenDiff,
   mapWithConcurrency,
-  skillBlocks,
   uniqueCaseName,
 } from './helpers.js';
 import type { EvalRepository } from './repository.js';
-import type { CaseForRun, EvalLogger, RunClose } from './types.js';
+import type { SkillEvalRepository } from './repository/skill-eval.repo.js';
+import {
+  resolveRunConfig,
+  runCaseReview,
+  type CaseRunnerDeps,
+  type RunConfigPorts,
+} from './run-executor.js';
+import type { CaseForRun, CaseResultInsert, EvalLogger, RunClose } from './types.js';
 
 /**
  * Narrow dependency set of the eval use cases: functions over the container's
  * facades and ports, never `Container` (server/INSIGHTS.md, 2026-09-22). The
  * container builds it.
  */
-export interface EvalDeps {
+export interface EvalDeps extends CaseRunnerDeps {
   repo: Pick<
     EvalRepository,
     | 'findingForCase'
@@ -68,18 +61,28 @@ export interface EvalDeps {
     | 'runningRuns'
     | 'lastResultAt'
   >;
-  llm: (provider: Provider) => Promise<LLMProvider>;
-  /** Injected so the module needs no import of `adapters/git/diff-parser.ts`. */
-  parseDiff: (raw: string) => UnifiedDiff;
-  tokenizer: { count(text: string): number };
-  /** Effective PROMPT_LOG mode: `off` skips the `prompt.assembled` record and its measuring. */
-  promptLogMode: PromptLogMode;
-  now?: () => Date;
+  /** Skill evals (SPEC-06): the remembered agent, the measured skill and skill runs. */
+  skills: Pick<
+    SkillEvalRepository,
+    | 'skillForRun'
+    | 'evalAgent'
+    | 'setEvalAgent'
+    | 'agentName'
+    | 'casesForSkill'
+    | 'createSkillRun'
+    | 'listSkillRuns'
+  >;
 }
 
-/** Statuses of the closed set of refusals: everything is 422 except a run already in progress. */
+const CONFLICT_CODES: ReadonlySet<EvalErrorCode> = new Set([
+  'eval_run_in_progress',
+  'eval_case_edit_conflict',
+  'eval_case_check_in_progress',
+]);
+
+/** Statuses of the closed set of refusals: 409 for a conflict with work in progress, else 422. */
 function refusal(code: EvalErrorCode, message: string): AppError {
-  return new AppError(code, message, code === 'eval_run_in_progress' ? 409 : 422);
+  return new AppError(code, message, CONFLICT_CODES.has(code) ? 409 : 422);
 }
 
 const REFUSAL_MESSAGES: Record<EvalErrorCode, string> = {
@@ -93,6 +96,12 @@ const REFUSAL_MESSAGES: Record<EvalErrorCode, string> = {
   eval_run_in_progress: 'An eval run is already in progress for this agent',
   eval_run_not_completed: 'The eval run has not completed',
   eval_promote_noop: "The agent already matches this run's configuration",
+  eval_case_invalid: 'The eval case is invalid',
+  eval_case_content_fixed: 'A case created from a finding has fixed input and expectation',
+  eval_case_edit_conflict: 'The case changed while you were editing',
+  eval_case_check_in_progress: 'The case is already running',
+  eval_agent_required: 'Choose an agent for this skill first',
+  eval_agent_missing: "The skill's eval agent no longer exists",
 };
 
 export class EvalService {
@@ -210,24 +219,90 @@ export class EvalService {
       throw refusal('eval_run_in_progress', REFUSAL_MESSAGES.eval_run_in_progress);
     }
 
-    const startedAt = this.now();
-    void this.execute({
+    this.executeInBackground({
       workspaceId,
       runId,
       agentName: source.agent.name,
       config,
       cases,
-      startedAt,
       logger,
-    }).catch(async (err: unknown) => {
-      logger.error({ eval_run_id: runId, reason: errorReason(err) }, 'eval run crashed');
-      try {
-        await this.close(runId, startedAt, this.now(), 'failed', errorReason(err));
-      } catch (closeErr) {
-        logger.error({ eval_run_id: runId, reason: errorReason(closeErr) }, 'eval run close failed');
-      }
     });
     return { run_id: runId };
+  }
+
+  /**
+   * POST /skills/:id/eval-runs — the skill's cases through its remembered
+   * agent, the skill on inside this run's `config` only (`agent_skills` and
+   * the agent row are never written). Every refusal precedes any write.
+   */
+  async startSkillRun(
+    workspaceId: string,
+    skillId: string,
+    logger: EvalLogger,
+  ): Promise<StartEvalRunResponse> {
+    const { skills } = this.deps;
+    const resolved = await resolveRunConfig(this.configPorts(), workspaceId, {
+      kind: 'skill',
+      id: skillId,
+    });
+    if (!resolved.skill) throw new Error('unreachable: a skill run resolved without its skill');
+
+    const cases = await skills.casesForSkill(workspaceId, skillId);
+    if (cases.length === 0) throw refusal('no_eval_cases', REFUSAL_MESSAGES.no_eval_cases);
+
+    const { config } = resolved;
+    const runId = await skills.createSkillRun({
+      workspaceId,
+      skillId,
+      skillVersion: resolved.skill.version,
+      viaAgentId: resolved.agentId,
+      agentName: resolved.agentName,
+      agentVersion: config.agent_version,
+      config,
+      cases: cases.map((c) => ({ case_id: c.id, revision_id: c.revisionId, revision: c.revision })),
+    });
+    if (runId === null) {
+      throw refusal('eval_run_in_progress', REFUSAL_MESSAGES.eval_run_in_progress);
+    }
+
+    this.executeInBackground({
+      workspaceId,
+      runId,
+      agentName: resolved.agentName,
+      config,
+      cases,
+      logger,
+    });
+    return { run_id: runId };
+  }
+
+  async listSkillRuns(workspaceId: string, skillId: string): Promise<SkillEvalRunSummary[]> {
+    await this.requireSkill(workspaceId, skillId);
+    return this.deps.skills.listSkillRuns(workspaceId, skillId);
+  }
+
+  /** GET /skills/:id/eval-agent — the remembered agent, or the deleted one's name. */
+  async getSkillEvalAgent(workspaceId: string, skillId: string): Promise<SkillEvalAgent> {
+    await this.requireSkill(workspaceId, skillId);
+    const row = await this.deps.skills.evalAgent(workspaceId, skillId);
+    return {
+      agent: row?.agentId ? { id: row.agentId, name: row.agentName } : null,
+      missing_agent_name: row && !row.agentId ? row.agentName : null,
+    };
+  }
+
+  /** PUT /skills/:id/eval-agent — remembered until changed (AC18); the agent must be this workspace's. */
+  async setSkillEvalAgent(
+    workspaceId: string,
+    skillId: string,
+    agentId: string,
+  ): Promise<SkillEvalAgent> {
+    const { skills } = this.deps;
+    await this.requireSkill(workspaceId, skillId);
+    const name = await skills.agentName(workspaceId, agentId);
+    if (name === undefined) throw new NotFoundError('Agent not found');
+    await skills.setEvalAgent(workspaceId, skillId, { id: agentId, name });
+    return { agent: { id: agentId, name }, missing_agent_name: null };
   }
 
   async listRuns(workspaceId: string, agentId: string): Promise<AgentEvalRunSummary[]> {
@@ -252,6 +327,42 @@ export class EvalService {
       await this.close(run.id, run.startedAt, finishedAt, null, null);
     }
     return stale.length;
+  }
+
+  private async requireSkill(workspaceId: string, skillId: string): Promise<void> {
+    if (!(await this.deps.skills.skillForRun(workspaceId, skillId))) {
+      throw new NotFoundError('Skill not found');
+    }
+  }
+
+  private configPorts(): RunConfigPorts {
+    const { repo, skills } = this.deps;
+    return {
+      agentConfigSource: (ws, agentId) => repo.agentConfigSource(ws, agentId),
+      skillForRun: (ws, skillId) => skills.skillForRun(ws, skillId),
+      evalAgent: (ws, skillId) => skills.evalAgent(ws, skillId),
+    };
+  }
+
+  /** Runs a recorded run after the answer; a crash closes it `failed` with the reason. */
+  private executeInBackground(args: {
+    workspaceId: string;
+    runId: string;
+    agentName: string;
+    config: EvalRunConfig;
+    cases: CaseForRun[];
+    logger: EvalLogger;
+  }): void {
+    const { runId, logger } = args;
+    const startedAt = this.now();
+    void this.execute({ ...args, startedAt }).catch(async (err: unknown) => {
+      logger.error({ eval_run_id: runId, reason: errorReason(err) }, 'eval run crashed');
+      try {
+        await this.close(runId, startedAt, this.now(), 'failed', errorReason(err));
+      } catch (closeErr) {
+        logger.error({ eval_run_id: runId, reason: errorReason(closeErr) }, 'eval run close failed');
+      }
+    });
   }
 
   private async execute(args: {
@@ -280,9 +391,12 @@ export class EvalService {
     logger: EvalLogger;
   }): Promise<void> {
     const { workspaceId, runId, agentName, config, case_: c, logger } = args;
-    const { deps } = this;
-    const started = Date.now();
-    const base = {
+    const outcome = await runCaseReview(this.deps, config, c, {
+      correlationId: runId,
+      agentName,
+      logger,
+    });
+    const result: CaseResultInsert = {
       workspaceId,
       evalRunId: runId,
       caseId: c.id,
@@ -290,84 +404,10 @@ export class EvalService {
       caseName: c.name,
       expectationType: c.expectationType,
       expectation: c.expectation,
+      ...outcome,
     };
-
-    let result: Parameters<EvalDeps['repo']['insertCaseResult']>[0];
-    try {
-      const llm = await deps.llm(config.provider);
-      const promptLogMode = deps.promptLogMode;
-      const outcome = await withTimeout(
-        reviewPullRequest({
-          systemPrompt: config.system_prompt,
-          model: config.model,
-          diff: deps.parseDiff(c.inputDiff),
-          llm,
-          strategy: config.strategy,
-          skills: skillBlocks(config.skills),
-          ...(c.inputMeta.pr_description ? { prDescription: c.inputMeta.pr_description } : {}),
-          task: evalTaskLine(c.inputMeta.pr_title),
-          sessionId: `eval:${runId}:${agentName}`,
-          ...(promptLogMode !== 'off'
-            ? {
-                promptMeasure: createPromptMeasure(promptLogMode, deps.tokenizer),
-                onPromptAssembled: (info) =>
-                  logPromptAssembled(
-                    logger,
-                    {
-                      component: 'reviewer',
-                      provider: config.provider,
-                      model: config.model,
-                      correlation: { run_id: runId, agent: agentName },
-                      review_mode: info.mode,
-                      chunk: { index: info.chunkIndex, count: info.chunkCount },
-                      sections: info.sections,
-                    },
-                    promptLogMode,
-                  ),
-              }
-            : {}),
-        }),
-        EVAL_CASE_TIMEOUT_MS,
-      );
-      const findings = outcome.review.findings;
-      const score = scoreCase(
-        c.expectationType,
-        c.expectation,
-        findings,
-        findings.length + outcome.dropped.length,
-      );
-      result = {
-        ...base,
-        status: score.status,
-        error: null,
-        findingsReturned: score.findingsReturned,
-        findingsGrounded: score.findingsGrounded,
-        findingsMatching: score.findingsMatching,
-        recall: score.recall,
-        precision: score.precision,
-        citationAccuracy: score.citationAccuracy,
-        durationMs: Date.now() - started,
-        costUsd: outcome.costUsd,
-        actualOutput: { findings },
-      };
-    } catch (err) {
-      result = {
-        ...base,
-        status: 'errored',
-        error: errorReason(err),
-        findingsReturned: null,
-        findingsGrounded: null,
-        findingsMatching: null,
-        recall: null,
-        precision: null,
-        citationAccuracy: null,
-        durationMs: Date.now() - started,
-        costUsd: null,
-        actualOutput: null,
-      };
-    }
     // Written after the engine returned: no external call inside the repository transaction.
-    await deps.repo.insertCaseResult(result);
+    await this.deps.repo.insertCaseResult(result);
   }
 
   /** Aggregate the stored case results and close the run (AC17). `forceError` closes it failed. */

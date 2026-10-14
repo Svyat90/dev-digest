@@ -12,6 +12,7 @@ import { parseUnifiedDiff } from '../src/adapters/git/diff-parser.js';
 import { MockLLMProvider } from '../src/adapters/mocks.js';
 import { AppError, ConfigError, NotFoundError } from '../src/platform/errors.js';
 import { EvalService, type EvalDeps } from '../src/modules/evals/service.js';
+import type { NewSkillRun, SkillEvalAgentRow, SkillForRun } from '../src/modules/evals/editor-types.js';
 import type {
   AgentConfigSource,
   CaseForRun,
@@ -181,6 +182,47 @@ class FakeRepo {
   }
 }
 
+class FakeSkills {
+  skill: SkillForRun | undefined = {
+    id: 's1',
+    name: 'Secrets',
+    description: 'finds secrets',
+    body: 'Look for hardcoded keys',
+    version: 3,
+  };
+  remembered: SkillEvalAgentRow | undefined = { agentId: 'a1', agentName: 'Agent' };
+  agents: Record<string, string> = { a1: 'Agent', a2: 'Other' };
+  caseList: CaseForRun[] = [];
+  running = false;
+  createdSkillRuns: NewSkillRun[] = [];
+  setCalls: { skillId: string; agent: { id: string; name: string } }[] = [];
+
+  async skillForRun() {
+    return this.skill;
+  }
+  async evalAgent() {
+    return this.remembered;
+  }
+  async setEvalAgent(_ws: string, skillId: string, agent: { id: string; name: string }) {
+    this.setCalls.push({ skillId, agent });
+    this.remembered = { agentId: agent.id, agentName: agent.name };
+  }
+  async agentName(_ws: string, agentId: string) {
+    return this.agents[agentId];
+  }
+  async casesForSkill() {
+    return this.caseList;
+  }
+  async createSkillRun(values: NewSkillRun) {
+    if (this.running) return null;
+    this.createdSkillRuns.push(values);
+    return 'skill-run-1';
+  }
+  async listSkillRuns() {
+    return [];
+  }
+}
+
 class MarkerLLM extends MockLLMProvider {
   constructor(private failOn: string) {
     super('openai', { structured: REVIEW });
@@ -191,9 +233,14 @@ class MarkerLLM extends MockLLMProvider {
   }
 }
 
-function make(repo: FakeRepo, llm: (p: Provider) => Promise<LLMProvider>): EvalService {
+function make(
+  repo: FakeRepo,
+  llm: (p: Provider) => Promise<LLMProvider>,
+  skills: FakeSkills = new FakeSkills(),
+): EvalService {
   const deps: EvalDeps = {
     repo,
+    skills,
     llm,
     parseDiff: parseUnifiedDiff,
     tokenizer: { count: (s) => s.length },
@@ -369,5 +416,109 @@ describe('EvalService.reapStaleRuns', () => {
     repo2.running_ = [{ id: 'r-b', startedAt: new Date('2026-10-12T09:00:00Z') }];
     expect(await make(repo2, ok(new MockLLMProvider())).reapStaleRuns()).toBe(1);
     expect(repo2.closes[0]!.values).toMatchObject({ status: 'failed', durationMs: 0 });
+  });
+});
+
+describe('EvalService.startSkillRun', () => {
+  it('refuses with no remembered agent, a deleted agent, no cases, or a running run', async () => {
+    const repo = new FakeRepo();
+    const skills = new FakeSkills();
+    const svc = make(repo, ok(new MockLLMProvider()), skills);
+
+    skills.remembered = undefined;
+    const required = await svc.startSkillRun(WS, 's1', logger).catch((e) => e);
+    expect(required).toBeInstanceOf(AppError);
+    expect(required).toMatchObject({ code: 'eval_agent_required', statusCode: 422 });
+
+    skills.remembered = { agentId: null, agentName: 'Gone Agent' };
+    const missing = await svc.startSkillRun(WS, 's1', logger).catch((e) => e);
+    expect(missing).toBeInstanceOf(AppError);
+    expect(missing).toMatchObject({
+      code: 'eval_agent_missing',
+      statusCode: 422,
+      details: { agent_name: 'Gone Agent' },
+    });
+
+    skills.remembered = { agentId: 'a1', agentName: 'Agent' };
+    await expect(svc.startSkillRun(WS, 's1', logger)).rejects.toMatchObject({
+      code: 'no_eval_cases',
+      statusCode: 422,
+    });
+
+    skills.caseList = [runCase(1)];
+    skills.running = true;
+    await expect(svc.startSkillRun(WS, 's1', logger)).rejects.toMatchObject({
+      code: 'eval_run_in_progress',
+      statusCode: 409,
+    });
+    expect(skills.createdSkillRuns).toHaveLength(0);
+    expect(repo.createdRuns).toHaveLength(0);
+
+    skills.skill = undefined;
+    await expect(svc.startSkillRun(WS, 's1', logger)).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it('records skill version, via agent and a config with the skill on, then runs the cases', async () => {
+    const repo = new FakeRepo();
+    const skills = new FakeSkills();
+    skills.caseList = [runCase(1), runCase(2)];
+    const svc = make(repo, ok(new MockLLMProvider('openai', { structured: REVIEW })), skills);
+
+    const { run_id } = await svc.startSkillRun(WS, 's1', logger);
+    expect(run_id).toBe('skill-run-1');
+    const created = skills.createdSkillRuns[0]!;
+    expect(created).toMatchObject({
+      workspaceId: WS,
+      skillId: 's1',
+      skillVersion: 3,
+      viaAgentId: 'a1',
+      agentName: 'Agent',
+      agentVersion: 4,
+      cases: [
+        { case_id: 'c1', revision_id: 'rev1', revision: 1 },
+        { case_id: 'c2', revision_id: 'rev2', revision: 1 },
+      ],
+    });
+    expect(created.config.agent_version).toBe(4);
+    expect(created.config.skills).toEqual([
+      expect.objectContaining({ id: 's1', version: 3, link_enabled: true, skill_enabled: true }),
+    ]);
+    // The agent's own run path is untouched.
+    expect(repo.createdRuns).toHaveLength(0);
+
+    await repo.closedPromise;
+    expect(repo.results.map((r) => r.evalRunId)).toEqual(['skill-run-1', 'skill-run-1']);
+    expect(repo.closes[0]).toMatchObject({ id: 'skill-run-1', values: { status: 'completed' } });
+  });
+});
+
+describe('EvalService skill eval agent', () => {
+  it('reads the remembered agent, names a deleted one, and 404s an unknown skill', async () => {
+    const skills = new FakeSkills();
+    const svc = make(new FakeRepo(), ok(new MockLLMProvider()), skills);
+    expect(await svc.getSkillEvalAgent(WS, 's1')).toEqual({
+      agent: { id: 'a1', name: 'Agent' },
+      missing_agent_name: null,
+    });
+    skills.remembered = { agentId: null, agentName: 'Gone Agent' };
+    expect(await svc.getSkillEvalAgent(WS, 's1')).toEqual({ agent: null, missing_agent_name: 'Gone Agent' });
+    skills.remembered = undefined;
+    expect(await svc.getSkillEvalAgent(WS, 's1')).toEqual({ agent: null, missing_agent_name: null });
+    skills.skill = undefined;
+    await expect(svc.getSkillEvalAgent(WS, 's1')).rejects.toBeInstanceOf(NotFoundError);
+    await expect(svc.listSkillRuns(WS, 's1')).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it('remembers a chosen agent and refuses an unknown one with NotFoundError', async () => {
+    const skills = new FakeSkills();
+    const svc = make(new FakeRepo(), ok(new MockLLMProvider()), skills);
+    expect(await svc.setSkillEvalAgent(WS, 's1', 'a2')).toEqual({
+      agent: { id: 'a2', name: 'Other' },
+      missing_agent_name: null,
+    });
+    expect(skills.setCalls).toEqual([{ skillId: 's1', agent: { id: 'a2', name: 'Other' } }]);
+
+    await expect(svc.setSkillEvalAgent(WS, 's1', 'nope')).rejects.toBeInstanceOf(NotFoundError);
+    expect(skills.setCalls).toHaveLength(1);
   });
 });
