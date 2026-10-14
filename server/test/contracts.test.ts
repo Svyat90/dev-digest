@@ -26,6 +26,10 @@ import {
   EvalExpectation,
   EvalRunCaseRef,
   EvalErrorCode,
+  EvalDashboard,
+  EvalDashboardRange,
+  EvalRegressionAlert,
+  EvalRunComparison,
   FindingRecord,
 } from '@devdigest/shared';
 
@@ -537,6 +541,107 @@ describe('eval pipeline contracts', () => {
     expect(() => EvalExpectation.parse({ ...expectation, start_line: 0 })).toThrow();
     expect(() => EvalRunCaseRef.parse({ case_id: 'c', revision_id: 'r', revision: 0 })).toThrow();
     expect(() => EvalErrorCode.parse('nope')).toThrow();
+  });
+
+  describe('eval dashboard contracts (SPEC-05)', () => {
+    const run = {
+      id: 'r1',
+      agent_id: 'a1',
+      status: 'completed',
+      started_at: '2026-10-12T10:00:00.000Z',
+      finished_at: '2026-10-12T10:01:00.000Z',
+      duration_ms: 60000,
+      agent_version: 3,
+      cases_total: 4,
+      cases_done: 4,
+      cases_scored: 4,
+      cases_passed: 3,
+      recall: 0.75,
+      precision: null,
+      citation_accuracy: 1,
+      cost_usd: null,
+      error: null,
+    };
+    const config = {
+      agent_version: 3,
+      provider: 'openrouter',
+      model: 'm',
+      system_prompt: 'p',
+      strategy: 'single-pass',
+      skills: [],
+    };
+    const alert = {
+      metric: 'recall',
+      drop_points: 5,
+      agent_version: 3,
+      run_id: 'r1',
+      previous_run_id: 'r0',
+      others: [{ metric: 'precision', direction: 'same' }],
+      case_sets: { added: 2, removed: 0 },
+    };
+
+    it('parses a dashboard with an alert, a one-point trend with a gap and no running run', () => {
+      const dashboard = {
+        agent: { id: 'a1', name: 'A', provider: 'openrouter', model: 'm' },
+        range: '30d',
+        cases_total: 4,
+        latest: run,
+        previous: null,
+        running_run: null,
+        alert,
+        trend: [
+          {
+            run_id: 'r1',
+            started_at: run.started_at,
+            agent_version: 3,
+            recall: null,
+            precision: 0.5,
+            citation_accuracy: null,
+            cost_usd: null,
+          },
+        ],
+        trend_truncated: false,
+        runs: [run],
+      };
+      expect(() => EvalDashboard.parse(dashboard)).not.toThrow();
+    });
+
+    it('parses a comparison with a version_changed skill whose body is unknown', () => {
+      const comparison = {
+        agent_id: 'a1',
+        earlier: { ...run, config },
+        later: { ...run, id: 'r2', config },
+        case_sets: { added: 0, removed: 1 },
+        config_changes: [{ field: 'model', from: 'a', to: 'b' }],
+        skill_changes: [
+          {
+            skill_id: 's1',
+            name: 'S',
+            change: 'version_changed',
+            from_version: 1,
+            to_version: 2,
+            from_body: null,
+            to_body: 'x',
+          },
+        ],
+        promote: {
+          run_id: 'r2',
+          run_agent_version: 3,
+          current_agent_version: 4,
+          is_current: false,
+          skills_to_restore: [{ skill_id: 's1', name: 'S', current_version: 2, recorded_version: 1 }],
+          affected_agents: [],
+          deleted_skills: [],
+        },
+      };
+      expect(() => EvalRunComparison.parse(comparison)).not.toThrow();
+    });
+
+    it('rejects a zero drop, an unknown range and accepts the new error codes', () => {
+      expect(() => EvalRegressionAlert.parse({ ...alert, drop_points: 0 })).toThrow();
+      expect(() => EvalDashboardRange.parse('banana')).toThrow();
+      expect(EvalErrorCode.parse('eval_promote_noop')).toBe('eval_promote_noop');
+    });
   });
 
   it('FindingRecord parses with and without eval_case_id', () => {
