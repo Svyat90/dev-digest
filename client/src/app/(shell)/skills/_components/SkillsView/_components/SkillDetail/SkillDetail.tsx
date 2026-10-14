@@ -11,6 +11,7 @@ import { PreviewTab } from "./_components/PreviewTab";
 import { StatsTab } from "./_components/StatsTab";
 import { VersionsTab } from "./_components/VersionsTab";
 import { ContextTab } from "./_components/ContextTab";
+import { RunSkillEvalsAction, SkillEvalsTab } from "./_components/EvalsTab";
 import { TABS, VALID_TABS } from "./constants";
 import { s } from "./styles";
 
@@ -34,6 +35,9 @@ export function SkillDetail({ skill }: { skill: Skill }) {
           {t("detail.versionBadge", { version: skill.version })}
         </Badge>
         {!skill.enabled && <Badge color="var(--text-muted)">{t("preview.disabled")}</Badge>}
+        <div style={{ marginLeft: "auto" }}>
+          <RunSkillEvalsAction skillId={skill.id} label="runOnEvals" />
+        </div>
       </div>
       <div style={s.tabsBar}>
         <Tabs tabs={tabs} value={tab} onChange={setTab} pad="0 24px" />
@@ -41,6 +45,7 @@ export function SkillDetail({ skill }: { skill: Skill }) {
       <div style={s.body}>
         {tab === "config" && <ConfigTab key={skill.id} skill={skill} />}
         {tab === "preview" && <PreviewTab skill={skill} />}
+        {tab === "evals" && <SkillEvalsTab key={skill.id} skill={skill} />}
         {tab === "stats" && <StatsTab skillId={skill.id} />}
         {tab === "versions" && <VersionsTab skill={skill} />}
         {tab === "context" && <ContextTab key={skill.id} skillId={skill.id} />}
