@@ -38,7 +38,7 @@ All routes are workspace-scoped (EV13). Source: `src/modules/evals/routes.ts`.
 | POST | `/findings/:id/eval-case` | 201 `{ case, created: true }`; 200 `{ case, created: false }` when the finding already has a case | 404 unknown finding; 422 with an `EvalErrorCode` (EV1) |
 | GET | `/agents/:id/eval-cases` | 200 cases at their current revision, each with `latest_result` | 404 unknown agent |
 | DELETE | `/eval-cases/:id` | 200 `{ ok: true }` | 404 unknown case; past results stay (EV10) |
-| POST | `/agents/:id/eval-runs` | 202 `{ run_id }`; the run continues in the background | 404 unknown agent; 422 `no_eval_cases`; 409 `eval_run_in_progress`; rate-limited to 10 per minute |
+| POST | `/agents/:id/eval-runs` | 202 `{ run_id }`; the run continues in the background | 404 unknown agent; 422 `no_eval_cases`; 409 `eval_run_in_progress`; 429 `run_start_rate_limited` from the shared per-workspace run-start limit (10 per minute), see `eval-dashboard.md` ED8 |
 | GET | `/agents/:id/eval-runs` | 200 run summaries, newest first | 404 unknown agent |
 | GET | `/eval-runs/:id` | 200 one run: summary + `config` + `cases` + `results` | 404 unknown run |
 
