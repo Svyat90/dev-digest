@@ -1,6 +1,7 @@
 "use client";
 
 import { useId } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@devdigest/ui";
 import type { AgentEvalCaseListItem } from "@devdigest/shared";
@@ -50,6 +51,9 @@ export function EvalsTab({ agentId }: { agentId: string }) {
         <div style={s.header}>
           <h2 style={s.h2}>{t("evalsTab.metricsTitle")}</h2>
           <span style={s.meta}>{t("evalsTab.metricsSubtitle")}</span>
+          <Link href={`/evals/${agentId}`} style={{ ...s.meta, ...s.spacer }}>
+            {t("evalsTab.viewDashboard")}
+          </Link>
         </div>
         <MetricCards latest={latestCompleted(runs)} previous={previousCompleted(runs)} />
       </section>

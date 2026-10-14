@@ -128,6 +128,13 @@ describe("Agent EvalsTab", () => {
     expect(within(history).getByText("—")).toBeInTheDocument();
   });
 
+  it("links to the agent's full eval dashboard", () => {
+    cases = [];
+    runs = [];
+    renderTab();
+    expect(screen.getByRole("link", { name: "View full dashboard →" })).toHaveAttribute("href", "/evals/ag1");
+  });
+
   it("deletes a case only after confirmation", () => {
     cases = [mkCase("c1", "case-one")];
     runs = [];

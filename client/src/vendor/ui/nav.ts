@@ -27,13 +27,15 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
-    // Only these three: the visual design shows more Skills Lab entries, but the
+    // Only these four: the visual design shows more Skills Lab entries, but the
     // rest lead to pages that do not exist yet and are deliberately excluded.
+    // Eval Dashboard is now built.
     section: "SKILLS LAB",
     items: [
       { key: "skills", label: "Skills", icon: "Sparkles", href: "/skills", gKey: "s" },
       { key: "agents", label: "Agents", icon: "Cpu", href: "/agents", gKey: "a" },
       { key: "conventions", label: "Conventions", icon: "ListChecks", href: "/repos/:repoId/conventions", gKey: "v" },
+      { key: "eval", label: "Eval Dashboard", icon: "FlaskConical", href: "/evals" },
     ],
   },
 ];
