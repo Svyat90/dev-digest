@@ -1,6 +1,6 @@
 # Spec: Eval Dashboard — trends, run comparison and Promote
 Spec ID: SPEC-05-eval-dashboard
-Status: approved
+Status: implemented
 Supersedes: none
 Packages: server, client
 Depends on: SPEC-04-eval-pipeline
