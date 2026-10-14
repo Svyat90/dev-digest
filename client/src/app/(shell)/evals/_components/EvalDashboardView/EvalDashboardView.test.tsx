@@ -112,6 +112,7 @@ describe("EvalDashboardView", () => {
       });
     renderView();
     fireEvent.click(screen.getByRole("button", { name: "Run all agents" }));
+    expect(screen.getByText(/1 agent will run 20 cases in total\./)).toBeInTheDocument();
     expect(screen.getByText(/Skipped: Empty — no eval cases/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Run" }));
     expect(mutate).toHaveBeenCalledTimes(1);
