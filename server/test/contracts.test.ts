@@ -30,6 +30,10 @@ import {
   EvalDashboardRange,
   EvalRegressionAlert,
   EvalRunComparison,
+  EvalCaseDetail,
+  EvalExpectedOutput,
+  SkillEvalRunSummary,
+  EvalRunDetail,
   FindingRecord,
 } from '@devdigest/shared';
 
@@ -641,6 +645,92 @@ describe('eval pipeline contracts', () => {
       expect(() => EvalRegressionAlert.parse({ ...alert, drop_points: 0 })).toThrow();
       expect(() => EvalDashboardRange.parse('banana')).toThrow();
       expect(EvalErrorCode.parse('eval_promote_noop')).toBe('eval_promote_noop');
+    });
+  });
+
+  describe('case editor contracts (SPEC-06)', () => {
+    const finding = {
+      severity: 'WARNING',
+      category: 'bug',
+      title: 'Null deref',
+      file: 'src/a.ts',
+      start_line: 3,
+    };
+    const skillRun = {
+      ...detail,
+      agent_id: null,
+      skill_id: 's1',
+      skill_version: 2,
+      agent_name: 'Security Reviewer',
+      agent_deleted: true,
+    };
+
+    it('parses the detail of a manual skill case with a check and a last run', () => {
+      const manual = {
+        ...evalCase,
+        agent_id: null,
+        provenance: null,
+        owner: { kind: 'skill', id: 's1' },
+        origin: 'manual',
+        input_diff: '--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1 +1 @@\n-a\n+b\n',
+        input_files: ['src/a.ts'],
+        expected_output: [finding],
+        latest_result: null,
+        check: {
+          id: 'chk1',
+          case_revision_id: 'rev1',
+          status: 'failed',
+          started_at: '2026-10-13T10:00:00Z',
+          finished_at: '2026-10-13T10:00:05Z',
+          duration_ms: 5000,
+          expected: 1,
+          got: 0,
+          error: null,
+          cost_usd: null,
+        },
+        last_run: {
+          source: 'check',
+          status: 'failed',
+          expected: 1,
+          got: 0,
+          error: null,
+          duration_ms: 5000,
+          cost_usd: null,
+          finished_at: '2026-10-13T10:00:05Z',
+        },
+      };
+      const parsed = EvalCaseDetail.parse(manual);
+      expect(parsed.provenance).toBeNull();
+      expect(parsed.expected_output[0]?.end_line).toBeUndefined();
+    });
+
+    it('rejects an unknown key, a 201-character title and two expected findings', () => {
+      expect(() => EvalExpectedOutput.parse([finding])).not.toThrow();
+      expect(() =>
+        EvalExpectedOutput.parse(JSON.parse(JSON.stringify([finding]).replace('{', '{"__proto__":1,'))),
+      ).toThrow();
+      expect(() => EvalExpectedOutput.parse([{ ...finding, title: 'x'.repeat(201) }])).toThrow();
+      expect(() => EvalExpectedOutput.parse([finding, finding])).toThrow();
+    });
+
+    it('parses a skill run summary whose agent was deleted', () => {
+      const { config: _c, cases: _cs, results: _r, ...summary } = skillRun;
+      expect(SkillEvalRunSummary.parse(summary).agent_deleted).toBe(true);
+    });
+
+    it('tags the run detail by owner and refuses an untagged one', () => {
+      const asSkill = EvalRunDetail.parse({ ...skillRun, owner_kind: 'skill' });
+      expect(asSkill.owner_kind).toBe('skill');
+      if (asSkill.owner_kind === 'skill') {
+        expect(asSkill.skill_id).toBe('s1');
+        expect(asSkill.agent_name).toBe('Security Reviewer');
+      }
+      expect(EvalRunDetail.parse({ ...detail, owner_kind: 'agent' }).owner_kind).toBe('agent');
+      expect(() => EvalRunDetail.parse(detail)).toThrow();
+    });
+
+    it('accepts the new error codes', () => {
+      expect(EvalErrorCode.parse('eval_case_invalid')).toBe('eval_case_invalid');
     });
   });
 

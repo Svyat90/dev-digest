@@ -3,12 +3,12 @@
    "Turn into eval case" action on a finding. */
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { api } from "../api";
 import type {
-  AgentEvalCaseListItem,
   AgentEvalRunSummary,
   CreateEvalCaseResponse,
+  EvalCaseListItem,
   StartEvalRunResponse,
 } from "@devdigest/shared";
 import { keys } from "./keys";
@@ -17,10 +17,10 @@ import { keys } from "./keys";
 export function useAgentEvalCases(
   agentId: string | null | undefined,
   opts?: { refetchIntervalMs?: number | false },
-) {
+): UseQueryResult<EvalCaseListItem[], Error> {
   return useQuery({
     queryKey: keys.agentEvalCases(agentId),
-    queryFn: () => api.get<AgentEvalCaseListItem[]>(`/agents/${agentId}/eval-cases`),
+    queryFn: () => api.get<EvalCaseListItem[]>(`/agents/${agentId}/eval-cases`),
     enabled: !!agentId,
     refetchInterval: opts?.refetchIntervalMs ?? false,
   });
@@ -70,7 +70,9 @@ export function useCreateEvalCase() {
     mutationFn: ({ findingId }: { findingId: string }) =>
       api.post<CreateEvalCaseResponse>(`/findings/${findingId}/eval-case`),
     onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: keys.reviews(data.case.provenance.pr_id) });
+      if (data.case.provenance) {
+        qc.invalidateQueries({ queryKey: keys.reviews(data.case.provenance.pr_id) });
+      }
       qc.invalidateQueries({ queryKey: keys.agentEvalCases(data.case.agent_id) });
     },
   });
