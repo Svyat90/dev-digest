@@ -1,0 +1,37 @@
+import type { CSSProperties } from "react";
+
+export const s = {
+  page: { padding: "24px 28px", maxWidth: 1100 } satisfies CSSProperties,
+  header: { display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 20 } satisfies CSSProperties,
+  h1: { fontSize: 20, fontWeight: 700, margin: 0 } satisfies CSSProperties,
+  subtitle: { fontSize: 13, color: "var(--text-muted)", marginTop: 2 } satisfies CSSProperties,
+  spacer: { marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 } satisfies CSSProperties,
+  note: { fontSize: 12.5, color: "var(--text-muted)" } satisfies CSSProperties,
+  error: { fontSize: 12.5, color: "var(--danger, #e5484d)" } satisfies CSSProperties,
+  list: { listStyle: "none", margin: "0 0 28px", padding: 0, display: "flex", flexDirection: "column", gap: 8 } satisfies CSSProperties,
+  row: {
+    display: "flex",
+    alignItems: "center",
+    gap: 16,
+    padding: "10px 14px",
+    borderRadius: 8,
+    border: "1px solid var(--border)",
+    background: "var(--bg-elevated)",
+    color: "inherit",
+    textDecoration: "none",
+  } satisfies CSSProperties,
+  rowMain: { flex: 1, minWidth: 0 } satisfies CSSProperties,
+  name: { fontSize: 14, fontWeight: 600, overflowWrap: "anywhere" } satisfies CSSProperties,
+  sub: { fontSize: 12, color: "var(--text-muted)", overflowWrap: "anywhere" } satisfies CSSProperties,
+  metrics: { display: "flex", gap: 14, fontSize: 12.5 } satisfies CSSProperties,
+  table: { width: "100%", borderCollapse: "collapse", fontSize: 12.5 } satisfies CSSProperties,
+  th: {
+    textAlign: "left",
+    padding: "6px 8px",
+    color: "var(--text-muted)",
+    fontWeight: 500,
+    borderBottom: "1px solid var(--border)",
+  } satisfies CSSProperties,
+  td: { padding: "6px 8px", borderBottom: "1px solid var(--border)" } satisfies CSSProperties,
+  link: { color: "inherit", textDecoration: "none", fontWeight: 600 } satisfies CSSProperties,
+};
