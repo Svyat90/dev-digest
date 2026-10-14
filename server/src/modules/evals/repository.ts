@@ -1,6 +1,7 @@
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
+import { isAgentRunRow } from '../../domain/evals/run-owner.js';
 import type {
   AgentEvalCase,
   AgentEvalCaseListItem,
@@ -80,7 +81,9 @@ function toCase(row: CaseWithRevision): AgentEvalCase {
   };
 }
 
-function toSummary(row: typeof t.evalSuiteRuns.$inferSelect): AgentEvalRunSummary {
+type AgentRunRow = typeof t.evalSuiteRuns.$inferSelect & { agentId: string };
+
+function toSummary(row: AgentRunRow): AgentEvalRunSummary {
   return {
     id: row.id,
     agent_id: row.agentId,
@@ -302,6 +305,7 @@ export class EvalRepository {
       .where(
         and(
           eq(t.evalSuiteRuns.workspaceId, workspaceId),
+          isNotNull(t.evalSuiteRuns.agentId),
           eq(t.evalSuiteRuns.agentId, agentId),
           eq(t.evalSuiteRuns.status, 'completed'),
         ),
@@ -487,18 +491,31 @@ export class EvalRepository {
     const rows = await this.db
       .select()
       .from(t.evalSuiteRuns)
-      .where(and(eq(t.evalSuiteRuns.workspaceId, workspaceId), eq(t.evalSuiteRuns.agentId, agentId)))
+      .where(
+        and(
+          eq(t.evalSuiteRuns.workspaceId, workspaceId),
+          isNotNull(t.evalSuiteRuns.agentId),
+          eq(t.evalSuiteRuns.agentId, agentId),
+        ),
+      )
       .orderBy(desc(t.evalSuiteRuns.startedAt));
-    return rows.map(toSummary);
+    return rows.filter(isAgentRunRow).map(toSummary);
   }
 
+  // Agent runs only for now; a skill run id answers 404 until SPEC-06 T023 widens it.
   async getRun(workspaceId: string, runId: string): Promise<AgentEvalRunDetail | undefined> {
     const [row] = await this.db
       .select()
       .from(t.evalSuiteRuns)
-      .where(and(eq(t.evalSuiteRuns.id, runId), eq(t.evalSuiteRuns.workspaceId, workspaceId)))
+      .where(
+        and(
+          eq(t.evalSuiteRuns.id, runId),
+          eq(t.evalSuiteRuns.workspaceId, workspaceId),
+          isNotNull(t.evalSuiteRuns.agentId),
+        ),
+      )
       .limit(1);
-    if (!row) return undefined;
+    if (!row || !isAgentRunRow(row)) return undefined;
     return {
       ...toSummary(row),
       config: row.config,

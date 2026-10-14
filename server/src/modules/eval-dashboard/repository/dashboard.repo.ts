@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, isNotNull } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import type { Db } from '../../../db/client.js';
 import * as t from '../../../db/schema.js';
@@ -8,13 +8,15 @@ import type {
   EvalWorkspaceRun,
   Provider,
 } from '@devdigest/shared';
+import { isAgentRunRow } from '../../../domain/evals/run-owner.js';
 import { toRunSummary } from '../helpers.js';
 import type { DashboardAgentRow, RecallSample, StoredRun } from '../types.js';
 
 /**
  * SPEC-05 — workspace-scoped reads for the Eval Dashboard pages. Every method
  * filters on `workspace_id`; per-agent methods also filter on `agent_id`.
- * One query per method — never one per agent.
+ * One query per method — never one per agent. Skill runs (`agent_id` NULL,
+ * SPEC-06) never reach these views: every run read filters `agent_id IS NOT NULL`.
  */
 export class EvalDashboardRepository {
   constructor(private readonly db: Db) {}
@@ -60,17 +62,29 @@ export class EvalDashboardRepository {
     const rows = await this.db
       .select()
       .from(t.evalSuiteRuns)
-      .where(and(eq(t.evalSuiteRuns.workspaceId, workspaceId), eq(t.evalSuiteRuns.status, 'running')));
-    return new Map(rows.map((r) => [r.agentId, toRunSummary(r)]));
+      .where(
+        and(
+          eq(t.evalSuiteRuns.workspaceId, workspaceId),
+          isNotNull(t.evalSuiteRuns.agentId),
+          eq(t.evalSuiteRuns.status, 'running'),
+        ),
+      );
+    return new Map(rows.filter(isAgentRunRow).map((r) => [r.agentId, toRunSummary(r)]));
   }
 
   async latestCompletedPerAgent(workspaceId: string): Promise<Map<string, AgentEvalRunSummary>> {
     const rows = await this.db
       .selectDistinctOn([t.evalSuiteRuns.agentId])
       .from(t.evalSuiteRuns)
-      .where(and(eq(t.evalSuiteRuns.workspaceId, workspaceId), eq(t.evalSuiteRuns.status, 'completed')))
+      .where(
+        and(
+          eq(t.evalSuiteRuns.workspaceId, workspaceId),
+          isNotNull(t.evalSuiteRuns.agentId),
+          eq(t.evalSuiteRuns.status, 'completed'),
+        ),
+      )
       .orderBy(t.evalSuiteRuns.agentId, desc(t.evalSuiteRuns.startedAt));
-    return new Map(rows.map((r) => [r.agentId, toRunSummary(r)]));
+    return new Map(rows.filter(isAgentRunRow).map((r) => [r.agentId, toRunSummary(r)]));
   }
 
   async recallSamplesSince(workspaceId: string, since: Date): Promise<RecallSample[]> {
@@ -84,12 +98,13 @@ export class EvalDashboardRepository {
       .where(
         and(
           eq(t.evalSuiteRuns.workspaceId, workspaceId),
+          isNotNull(t.evalSuiteRuns.agentId),
           eq(t.evalSuiteRuns.status, 'completed'),
           gte(t.evalSuiteRuns.startedAt, since),
         ),
       )
       .orderBy(asc(t.evalSuiteRuns.startedAt));
-    return rows;
+    return rows.filter(isAgentRunRow);
   }
 
   async recentRuns(workspaceId: string, limit: number): Promise<EvalWorkspaceRun[]> {
@@ -97,10 +112,18 @@ export class EvalDashboardRepository {
       .select({ run: t.evalSuiteRuns, agentName: t.agents.name })
       .from(t.evalSuiteRuns)
       .innerJoin(t.agents, eq(t.agents.id, t.evalSuiteRuns.agentId))
-      .where(and(eq(t.evalSuiteRuns.workspaceId, workspaceId), eq(t.agents.workspaceId, workspaceId)))
+      .where(
+        and(
+          eq(t.evalSuiteRuns.workspaceId, workspaceId),
+          isNotNull(t.evalSuiteRuns.agentId),
+          eq(t.agents.workspaceId, workspaceId),
+        ),
+      )
       .orderBy(desc(t.evalSuiteRuns.startedAt))
       .limit(limit);
-    return rows.map((r) => ({ ...toRunSummary(r.run), agent_name: r.agentName }));
+    return rows.flatMap((r) =>
+      isAgentRunRow(r.run) ? [{ ...toRunSummary(r.run), agent_name: r.agentName }] : [],
+    );
   }
 
   async agentRow(workspaceId: string, agentId: string): Promise<DashboardAgentRow | undefined> {
@@ -142,13 +165,16 @@ export class EvalDashboardRepository {
       .where(
         and(
           eq(t.evalSuiteRuns.workspaceId, workspaceId),
+          isNotNull(t.evalSuiteRuns.agentId),
           eq(t.evalSuiteRuns.agentId, agentId),
           eq(t.evalSuiteRuns.status, 'completed'),
         ),
       )
       .orderBy(desc(t.evalSuiteRuns.startedAt))
       .limit(limit);
-    return rows.map((r) => ({ ...toRunSummary(r), config: r.config, cases: r.cases }));
+    return rows
+      .filter(isAgentRunRow)
+      .map((r) => ({ ...toRunSummary(r), config: r.config, cases: r.cases }));
   }
 
   async runningRun(
@@ -161,11 +187,12 @@ export class EvalDashboardRepository {
       .where(
         and(
           eq(t.evalSuiteRuns.workspaceId, workspaceId),
+          isNotNull(t.evalSuiteRuns.agentId),
           eq(t.evalSuiteRuns.agentId, agentId),
           eq(t.evalSuiteRuns.status, 'running'),
         ),
       );
-    return row ? toRunSummary(row) : undefined;
+    return row && isAgentRunRow(row) ? toRunSummary(row) : undefined;
   }
 
   async runsSince(
@@ -178,7 +205,7 @@ export class EvalDashboardRepository {
       .from(t.evalSuiteRuns)
       .where(this.agentScope(workspaceId, agentId, since))
       .orderBy(desc(t.evalSuiteRuns.startedAt));
-    return rows.map(toRunSummary);
+    return rows.filter(isAgentRunRow).map(toRunSummary);
   }
 
   async completedPointsSince(
@@ -207,6 +234,7 @@ export class EvalDashboardRepository {
   private agentScope(workspaceId: string, agentId: string, since: Date | null): SQL | undefined {
     return and(
       eq(t.evalSuiteRuns.workspaceId, workspaceId),
+      isNotNull(t.evalSuiteRuns.agentId),
       eq(t.evalSuiteRuns.agentId, agentId),
       since ? gte(t.evalSuiteRuns.startedAt, since) : undefined,
     );

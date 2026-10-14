@@ -1,7 +1,8 @@
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import type { AgentVersionConfig, EvalRunCaseRef, EvalRunConfig } from '@devdigest/shared';
 import type { Db } from '../../../db/client.js';
 import * as t from '../../../db/schema.js';
+import { isAgentRunRow } from '../../../domain/evals/run-owner.js';
 import { toRunSummary } from '../helpers.js';
 import type {
   CurrentAgentConfig,
@@ -31,11 +32,12 @@ export class EvalPromotionRepository {
       .where(
         and(
           eq(t.evalSuiteRuns.workspaceId, workspaceId),
+          isNotNull(t.evalSuiteRuns.agentId),
           eq(t.evalSuiteRuns.agentId, agentId),
           eq(t.evalSuiteRuns.id, runId),
         ),
       );
-    if (!row) return undefined;
+    if (!row || !isAgentRunRow(row)) return undefined;
     return {
       ...toRunSummary(row),
       config: row.config as EvalRunConfig,
