@@ -1,0 +1,50 @@
+{
+  "expectations": [
+    {
+      "text": "Flags that service.ts/routes.ts depend on the concrete OctokitGitHubClient type (a type-only import still counts) instead of the GitHubClient port",
+      "passed": true,
+      "evidence": "Problem 1 service.ts:1,:7 and problem 2 routes.ts:4,:17 flag OctokitGitHubClient instead of GitHubClient port."
+    },
+    {
+      "text": "Flags the `as OctokitGitHubClient` cast in routes.ts as hiding that addLabels/requestReviewers are not on the port",
+      "passed": true,
+      "evidence": "Problem 2: cast hides that the port lacks addLabels/requestReviewers instead of adding the methods."
+    },
+    {
+      "text": "Proposes adding addLabels/requestReviewers to the port in vendor/shared/adapters.ts, implementing them in the adapter and adding them to adapters/mocks.ts",
+      "passed": true,
+      "evidence": "Plan step 1: add both to GitHubClient in vendor/shared/adapters.ts, implement in octokit.ts, add to mocks.ts."
+    },
+    {
+      "text": "Identifies the per-PR getRepo/countFindings lookups inside helpers.loadPullContext (called through Promise.all over pulls) as N+1",
+      "passed": true,
+      "evidence": "Problem 6: service.ts:20 two queries per PR (getRepo, countFindings) = N+1."
+    },
+    {
+      "text": "Proposes a batched repository method (list of PR ids, or a join/group-by) instead of per-PR lookups",
+      "passed": true,
+      "evidence": "Plan step 5: replace with single listStalePulls query with repo join and count()."
+    },
+    {
+      "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate",
+      "passed": true,
+      "evidence": "Problem 6: countFindings selects all rows and takes rows.length instead of count()."
+    },
+    {
+      "text": "Flags that a failure partway through the nudge loop (e.g. addLabels succeeded, requestReviewers failed, or an error mid-batch) leaves PRs half-nudged and aborts the batch, with no retry safety",
+      "passed": true,
+      "evidence": "Problem 7: partial failure mid-loop leaves inconsistent result; count errors and return instead of crashing. Retry safety not explicitly discussed, but half-state and abort are covered."
+    },
+    {
+      "text": "Does not flag the pure functions in helpers.ts (cutoffFor, needsNudge, constants) as a layering violation",
+      "passed": true,
+      "evidence": "Keeps cutoffFor, needsNudge, STALE_AFTER_DAYS, LABEL in helpers.ts; only flags the repository import and loadPullContext."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  }
+}

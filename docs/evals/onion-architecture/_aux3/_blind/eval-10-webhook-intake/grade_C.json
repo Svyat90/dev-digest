@@ -1,0 +1,44 @@
+{
+ "expectations": [
+  {
+   "text": "Flags that the signature is computed over JSON.stringify(req.body) instead of the raw request body",
+   "passed": true,
+   "evidence": "Signature over JSON.stringify body; raw body parser"
+  },
+  {
+   "text": "Flags that the service reads process.env.GITHUB_WEBHOOK_SECRET instead of going through the config/secrets chokepoint",
+   "passed": true,
+   "evidence": "process.env read in service violates secrets chokepoint"
+  },
+  {
+   "text": "Flags that the service imports drizzle-orm / db schema and queries the database directly (no repository)",
+   "passed": true,
+   "evidence": "service imports drizzle-orm, db/schema; queries should be in repository.ts"
+  },
+  {
+   "text": "Flags that the repo lookup by owner/name is not scoped to a workspace",
+   "passed": true,
+   "evidence": "Repo lookup by owner+name without workspaceId"
+  },
+  {
+   "text": "Explains that a redelivered or repeated event inserts the same PR again and fails on the unique (repo, number) index, giving a 500, and proposes an upsert or dedupe",
+   "passed": true,
+   "evidence": "Redelivery/synchronize violates pr_repo_number_uq -> 500; upsert"
+  },
+  {
+   "text": "Flags the missing zod validation of the payload (`as never` cast)",
+   "passed": true,
+   "evidence": "req.body as never; zod schema"
+  },
+  {
+   "text": "Flags that the `action` of the event is ignored (every pull_request event inserts)",
+   "passed": true,
+   "evidence": "Any action handled; only process opened/reopened/synchronize/edited"
+  },
+  {
+   "text": "Proposes a thin route that calls one service method with narrow Deps and a repository",
+   "passed": true,
+   "evidence": "Route builds service from narrow Deps {repo, webhookSecret}; handler verify->parse->one service call"
+  }
+ ]
+}

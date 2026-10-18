@@ -1,0 +1,28 @@
+{
+  "eval_id": 8,
+  "eval_name": "publish-in-tx",
+  "prompt": "Користувач скаржиться, що в GitHub іноді двічі з'являється той самий review, хоча «ми все робимо в транзакції». Модуль publish: /Users/wekcook/code/dev-digest/docs/evals/onion-architecture/fixtures/publish-in-tx/server/src/modules/publish/. Знайди причину, що ще не так, і дай виправлення.",
+  "assertions": [
+    {
+      "text": "Flags that the GitHub postReview call is made inside the uow.run transaction (external call inside a transaction)"
+    },
+    {
+      "text": "Explains the duplicate-review mechanism: the review can be posted while the transaction then fails/rolls back (or a pending row remains), and a retry posts again"
+    },
+    {
+      "text": "Flags that retryPending re-posts every pending row with no check of what was already posted (no idempotency)"
+    },
+    {
+      "text": "Proposes committing a pending row first, calling GitHub outside any transaction, then marking the row sent"
+    },
+    {
+      "text": "Proposes making the post safe to repeat (idempotency marker in the comment, unique key, or a lookup of an existing review before posting)"
+    },
+    {
+      "text": "Flags getPull and github() being resolved per pending row inside the retryPending loop"
+    },
+    {
+      "text": "Does not claim the module lacks workspace scoping, a response schema or a port for GitHub (those are fine)"
+    }
+  ]
+}

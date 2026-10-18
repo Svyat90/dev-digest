@@ -1,0 +1,761 @@
+{
+  "metadata": {
+    "skill_name": "onion-architecture",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-10-09T00:17:46Z",
+    "evals_run": [
+      4,
+      5,
+      6
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 4,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 28.8,
+        "tokens": 51661,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+          "passed": true,
+          "evidence": "'\u043d\u0456. \u041d\u0435 \u0440\u0430\u0434\u0436\u0443 \u0441\u0442\u0432\u043e\u0440\u044e\u0432\u0430\u0442\u0438 LabelsService, \u0434\u043e\u043c\u0435\u043d\u043d\u0438\u0439 \u0448\u0430\u0440 \u0456 use-case'."
+        },
+        {
+          "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+          "passed": true,
+          "evidence": "CRUD like workspace/settings; service would only forward; no logic besides 404; table of absent signals."
+        },
+        {
+          "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+          "passed": true,
+          "evidence": "'\u041f\u0440\u0430\u0432\u0438\u043b\u043e \u0437\u0430\u043b\u0435\u0436\u043d\u043e\u0441\u0442\u0435\u0439 \u0432\u0438\u043a\u043e\u043d\u0430\u043d\u043e: route -> repository -> db'; no drizzle in routes."
+        },
+        {
+          "text": "Notes that repository methods are already scoped by workspaceId",
+          "passed": true,
+          "evidence": "'\u043a\u043e\u0436\u0435\u043d \u043c\u0435\u0442\u043e\u0434 \u043f\u0440\u0438\u0439\u043c\u0430\u0454 workspaceId \u0456 \u0444\u0456\u043b\u044c\u0442\u0440\u0443\u0454 \u043f\u043e \u043d\u044c\u043e\u043c\u0443'."
+        },
+        {
+          "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+          "passed": true,
+          "evidence": "Table of signals plus examples: label limit, ban on deleting used label, GitHub sync two ports, cascade with UnitOfWork."
+        },
+        {
+          "text": "Does not report any fabricated architectural violation in the labels module",
+          "passed": true,
+          "evidence": "Says module already onion-compatible; only optional tweaks; no violation."
+        },
+        {
+          "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+          "passed": true,
+          "evidence": "Creates nothing; optional renames/tests only."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "old_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 27.7,
+        "tokens": 51647,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+          "passed": true,
+          "evidence": "Says '\u043d\u0456, \u043f\u043e\u0432\u043d\u0438\u0439 \u043d\u0430\u0431\u0456\u0440 \u0448\u043a\u043e\u0434\u0438\u0442\u044c'; do not create service.ts, domain/*, *-use-case.ts."
+        },
+        {
+          "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+          "passed": true,
+          "evidence": "Says CRUD module needs only routes+repository; service would just forward calls; table shows no logic."
+        },
+        {
+          "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+          "passed": true,
+          "evidence": "'routes.ts \u043d\u0435 \u0456\u043c\u043f\u043e\u0440\u0442\u0443\u0454 drizzle \u0456 db/*'; repository returns DTO; schema stays in infrastructure."
+        },
+        {
+          "text": "Notes that repository methods are already scoped by workspaceId",
+          "passed": true,
+          "evidence": "'\u041a\u043e\u0436\u0435\u043d \u043c\u0435\u0442\u043e\u0434 \u043f\u0440\u0438\u0439\u043c\u0430\u0454 workspaceId \u0456 \u0441\u043a\u043e\u0443\u043f\u0438\u0442\u044c \u043f\u043e \u043d\u044c\u043e\u043c\u0443, \u0432\u043a\u043b\u044e\u0447\u043d\u043e \u0437 update \u0456 delete.'"
+        },
+        {
+          "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+          "passed": true,
+          "evidence": "Lists: rule duplicated in create/update (limit, reserved names), cascade delete with UnitOfWork, GitHub sync as second port."
+        },
+        {
+          "text": "Does not report any fabricated architectural violation in the labels module",
+          "passed": true,
+          "evidence": "Only optional small improvements, repo-in-route called acceptable; no violation claimed."
+        },
+        {
+          "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+          "passed": true,
+          "evidence": "Final summary: create nothing mandatory; do not create service/domain/use-case."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 9,
+        "failed": 0,
+        "total": 9,
+        "time_seconds": 35.8,
+        "tokens": 55557,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that addLabel and requestReviewers are not declared on the GitHubClient port in vendor/shared/adapters.ts",
+          "passed": true,
+          "evidence": "Issue 1: not in GitHubClient port, octokit or MockGitHubClient."
+        },
+        {
+          "text": "Flags the locally declared PrLabeler interface and/or the type cast in routes.ts as hiding the missing port methods",
+          "passed": true,
+          "evidence": "Issue 2: cast at routes.ts:20 hides missing methods; PrLabeler declared in service."
+        },
+        {
+          "text": "Proposes the fix in order: add the methods to the port, implement them in the Octokit adapter, add them to adapters/mocks.ts",
+          "passed": true,
+          "evidence": "Plan steps 1-3: port, adapter+mock, remove cast."
+        },
+        {
+          "text": "Flags repo.getRepo called inside the loop over pulls as N+1 (same repo looked up repeatedly)",
+          "passed": true,
+          "evidence": "Issue 6: getRepo and countFindings per PR in loop."
+        },
+        {
+          "text": "Flags repo.countFindings called inside the loop over pulls as N+1",
+          "passed": true,
+          "evidence": "Issue 6 covers countFindings per PR."
+        },
+        {
+          "text": "Proposes a batched repository method that takes the list of PR ids (or joins repos and counts in one query)",
+          "passed": true,
+          "evidence": "Step 5: one query returning owner, name, findingsCount via join and count()."
+        },
+        {
+          "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate",
+          "passed": true,
+          "evidence": "Issue 7: select id ... rows.length instead of count()."
+        },
+        {
+          "text": "Flags that a failure partway through the loop aborts the batch after some PRs were already labelled (no per-PR error handling / partial-failure handling)",
+          "passed": true,
+          "evidence": "Issue 9: failure on Nth PR aborts whole pass, already-labelled left unreported."
+        },
+        {
+          "text": "Does not claim that routes.ts or service.ts import drizzle-orm or a concrete adapter (no fabricated violation)",
+          "passed": true,
+          "evidence": "No claim of drizzle/adapter import in route/service; only says route constructs repository and notes it is permitted."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "configuration": "old_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 9,
+        "failed": 0,
+        "total": 9,
+        "time_seconds": 45.8,
+        "tokens": 57191,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that addLabel and requestReviewers are not declared on the GitHubClient port in vendor/shared/adapters.ts",
+          "passed": true,
+          "evidence": "Issue 1: GitHubClient lacks the methods; not in Octokit or Mock."
+        },
+        {
+          "text": "Flags the locally declared PrLabeler interface and/or the type cast in routes.ts as hiding the missing port methods",
+          "passed": true,
+          "evidence": "Issue 1: PrLabeler local in service and cast at routes.ts:20 fakes it."
+        },
+        {
+          "text": "Proposes the fix in order: add the methods to the port, implement them in the Octokit adapter, add them to adapters/mocks.ts",
+          "passed": true,
+          "evidence": "Plan steps 1-5: port, adapter, mock, service, route."
+        },
+        {
+          "text": "Flags repo.getRepo called inside the loop over pulls as N+1 (same repo looked up repeatedly)",
+          "passed": true,
+          "evidence": "Issue 4: getRepo and countFindings per stale PR."
+        },
+        {
+          "text": "Flags repo.countFindings called inside the loop over pulls as N+1",
+          "passed": true,
+          "evidence": "Issue 4: same."
+        },
+        {
+          "text": "Proposes a batched repository method that takes the list of PR ids (or joins repos and counts in one query)",
+          "passed": true,
+          "evidence": "listStalePullsWithFindings with join and count()."
+        },
+        {
+          "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate",
+          "passed": true,
+          "evidence": "Issue 4: selects all rows and takes rows.length."
+        },
+        {
+          "text": "Flags that a failure partway through the loop aborts the batch after some PRs were already labelled (no per-PR error handling / partial-failure handling)",
+          "passed": true,
+          "evidence": "Issue 6: error on Nth PR aborts whole batch, first PRs already labelled."
+        },
+        {
+          "text": "Does not claim that routes.ts or service.ts import drizzle-orm or a concrete adapter (no fabricated violation)",
+          "passed": true,
+          "evidence": "Explicitly: no forbidden imports found."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 6,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 37.3,
+        "tokens": 54696,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies that the digest row is inserted with deliveredTo already set before the GitHub postReview call, so a GitHub failure leaves a row claiming delivery",
+          "passed": true,
+          "evidence": "deliveredTo recorded before delivery."
+        },
+        {
+          "text": "Proposes storing a not-yet-delivered/pending state first and marking it delivered only after postReview succeeds",
+          "passed": true,
+          "evidence": "pending then markDelivered."
+        },
+        {
+          "text": "Identifies that a retry creates a second digest row and posts a second review (no idempotency)",
+          "passed": true,
+          "evidence": "Retry inserts new row and re-posts."
+        },
+        {
+          "text": "Proposes making the publish safe to repeat (idempotency key, unique constraint, or checking what was already posted)",
+          "passed": true,
+          "evidence": "Unique key, dedup marker."
+        },
+        {
+          "text": "Does not recommend holding a database transaction open across the LLM or GitHub calls",
+          "passed": true,
+          "evidence": "External call not inside db.transaction."
+        },
+        {
+          "text": "Flags that the route returns a raw DigestRow with no response schema (leaks every column)",
+          "passed": true,
+          "evidence": "No response schema in route, raw DigestRow sent to client."
+        },
+        {
+          "text": "Does not claim the service or route imports drizzle-orm, db/schema or a concrete adapter (no fabricated violation)",
+          "passed": true,
+          "evidence": "States service does not import drizzle/fastify/adapters."
+        },
+        {
+          "text": "Mentions running pnpm arch:check as verification",
+          "passed": true,
+          "evidence": "Run pnpm arch:check in server/ before merge."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 6,
+      "configuration": "old_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 0.875,
+        "passed": 7,
+        "failed": 1,
+        "total": 8,
+        "time_seconds": 40.7,
+        "tokens": 54476,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies that the digest row is inserted with deliveredTo already set before the GitHub postReview call, so a GitHub failure leaves a row claiming delivery",
+          "passed": true,
+          "evidence": "insert writes deliveredTo before post."
+        },
+        {
+          "text": "Proposes storing a not-yet-delivered/pending state first and marking it delivered only after postReview succeeds",
+          "passed": true,
+          "evidence": "pending state, deliveredTo only after success."
+        },
+        {
+          "text": "Identifies that a retry creates a second digest row and posts a second review (no idempotency)",
+          "passed": true,
+          "evidence": "Each publish creates new row and comment."
+        },
+        {
+          "text": "Proposes making the publish safe to repeat (idempotency key, unique constraint, or checking what was already posted)",
+          "passed": true,
+          "evidence": "findByTarget, unique constraint, marker."
+        },
+        {
+          "text": "Does not recommend holding a database transaction open across the LLM or GitHub calls",
+          "passed": true,
+          "evidence": "Not inside transaction."
+        },
+        {
+          "text": "Flags that the route returns a raw DigestRow with no response schema (leaks every column)",
+          "passed": false,
+          "evidence": "Only says repository returns raw DigestRow and service exposes it; never notes the route lacks a response schema / leaks columns."
+        },
+        {
+          "text": "Does not claim the service or route imports drizzle-orm, db/schema or a concrete adapter (no fabricated violation)",
+          "passed": true,
+          "evidence": "No fabricated violation; says service has narrow Deps."
+        },
+        {
+          "text": "Mentions running pnpm arch:check as verification",
+          "passed": true,
+          "evidence": "Steps keep arch:check green (weak mention); says it was not run."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 29.3,
+        "tokens": 52664,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+          "passed": true,
+          "evidence": "'\u044f \u043d\u0435 \u0440\u0430\u0434\u0436\u0443 \u0440\u043e\u0431\u0438\u0442\u0438 LabelsService, domain/-\u0448\u0430\u0440 \u0456 4 \u043a\u043b\u0430\u0441\u0438 use-case'."
+        },
+        {
+          "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+          "passed": true,
+          "evidence": "Pure CRUD, no business rules, one port, no transactions; wrappers give no gain."
+        },
+        {
+          "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+          "passed": true,
+          "evidence": "'drizzle \u0442\u0456\u043b\u044c\u043a\u0438 \u0432 repository.ts, \u0443 routes \u043d\u0435\u043c\u0430\u0454 drizzle-orm / db/*'."
+        },
+        {
+          "text": "Notes that repository methods are already scoped by workspaceId",
+          "passed": true,
+          "evidence": "'\u041a\u043e\u0436\u0435\u043d \u043c\u0435\u0442\u043e\u0434 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0456\u044e \u043f\u0440\u0438\u0439\u043c\u0430\u0454 workspaceId \u0456 \u0441\u043a\u043e\u0443\u043f\u0438\u0442\u044c \u043f\u043e \u043d\u044c\u043e\u043c\u0443.'"
+        },
+        {
+          "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+          "passed": true,
+          "evidence": "Skill signals plus labels examples: limit, in-use delete ban, merge with UnitOfWork, GitHub sync second port."
+        },
+        {
+          "text": "Does not report any fabricated architectural violation in the labels module",
+          "passed": true,
+          "evidence": "Duplicate-name 500 noted as a repository-level concern, not a layering violation; no fabricated violation."
+        },
+        {
+          "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+          "passed": true,
+          "evidence": "'\u043d\u0456\u0447\u043e\u0433\u043e \u043d\u043e\u0432\u043e\u0433\u043e \u043d\u0435 \u0441\u0442\u0432\u043e\u0440\u044e\u0432\u0430\u0442\u0438'; future service table is conditional."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 32.0,
+        "tokens": 51998,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+          "passed": true,
+          "evidence": "'\u043d\u0456, ... \u043d\u0435 \u0440\u0430\u0434\u0436\u0443 \u0441\u0442\u0432\u043e\u0440\u044e\u0432\u0430\u0442\u0438 \u0446\u0456 \u0444\u0430\u0439\u043b\u0438'."
+        },
+        {
+          "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+          "passed": true,
+          "evidence": "Anemic wrapper, no rules/calculations, cost ~9 files with zero guarantees; CRUD shape per skill."
+        },
+        {
+          "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+          "passed": true,
+          "evidence": "'\u041c\u0430\u0440\u0448\u0440\u0443\u0442 \u043d\u0435 \u0456\u043c\u043f\u043e\u0440\u0442\u0443\u0454 drizzle-orm \u0456 \u043d\u0435 \u043b\u0456\u0437\u0435 \u0432 db/*'; checklist passes; arch:check green."
+        },
+        {
+          "text": "Notes that repository methods are already scoped by workspaceId",
+          "passed": true,
+          "evidence": "'Drizzle-\u0437\u0430\u043f\u0438\u0442\u0438, \u0441\u043a\u043e\u043f\u043e\u0432\u0430\u043d\u0456 \u043f\u043e workspaceId' and test for scope by workspaceId."
+        },
+        {
+          "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+          "passed": true,
+          "evidence": "Signals table plus later list: label limit, second table/UnitOfWork, GitHub sync second port, cascade rules."
+        },
+        {
+          "text": "Does not report any fabricated architectural violation in the labels module",
+          "passed": true,
+          "evidence": "Flags a duplicate-name 500 as a functional bug explicitly '\u043d\u0435 \u0430\u0440\u0445\u0456\u0442\u0435\u043a\u0442\u0443\u0440\u0430'; not an architectural violation."
+        },
+        {
+          "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+          "passed": true,
+          "evidence": "'\u0424\u0430\u0439\u043b\u0456\u0432 \u0441\u0442\u0432\u043e\u0440\u044e\u0432\u0430\u0442\u0438 \u043d\u0435 \u0442\u0440\u0435\u0431\u0430.'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8888888888888888,
+        "passed": 8,
+        "failed": 1,
+        "total": 9,
+        "time_seconds": 37.2,
+        "tokens": 55796,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that addLabel and requestReviewers are not declared on the GitHubClient port in vendor/shared/adapters.ts",
+          "passed": true,
+          "evidence": "Pass 3: methods absent from GitHubClient (adapters.ts:151-177)."
+        },
+        {
+          "text": "Flags the locally declared PrLabeler interface and/or the type cast in routes.ts as hiding the missing port methods",
+          "passed": true,
+          "evidence": "routes.ts:20 cast masks it; PrLabeler declared locally."
+        },
+        {
+          "text": "Proposes the fix in order: add the methods to the port, implement them in the Octokit adapter, add them to adapters/mocks.ts",
+          "passed": true,
+          "evidence": "Plan steps 1-3 port, adapter, mock, then remove bypass."
+        },
+        {
+          "text": "Flags repo.getRepo called inside the loop over pulls as N+1 (same repo looked up repeatedly)",
+          "passed": true,
+          "evidence": "service.ts:36 getRepo per iteration."
+        },
+        {
+          "text": "Flags repo.countFindings called inside the loop over pulls as N+1",
+          "passed": true,
+          "evidence": "service.ts:41 countFindings per iteration."
+        },
+        {
+          "text": "Proposes a batched repository method that takes the list of PR ids (or joins repos and counts in one query)",
+          "passed": true,
+          "evidence": "One repository method with join and count() group by."
+        },
+        {
+          "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate",
+          "passed": true,
+          "evidence": "repository.ts:43-50 rows.length instead of count()."
+        },
+        {
+          "text": "Flags that a failure partway through the loop aborts the batch after some PRs were already labelled (no per-PR error handling / partial-failure handling)",
+          "passed": false,
+          "evidence": "Only mentions failure between addLabel and requestReviewers within a PR plus idempotency; never says a failure aborts the loop/batch after some PRs labelled."
+        },
+        {
+          "text": "Does not claim that routes.ts or service.ts import drizzle-orm or a concrete adapter (no fabricated violation)",
+          "passed": true,
+          "evidence": "States service imports no drizzle/adapters."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 9,
+        "failed": 0,
+        "total": 9,
+        "time_seconds": 40.4,
+        "tokens": 55860,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Flags that addLabel and requestReviewers are not declared on the GitHubClient port in vendor/shared/adapters.ts",
+          "passed": true,
+          "evidence": "Port section: addLabel/requestReviewers absent from GitHubClient (adapters.ts:151-177), octokit and mocks."
+        },
+        {
+          "text": "Flags the locally declared PrLabeler interface and/or the type cast in routes.ts as hiding the missing port methods",
+          "passed": true,
+          "evidence": "PrLabeler declared locally in service and glued on by cast at routes.ts:20, hiding the gap."
+        },
+        {
+          "text": "Proposes the fix in order: add the methods to the port, implement them in the Octokit adapter, add them to adapters/mocks.ts",
+          "passed": true,
+          "evidence": "Plan: 1 port, 2 adapter, 3 mock, then service/route cleanup."
+        },
+        {
+          "text": "Flags repo.getRepo called inside the loop over pulls as N+1 (same repo looked up repeatedly)",
+          "passed": true,
+          "evidence": "service.ts:36 repo.getRepo per PR in loop."
+        },
+        {
+          "text": "Flags repo.countFindings called inside the loop over pulls as N+1",
+          "passed": true,
+          "evidence": "service.ts:41 repo.countFindings per PR in loop."
+        },
+        {
+          "text": "Proposes a batched repository method that takes the list of PR ids (or joins repos and counts in one query)",
+          "passed": true,
+          "evidence": "Step 6: single repository method with join repos and count()/groupBy."
+        },
+        {
+          "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate",
+          "passed": true,
+          "evidence": "repository.ts:44-49 select id ... rows.length instead of count()."
+        },
+        {
+          "text": "Flags that a failure partway through the loop aborts the batch after some PRs were already labelled (no per-PR error handling / partial-failure handling)",
+          "passed": true,
+          "evidence": "'\u041e\u0434\u0438\u043d \u0437\u0431\u0456\u0439 \u043d\u0430 PR \u043f\u0435\u0440\u0435\u0440\u0438\u0432\u0430\u0454 \u0432\u0435\u0441\u044c \u0446\u0438\u043a\u043b (\u043d\u0435\u043c\u0430\u0454 \u043e\u0431\u0440\u043e\u0431\u043a\u0438 \u043f\u043e\u043c\u0438\u043b\u043a\u0438 \u043d\u0430 \u0440\u0456\u0432\u043d\u0456 \u0435\u043b\u0435\u043c\u0435\u043d\u0442\u0430)'; plan adds per-PR try/catch."
+        },
+        {
+          "text": "Does not claim that routes.ts or service.ts import drizzle-orm or a concrete adapter (no fabricated violation)",
+          "passed": true,
+          "evidence": "States imports are correct; service does not import drizzle/fastify/adapter."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 6,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 40.1,
+        "tokens": 57066,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies that the digest row is inserted with deliveredTo already set before the GitHub postReview call, so a GitHub failure leaves a row claiming delivery",
+          "passed": true,
+          "evidence": "insert writes deliveredTo before postReview."
+        },
+        {
+          "text": "Proposes storing a not-yet-delivered/pending state first and marking it delivered only after postReview succeeds",
+          "passed": true,
+          "evidence": "status pending, then delivered via markDelivered."
+        },
+        {
+          "text": "Identifies that a retry creates a second digest row and posts a second review (no idempotency)",
+          "passed": true,
+          "evidence": "Retry inserts new row and second comment."
+        },
+        {
+          "text": "Proposes making the publish safe to repeat (idempotency key, unique constraint, or checking what was already posted)",
+          "passed": true,
+          "evidence": "Unique index, delivered check, marker."
+        },
+        {
+          "text": "Does not recommend holding a database transaction open across the LLM or GitHub calls",
+          "passed": true,
+          "evidence": "External call cannot be inside transaction."
+        },
+        {
+          "text": "Flags that the route returns a raw DigestRow with no response schema (leaks every column)",
+          "passed": true,
+          "evidence": "routes.ts:22 has no response schema, sends all columns."
+        },
+        {
+          "text": "Does not claim the service or route imports drizzle-orm, db/schema or a concrete adapter (no fabricated violation)",
+          "passed": true,
+          "evidence": "Explicitly says service does not import drizzle/fastify."
+        },
+        {
+          "text": "Mentions running pnpm arch:check as verification",
+          "passed": true,
+          "evidence": "Each step leaves pnpm arch:check green; before-merge style mention (weak but present)."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 6,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 45.3,
+        "tokens": 58460,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies that the digest row is inserted with deliveredTo already set before the GitHub postReview call, so a GitHub failure leaves a row claiming delivery",
+          "passed": true,
+          "evidence": "INSERT with deliveredTo before postReview; failure leaves delivered row."
+        },
+        {
+          "text": "Proposes storing a not-yet-delivered/pending state first and marking it delivered only after postReview succeeds",
+          "passed": true,
+          "evidence": "status pending, deliveredTo filled only after success (markDelivered)."
+        },
+        {
+          "text": "Identifies that a retry creates a second digest row and posts a second review (no idempotency)",
+          "passed": true,
+          "evidence": "Retry creates another row and calls postReview again."
+        },
+        {
+          "text": "Proposes making the publish safe to repeat (idempotency key, unique constraint, or checking what was already posted)",
+          "passed": true,
+          "evidence": "Unique index, existing-delivered check, marker lookup."
+        },
+        {
+          "text": "Does not recommend holding a database transaction open across the LLM or GitHub calls",
+          "passed": true,
+          "evidence": "Says no transaction around external call."
+        },
+        {
+          "text": "Flags that the route returns a raw DigestRow with no response schema (leaks every column)",
+          "passed": true,
+          "evidence": "Raw DigestRow via reply.send without response schema, leaks every column."
+        },
+        {
+          "text": "Does not claim the service or route imports drizzle-orm, db/schema or a concrete adapter (no fabricated violation)",
+          "passed": true,
+          "evidence": "No claim that service imports drizzle; only says route imports repository which pulls drizzle (true transitively), hedged."
+        },
+        {
+          "text": "Mentions running pnpm arch:check as verification",
+          "passed": true,
+          "evidence": "Verification: pnpm arch:check explicitly."
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "old_skill": {
+      "pass_rate": {
+        "mean": 0.9792,
+        "stddev": 0.051,
+        "min": 0.875,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 36.0167,
+        "stddev": 6.9367,
+        "min": 27.7,
+        "max": 45.8
+      },
+      "tokens": {
+        "mean": 54204.6667,
+        "stddev": 2194.2617,
+        "min": 51647,
+        "max": 57191
+      }
+    },
+    "with_skill": {
+      "pass_rate": {
+        "mean": 0.9815,
+        "stddev": 0.0454,
+        "min": 0.8889,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 37.3833,
+        "stddev": 5.8908,
+        "min": 29.3,
+        "max": 45.3
+      },
+      "tokens": {
+        "mean": 55307.3333,
+        "stddev": 2510.5915,
+        "min": 51998,
+        "max": 58460
+      }
+    },
+    "delta": {
+      "pass_rate": "-0.00",
+      "time_seconds": "-1.4",
+      "tokens": "-1103"
+    }
+  },
+  "notes": []
+}

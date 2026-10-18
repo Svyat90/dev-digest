@@ -1,0 +1,13 @@
+{
+  "prompt": "Webhook-модуль (/Users/wekcook/code/dev-digest/docs/evals/onion-architecture/fixtures/webhook-intake/server/src/modules/webhooks/): GitHub інколи показує 'delivery failed' (500), а перевірка підпису то проходить, то ні. Переглянь модуль: причини і що ще не так, дай виправлення.",
+  "assertions": [
+    "Flags that the signature is computed over JSON.stringify(req.body) instead of the raw request body",
+    "Flags that the service reads process.env.GITHUB_WEBHOOK_SECRET instead of going through the config/secrets chokepoint",
+    "Flags that the service imports drizzle-orm / db schema and queries the database directly (no repository)",
+    "Flags that the repo lookup by owner/name is not scoped to a workspace",
+    "Explains that a redelivered or repeated event inserts the same PR again and fails on the unique (repo, number) index, giving a 500, and proposes an upsert or dedupe",
+    "Flags the missing zod validation of the payload (`as never` cast)",
+    "Flags that the `action` of the event is ignored (every pull_request event inserts)",
+    "Proposes a thin route that calls one service method with narrow Deps and a repository"
+  ]
+}

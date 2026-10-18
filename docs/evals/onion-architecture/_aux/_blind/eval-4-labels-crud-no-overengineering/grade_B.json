@@ -1,0 +1,39 @@
+{
+ "expectations": [
+  {
+   "text": "Recommends NOT adding a LabelsService / domain layer / per-endpoint use-case classes for this module",
+   "passed": true,
+   "evidence": "'ні, ... не раджу створювати ці файли'."
+  },
+  {
+   "text": "Justifies it by the module being CRUD without business logic (cost of an extra layer > value)",
+   "passed": true,
+   "evidence": "Anemic wrapper, no rules/calculations, cost ~9 files with zero guarantees; CRUD shape per skill."
+  },
+  {
+   "text": "Confirms the existing shape already respects the dependency rule (routes do not touch drizzle; repository owns queries)",
+   "passed": true,
+   "evidence": "'Маршрут не імпортує drizzle-orm і не лізе в db/*'; checklist passes; arch:check green."
+  },
+  {
+   "text": "Notes that repository methods are already scoped by workspaceId",
+   "passed": true,
+   "evidence": "'Drizzle-запити, скоповані по workspaceId' and test for scope by workspaceId."
+  },
+  {
+   "text": "Names concrete signals that would warrant introducing a service later (duplicated rule, branching on business state, a second port, etc.)",
+   "passed": true,
+   "evidence": "Signals table plus later list: label limit, second table/UnitOfWork, GitHub sync second port, cascade rules."
+  },
+  {
+   "text": "Does not report any fabricated architectural violation in the labels module",
+   "passed": true,
+   "evidence": "Flags a duplicate-name 500 as a functional bug explicitly 'не архітектура'; not an architectural violation."
+  },
+  {
+   "text": "Does not create a set of new service/use-case/domain files as the main deliverable",
+   "passed": true,
+   "evidence": "'Файлів створювати не треба.'"
+  }
+ ]
+}

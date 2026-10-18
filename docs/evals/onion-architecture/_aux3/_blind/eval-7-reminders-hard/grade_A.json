@@ -1,0 +1,44 @@
+{
+ "expectations": [
+  {
+   "text": "Flags that service.ts/routes.ts depend on the concrete OctokitGitHubClient type (a type-only import still counts) instead of the GitHubClient port",
+   "passed": true,
+   "evidence": "Item 4: service.ts:1,7 and routes.ts:4,17 import type OctokitGitHubClient, type-only counts; should depend on GitHubClient."
+  },
+  {
+   "text": "Flags the `as OctokitGitHubClient` cast in routes.ts as hiding that addLabels/requestReviewers are not on the port",
+   "passed": true,
+   "evidence": "Item 1 says methods missing from port and service relies on concrete Octokit 'through the cast'; plan step 2 removes the cast. Somewhat implicit but present."
+  },
+  {
+   "text": "Proposes adding addLabels/requestReviewers to the port in vendor/shared/adapters.ts, implementing them in the adapter and adding them to adapters/mocks.ts",
+   "passed": true,
+   "evidence": "Plan step 1: add addLabels/requestReviewers to GitHubClient, implement in octokit.ts, add to adapters/mocks.ts."
+  },
+  {
+   "text": "Identifies the per-PR getRepo/countFindings lookups inside helpers.loadPullContext (called through Promise.all over pulls) as N+1",
+   "passed": true,
+   "evidence": "Item 3: service.ts:20 + helpers.ts:21-25, 2 queries per stale PR in Promise.all = N+1."
+  },
+  {
+   "text": "Proposes a batched repository method (list of PR ids, or a join/group-by) instead of per-PR lookups",
+   "passed": true,
+   "evidence": "Plan step 4: getReposByIds and countFindingsByPr with count()+group by."
+  },
+  {
+   "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate",
+   "passed": true,
+   "evidence": "Item 9: countFindings selects all rows and counts rows.length; should be SQL count()."
+  },
+  {
+   "text": "Flags that a failure partway through the nudge loop (e.g. addLabels succeeded, requestReviewers failed, or an error mid-batch) leaves PRs half-nudged and aborts the batch, with no retry safety",
+   "passed": true,
+   "evidence": "Item 2 and plan step 5: requestReviewers failing after addLabels leaves PR labeled without reviewer; rerun re-adds, no idempotency; per-PR error handling with failed counter."
+  },
+  {
+   "text": "Does not flag the pure functions in helpers.ts (cutoffFor, needsNudge, constants) as a layering violation",
+   "passed": true,
+   "evidence": "Says cutoffFor, needsNudge, constants stay in helpers.ts; only loadPullContext and the repository import are flagged (constants-file remark is a low-priority style note, not a layering violation)."
+  }
+ ]
+}

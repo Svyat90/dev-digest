@@ -1,0 +1,34 @@
+{
+  "eval_id": 5,
+  "eval_name": "reminders-port-gap",
+  "prompt": "Колега додав модуль reminders, який нагадує про застарілі PR (файли в /Users/wekcook/code/dev-digest/docs/evals/onion-architecture/fixtures/reminders-port-gap/server/src/modules/reminders/). Перед мержем перевір його структуру: що не так і як виправити? Дай проблеми з файлом і рядком та впорядкований план виправлення.",
+  "assertions": [
+    {
+      "text": "Flags that addLabel and requestReviewers are not declared on the GitHubClient port in vendor/shared/adapters.ts"
+    },
+    {
+      "text": "Flags the locally declared PrLabeler interface and/or the type cast in routes.ts as hiding the missing port methods"
+    },
+    {
+      "text": "Proposes the fix in order: add the methods to the port, implement them in the Octokit adapter, add them to adapters/mocks.ts"
+    },
+    {
+      "text": "Flags repo.getRepo called inside the loop over pulls as N+1 (same repo looked up repeatedly)"
+    },
+    {
+      "text": "Flags repo.countFindings called inside the loop over pulls as N+1"
+    },
+    {
+      "text": "Proposes a batched repository method that takes the list of PR ids (or joins repos and counts in one query)"
+    },
+    {
+      "text": "Flags that countFindings selects all rows and counts them in JS instead of a count aggregate"
+    },
+    {
+      "text": "Flags that a failure partway through the loop aborts the batch after some PRs were already labelled (no per-PR error handling / partial-failure handling)"
+    },
+    {
+      "text": "Does not claim that routes.ts or service.ts import drizzle-orm or a concrete adapter (no fabricated violation)"
+    }
+  ]
+}

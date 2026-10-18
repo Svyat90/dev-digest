@@ -16,6 +16,17 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-11 — A relative path in a package `CLAUDE.md` "Read when" row is read from the repo root.**
+  `server/CLAUDE.md` said "Read `README.md` before adding a route"; in workflow
+  evals the model opened the root `README.md` instead, in both runs, and never
+  reached `server/README.md`. After writing `server/README.md` it opened the
+  package file. `client/CLAUDE.md` and `reviewer-core/CLAUDE.md` still use
+  relative paths.
+  Rule: in a package `CLAUDE.md`, name routed files with the package prefix
+  (`server/docs/architecture.md`), never bare `README.md` / `docs/…`.
+  `cd evals && pnpm exec vitest run workflow -t "server module task"` ·
+  `server/CLAUDE.md` › Read when
+
 - **2026-10-03 — Asking an implementer for fail-first does not produce it; prove it from the orchestrator.**
   In the Project Context run 14 of 15 code tasks reported "wrote the tests with
   the code, never ran them red" — including fix task F1.1, whose acceptance
@@ -94,6 +105,85 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 ## Tool & Library Notes
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
+
+- **2026-10-12 — Evals on OpenRouter hit 402 on a low-limit key because Claude Code reserves 64000 output tokens.**
+  The Agent SDK sends `max_tokens=64000` on every `/v1/messages` call (captured
+  with a stub upstream: 21 of 21 calls), and OpenRouter refuses any call whose
+  reservation exceeds the key's remaining limit, though the reviews are a few
+  thousand tokens. The judge then scored the error text as 0/N.
+  Rule: run agent/workflow evals on OpenRouter with
+  `CLAUDE_CODE_MAX_OUTPUT_TOKENS=16000` (CI sets it); on 402 raise the key's
+  limit, not the model.
+  `402 … This request requires more credits, or fewer max_tokens. You requested up to 64000 tokens, but can only afford 53972` ·
+  `.github/workflows/harness-evals.yml` (`CLAUDE_CODE_MAX_OUTPUT_TOKENS`)
+
+- **2026-10-11 — Supersedes the same-day entry below: CI logs ARE readable, and local reproduction can stay green while CI fails.**
+  Log access: from a github.com tab in the user's signed-in Chrome (Claude in
+  Chrome), `fetch('/Svyat90/dev-digest/commit/<full sha>/checks/<job id>/logs')`
+  returns the raw job log (a short sha gives HTTP 500); the failure artifact
+  downloads from `…/actions/runs/<run>/artifacts/<id>` (ask before downloading).
+  Or ask the user to paste the failing step. Reproduction: flows 04/08 failed on
+  every CI run since 2026-10-04 but passed 9/9 locally in production mode on
+  macOS, Linux arm64 and amd64 with Chrome for Testing 155, without
+  `server/.env` and with `CI=true`; only a temporary in-CI probe (`db374d0`:
+  scroll offsets + `elementFromPoint` around each click) found the cause.
+  Rule: read the real CI log first; if two local variants pass while CI fails,
+  stop varying the local setup and push a temporary probe, then revert it.
+  `e2e/docs/flow-authoring.md` (off-screen clicks) · commits `db374d0`, `72afaf9`
+
+- **2026-10-11 — A failing CI job's log cannot be read from the dev machine; reproduce locally instead.**
+  `gh` is not installed, the job page answers WebFetch with "Sign in to view logs",
+  and the public check-run annotations API returns only
+  "Process completed with exit code 1." — no failing step or flow name.
+  Rule: for a red `e2e web / browser flows` check, skip the log hunt and run the
+  production-mode copy of `scripts/e2e.sh` (see `e2e/INSIGHTS.md`, 2026-09-30)
+  on free ports, e.g. `E2E_PG_PORT=5441 E2E_API_PORT=3201 E2E_WEB_PORT=3200`;
+  for other jobs ask the user to paste the log.
+  `command -v gh` → not found ·
+  `curl -s https://api.github.com/repos/Svyat90/dev-digest/check-runs/<id>/annotations`
+
+- **2026-10-11 — In `evals/`, `allowedTools` does not stop a session from writing to the repo.**
+  Sessions run with `permissionMode: "bypassPermissions"`, where `allowedTools`
+  only pre-approves; every other tool still runs. The workflow case
+  "engineering-insights activates on a genuine discovery" appended an invented
+  pgvector entry to `server/INSIGHTS.md` while its allow-list was read-only.
+  Rule: any new SDK runner or task in `evals/` sets `disallowedTools` for
+  `Write`/`Edit`/`MultiEdit`/`NotebookEdit`, and `git status` is checked after
+  every model-backed eval run.
+  `evals/src/runtime/run-claude.ts` (`disallowedTools`)
+
+- **2026-10-11 — Workflow evals on the default Haiku 4.5 under-report CLAUDE.md routing.**
+  On Haiku the model often names a routed doc ("тобі потрібно прочитати
+  `server/docs/architecture.md`") instead of opening it, so a routing case fails
+  although the harness is fine. Same case: Haiku 0/2, Sonnet 2/2.
+  Rule: before changing a `CLAUDE.md` because a workflow case fails, re-run that
+  case once on Sonnet; tune `CLAUDE.md` only if it fails there too.
+  `EVAL_MODEL=claude-sonnet-5-5 pnpm exec vitest run workflow -t "<case>"`
+  Confidence: low
+
+- **2026-10-08 — `du -L` triples a pnpm package's `node_modules` size; per-dependency `du` misses its deps.**
+  In `server/` and `client/` every top-level `node_modules/<dep>` is a symlink into
+  `node_modules/.pnpm`, which a plain `du` already counts, so `-L` counts it again.
+  And `node_modules/<dep>` resolves to the package's own directory only: its
+  dependencies are siblings in `.pnpm/<dep>@<ver>/node_modules/` (for `next`:
+  `@swc`, `sharp`, `caniuse-lite`), so they are not in that number.
+  Rule: measure a package total with plain `du -sk <pkg>/node_modules`, never `-L`;
+  label a per-dependency `du -skL node_modules/<dep>` as "own size, without
+  transitive deps", never as the dependency's cost.
+  `du -sk client/node_modules` → 644508 · `du -skL client/node_modules` → 1943604
+  (server: 282056 vs 785548)
+
+- **2026-10-08 — pnpm 12 ignores `pnpm.onlyBuiltDependencies`; a new pnpm package fails its first install on `esbuild`.**
+  A package copied from elsewhere (`evals/`) that still lists
+  `"pnpm": {"onlyBuiltDependencies": ["esbuild"]}` installs its files but exits
+  non-zero, skips the `esbuild` postinstall and writes a placeholder
+  `pnpm-workspace.yaml` containing `esbuild: set this to true or false`.
+  Rule: for every pnpm package keep a committed `pnpm-workspace.yaml` with
+  `allowBuilds:` and `esbuild: true` (as `server/` and `client/` do), then rerun
+  `pnpm install`; do not rely on the `package.json` field and do not commit the
+  placeholder as generated.
+  `pnpm install` → `ERR_PNPM_IGNORED_BUILDS  Ignored build scripts: esbuild@0.21.5, esbuild@0.28.1` ·
+  `server/pnpm-workspace.yaml`, `client/pnpm-workspace.yaml`
 
 - **2026-10-05 — In a demo video, film GitHub docs through the blob Preview with a heading anchor.**
   The screencast engine sets CSS `html{zoom}` on every page. Under that zoom,

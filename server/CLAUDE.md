@@ -55,10 +55,12 @@ then read code.
 
 ## Read when
 
-- Read `README.md` before adding a route or touching the review path — it holds
-  the API map, the DI flow and the non-obvious "Review context" notes.
-- Read `docs/architecture.md` before adding a module, touching the DI container
-  or changing the error envelope — request lifecycle, ports, data layer.
+- Read `server/README.md` (this package's README, not the root one) before
+  adding a route or touching the review path — it holds the API map, the DI
+  flow and the non-obvious "Review context" notes.
+- Read `server/docs/architecture.md` before adding a module, touching the DI container
+  or changing the error envelope — request lifecycle, ports, data layer. Open
+  it first; do not start from `platform/container.ts` or `modules/index.ts`.
 - Read `specs/review-flow.md` before changing anything on the review path — it
   states the invariants (grounding, null-vs-zero cost, lifetime cost vs latest-per-agent findings).
 - Read `specs/conventions.md` before touching the Conventions Extractor — the

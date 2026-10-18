@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies the non-atomic delete-then-insert of pr_files/pr_commits (+ pull update) as the root cause of the empty PR",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Moves all GitHub calls before the writes, so no external call happens inside the transaction",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Wraps the writes in a single transaction",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "The transaction is opened through a port (UnitOfWork / uow.run or equivalent) so the service does not import drizzle or db/client; repository methods accept a tx scope",
+      "passed": false,
+      "evidence": "Transaction lives inside PullSyncRepository.replaceSnapshot via db.transaction; no UnitOfWork port / opaque tx scope, so the service cannot own the boundary"
+    },
+    {
+      "text": "Flags getPull(prId) as not scoped by workspaceId",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags listStale / syncStale as not scoped by workspaceId (re-syncs other workspaces' PRs)",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags openFindings / the findings route as not scoped by workspace (reviews.workspaceId missing, route ignores context)",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    },
+    {
+      "text": "Flags raw db rows (PullRow / FindingRow) leaking out of the repository/service to the HTTP response, or the missing response schema",
+      "passed": false,
+      "evidence": "Treats PullRow/FindingRow as fine ('repo.ts/PullRow are fine'); no row-leak or response-schema finding"
+    },
+    {
+      "text": "Proposes a test that proves rollback or that a failed GitHub fetch leaves the old files intact",
+      "passed": true,
+      "evidence": "Satisfied in answer.md"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 2,
+    "total": 9,
+    "pass_rate": 0.7777777777777778
+  }
+}

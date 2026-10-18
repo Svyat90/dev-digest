@@ -48,9 +48,11 @@ then read code.
 
 ## Read when
 
+- Read `docs/pipeline.md` before changing the pipeline — open it even when
+  `README.md` or `INSIGHTS.md` seems to answer the question; it is the
+  stage-by-stage walk-through (mode selection, prompt assembly, structured
+  output, reduce, grounding, scoring).
 - Read `README.md` before changing the pipeline or the public API.
-- Read `docs/pipeline.md` for the stage-by-stage walk-through (mode selection,
-  prompt assembly, structured output, reduce, grounding, scoring).
 - Read `specs/review-contract.md` before touching `reviewPullRequest`, the
   grounding gate or the score — both callers depend on what it states.
 - Read `../docs/agent-prompts/` before editing reviewer system prompts.

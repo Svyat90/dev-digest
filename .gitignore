@@ -30,3 +30,7 @@ test-results/
 
 # brainstorm: generated Ukrainian mirror, local reading aid only
 brainstorm/*.uk.md
+
+# onion-architecture eval workspace: reproducible copies, not committed
+docs/evals/*/skill-snapshot/
+docs/evals/*/fixtures/

@@ -2,7 +2,7 @@
 name: onion-architecture
 description: "Onion (clean / hexagonal, ports-and-adapters) architecture for the DevDigest Fastify + Drizzle backend: which ring a piece of server code belongs to, which way imports may point, where queries, business rules, validation, transactions, errors and mappers live, and how the layer rules are enforced by dependency-cruiser (`pnpm arch:check`). Use when adding or restructuring a server module, route, service, repository or adapter; when a route handler queries the database or a service imports drizzle, fastify or a concrete adapter; when deciding where a server function belongs; when adding a multi-table write; when `arch:check` fails; when reviewing a server PR for structure; or when the user mentions onion, clean or hexagonal architecture, layers, ports and adapters, dependency rule, use cases or domain logic — even if they never say 'architecture'. Not for Fastify, Drizzle or Zod API details (fastify-best-practices, drizzle-orm-patterns, zod cover those) or for frontend structure (frontend-ui-architecture)."
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Onion Architecture (server)
@@ -258,8 +258,16 @@ So nobody mistakes it for the convention:
 - [ ] Every repository read of a domain table is scoped by `workspaceId`.
 - [ ] New external systems got a port in `vendor/shared/adapters.ts` and a mock in `adapters/mocks.ts`.
 - [ ] No module imports another module's folder.
+- [ ] Every outside call uses a method that is declared on its port.
+- [ ] No repository or network call inside a loop over rows (N+1).
+- [ ] A write → outside call → write sequence leaves a safe state if the middle step fails.
 
 ## 12. How to answer
+
+- **"Review this module / PR"** — read `references/audit.md` and go through its
+  seven passes in order (imports, construction, ports, tenancy, writes, queries,
+  output). Two checks it adds are easy to miss: the method the code calls must
+  really exist on the port, and a repository or network call inside a loop is N+1.
 
 - **"Where does this go?"** — name the ring and the path from section 4, and the
   rule from section 3 that decides it.
@@ -277,6 +285,7 @@ So nobody mistakes it for the convention:
 | `references/layers-in-this-stack.md` | writing a route, service, repository or adapter and you want the Fastify / Drizzle / Zod / vitest specifics for that ring |
 | `references/transactions.md` | a use case writes more than one statement or table |
 | `references/enforcement.md` | `arch:check` fails, you add or change a rule, or a dependency upgrade makes known violations reappear |
+| `references/audit.md` | reviewing a server module or PR for structure, or the user asks what is wrong with a module |
 | `references/examples.md` | moving queries out of a route, splitting a service, extracting a pure rule, adding a port |
 
 ## Scope

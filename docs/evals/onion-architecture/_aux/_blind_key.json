@@ -1,0 +1,56 @@
+{
+  "eval-4-labels-crud-no-overengineering": {
+    "A": [
+      "old_skill",
+      "run-2"
+    ],
+    "B": [
+      "with_skill",
+      "run-2"
+    ],
+    "C": [
+      "with_skill",
+      "run-1"
+    ],
+    "D": [
+      "old_skill",
+      "run-1"
+    ]
+  },
+  "eval-5-reminders-port-gap": {
+    "A": [
+      "with_skill",
+      "run-2"
+    ],
+    "B": [
+      "old_skill",
+      "run-1"
+    ],
+    "C": [
+      "old_skill",
+      "run-2"
+    ],
+    "D": [
+      "with_skill",
+      "run-1"
+    ]
+  },
+  "eval-6-digest-publish-effect-order": {
+    "A": [
+      "with_skill",
+      "run-2"
+    ],
+    "B": [
+      "with_skill",
+      "run-1"
+    ],
+    "C": [
+      "old_skill",
+      "run-2"
+    ],
+    "D": [
+      "old_skill",
+      "run-1"
+    ]
+  }
+}
