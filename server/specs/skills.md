@@ -65,16 +65,25 @@ S10. Stats come only from existing tables (30-day window on
 - **By category** — the same 30-day findings count, grouped by
   `findings.category`, for runs where this skill appears in `skills_used`.
 
+S11. A skill has its own eval case set and its own eval runs, which run
+through an agent remembered per skill (`skill_eval_agents`). Deleting the skill
+deletes its cases, their revisions and single-case results, its runs and the
+remembered agent. An eval run turns the skill on inside that run's recorded
+`config` only, at its linked position or after the agent's other skills, whatever the
+skill's own `enabled` flag. It never writes `agent_skills` or the agent. The
+full rules are in [`case-editor.md`](case-editor.md) (CE12–CE15).
+
 ## Data model
 
-Two tables, extending the existing schema (`server/src/db/schema/skills.ts`,
-`server/src/db/schema/agents.ts`):
+The tables a skill lives in, in the existing schema (`server/src/db/schema/skills.ts`,
+`server/src/db/schema/agents.ts`, `server/src/db/schema/eval.ts`):
 
 | Table | Columns | Notes |
 |---|---|---|
 | `skills` | `id, workspace_id, name, description, type ('rubric'\|'convention'\|'security'\|'custom'), source ('manual'\|'imported_url'\|'extracted'\|'community'), body, enabled, version, evidence_files, created_at` | `body`/`version` hold the CURRENT text — the live row, not history. |
 | `skill_versions` | `skill_id, version, body, note, created_at` | PK `(skill_id, version)`. Append-only; never updated or deleted except by cascade when the skill itself is deleted (S5). |
 | `agent_skills` | `agent_id, skill_id, order, enabled` | PK `(agent_id, skill_id)`. The join table S2's ordering and per-agent on/off state live on. |
+| `skill_eval_agents` | `skill_id, workspace_id, agent_id, agent_name, updated_at` | PK `skill_id` (cascade with the skill). The agent a skill's evals run through (S11); `agent_id` is `SET NULL` when that agent is deleted, and `agent_name` is kept. Schema: `server/src/db/schema/eval.ts`. |
 
 `evidence_files` is an optional array of file paths supporting the skill
 (e.g. extracted-from files); it is metadata only and never read at prompt

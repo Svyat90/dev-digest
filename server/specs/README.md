@@ -6,7 +6,7 @@ Linked from `server/CLAUDE.md` › *Read when*.
 - **[`review-flow.md`](review-flow.md)** — the review cycle end to end: the
   module's endpoints, round/run creation, what one run does, the invariants a
   change must not break, and how the PR list's derived columns are computed.
-- **[`skills.md`](skills.md)** — skills: the invariants (S1–S10), the data
+- **[`skills.md`](skills.md)** — skills: the invariants (S1–S11), the data
   model, the API surface, and the import parsing rules.
 - **[`conventions.md`](conventions.md)** — the Conventions Extractor: the
   invariants (C1–C10), the data model, the API surface, and how it produces
@@ -22,3 +22,16 @@ Linked from `server/CLAUDE.md` › *Read when*.
   invariants (BR1–BR13), the `BlastRadiusResponse` contract, the per-symbol
   caller-cap fix in the repo-intel facade, the Overview card, Prior PRs (PH1–PH7) and the
   `get_blast_radius` MCP tool, mapped to the P1/P2/P3 acceptance criteria.
+- **[`evals.md`](evals.md)** — the eval pipeline (SPEC-04, case storage of
+  SPEC-06): the invariants (EV1–EV17), the endpoints, the scoring rules, the run
+  lifecycle and reaping, and the data model. Links the root specs for the
+  acceptance criteria instead of restating them.
+- **[`eval-dashboard.md`](eval-dashboard.md)** — the Eval Dashboard (SPEC-05):
+  the invariants (ED1–ED14), the endpoints, the regression alert and trend
+  rules, Run all agents, the shared per-workspace run-start limit, Compare and
+  the one-transaction Promote. Links `evals.md` for the run records.
+- **[`case-editor.md`](case-editor.md)** — the Case Editor, single-case runs
+  and skill evals (SPEC-06): the invariants (CE1–CE19), the endpoints (the
+  owner-tagged `GET /eval-runs/:id` included), the shared validation rules and
+  their limits, revisions on edit, scratch checks, skill runs through a
+  remembered agent, and the new tables.

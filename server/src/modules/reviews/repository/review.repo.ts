@@ -92,6 +92,30 @@ export async function deleteReview(
   return rows.length > 0;
 }
 
+/** finding id -> eval case id, one query (no row per finding). Workspace-scoped
+ *  on `eval_cases.workspace_id`; empty input makes no query. */
+export async function evalCaseIdsForFindings(
+  db: Db,
+  workspaceId: string,
+  findingIds: string[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (findingIds.length === 0) return out;
+  const rows = await db
+    .select({ sourceFindingId: t.evalCases.sourceFindingId, id: t.evalCases.id })
+    .from(t.evalCases)
+    .where(
+      and(
+        eq(t.evalCases.workspaceId, workspaceId),
+        inArray(t.evalCases.sourceFindingId, findingIds),
+      ),
+    );
+  for (const row of rows) {
+    if (row.sourceFindingId) out.set(row.sourceFindingId, row.id);
+  }
+  return out;
+}
+
 // ---- finding actions ------------------------------------------------------
 
 export async function getFinding(db: Db, findingId: string): Promise<FindingRow | undefined> {

@@ -57,4 +57,52 @@ describe("FindingCard (smoke, both themes)", () => {
     fireEvent.click(screen.getByText("Dismiss"));
     expect(onAction).toHaveBeenCalledWith("dismiss");
   });
+
+  describe("eval case action", () => {
+    const ACCEPTED: FindingRecord = { ...FINDING, accepted_at: "2026-10-01T00:00:00Z" };
+    const ctl = { onCreate: vi.fn(), pending: false, errorCode: null as string | null };
+
+    it("creates a case from an accepted finding", () => {
+      const onCreate = vi.fn();
+      renderWithIntl(
+        <FindingCard f={ACCEPTED} defaultExpanded evalCase={{ ...ctl, onCreate }} />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Turn into eval case" }));
+      expect(onCreate).toHaveBeenCalledTimes(1);
+    });
+
+    it("disables the action with a hint for an undecided finding", () => {
+      renderWithIntl(<FindingCard f={FINDING} defaultExpanded evalCase={ctl} />);
+      const btn = screen.getByRole("button", { name: "Turn into eval case" });
+      expect(btn).toBeDisabled();
+      expect(screen.getByText("Accept or dismiss this finding first")).toBeInTheDocument();
+    });
+
+    it("shows 'Eval case exists' instead of the button when a case exists", () => {
+      renderWithIntl(
+        <FindingCard f={{ ...ACCEPTED, eval_case_id: "c1" }} defaultExpanded evalCase={ctl} />,
+      );
+      expect(screen.getByText("Eval case exists")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Turn into eval case" })).toBeNull();
+    });
+
+    it("names the refusal reason in an alert", () => {
+      renderWithIntl(
+        <FindingCard
+          f={ACCEPTED}
+          defaultExpanded
+          evalCase={{ ...ctl, errorCode: "eval_case_diff_too_large" }}
+        />,
+      );
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        messages.finding.evalCase.errors.eval_case_diff_too_large,
+      );
+    });
+
+    it("renders no eval action without the evalCase prop", () => {
+      renderWithIntl(<FindingCard f={ACCEPTED} defaultExpanded />);
+      expect(screen.queryByText("Turn into eval case")).toBeNull();
+      expect(screen.queryByText("Eval case exists")).toBeNull();
+    });
+  });
 });

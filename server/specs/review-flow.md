@@ -23,7 +23,7 @@ All of `modules/reviews/routes.ts`:
 | GET | `/pulls/:id/runs/active` | in-flight runs — the server is the source of truth |
 | POST | `/runs/:id/cancel` | request cancellation of an in-flight run |
 | DELETE | `/runs/:id` | drop a run from history (+ its trace and its review) |
-| GET | `/pulls/:id/reviews` | persisted reviews with their findings embedded |
+| GET | `/pulls/:id/reviews` | persisted reviews with their findings embedded; each finding carries `eval_case_id` (the id of the eval case made from it, `null` when none exists) — see [`evals.md`](evals.md) |
 | DELETE | `/reviews/:id` | drop one review (findings cascade) |
 | POST | `/findings/:id/accept`, `/findings/:id/dismiss` | act on a finding |
 

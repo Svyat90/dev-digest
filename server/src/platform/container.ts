@@ -25,6 +25,7 @@ import { HttpWebFetchClient } from '../adapters/http/web-fetch.js';
 import { OpenRouterProvider } from '@devdigest/reviewer-core';
 import { estimateCost } from '../adapters/llm/pricing.js';
 import { PriceBook } from './price-book.js';
+import { RunStartLimiter } from './run-start-limiter.js';
 import { ConfigError } from './errors.js';
 import { AgentsRepository } from '../modules/agents/repository.js';
 import { ReviewRepository } from '../modules/reviews/repository.js';
@@ -37,6 +38,12 @@ import { BlastRepository } from '../modules/blast/repository.js';
 import { BlastService } from '../modules/blast/service.js';
 import { ProjectContextRepository } from '../modules/project-context/repository.js';
 import { ProjectContextService } from '../modules/project-context/service.js';
+import { EvalRepository } from '../modules/evals/repository.js';
+import { SkillEvalRepository } from '../modules/evals/repository/skill-eval.repo.js';
+import { EvalCaseRepository } from '../modules/evals/repository/case.repo.js';
+import { EvalService } from '../modules/evals/service.js';
+import { EvalCaseService } from '../modules/evals/case-service.js';
+import { parseUnifiedDiff } from '../adapters/git/diff-parser.js';
 import { FsRepoDocsReader } from '../adapters/repo-docs/fs.js';
 import type { RepoIntel } from '../modules/repo-intel/types.js';
 import { RepoIntelService } from '../modules/repo-intel/service.js';
@@ -76,6 +83,27 @@ export type ProjectContextUseCases = Pick<
   | 'resolveForRun'
 >;
 
+/** The eval use cases routes and the boot reaper reach through the container. */
+export type EvalUseCases = Pick<
+  EvalService,
+  | 'createCaseFromFinding'
+  | 'deleteCase'
+  | 'startRun'
+  | 'listRuns'
+  | 'getRun'
+  | 'reapStaleRuns'
+  | 'startSkillRun'
+  | 'listSkillRuns'
+  | 'getSkillEvalAgent'
+  | 'setSkillEvalAgent'
+>;
+
+/** The case editor use cases routes and the boot reaper reach through the container. */
+export type EvalCaseUseCases = Pick<
+  EvalCaseService,
+  'listCases' | 'getCase' | 'createCase' | 'updateCase' | 'startCheck' | 'reapStaleChecks'
+>;
+
 export interface ContainerOverrides {
   secrets?: SecretsProvider;
   auth?: AuthProvider;
@@ -98,6 +126,8 @@ export interface ContainerOverrides {
   repoDocs?: RepoDocsReader;
   /** Project-context use cases — tests inject a double. */
   projectContext?: ProjectContextUseCases;
+  /** Shared eval run-start counter — tests inject a small `max`. */
+  runStartLimiter?: RunStartLimiter;
 }
 
 export class Container {
@@ -129,6 +159,9 @@ export class Container {
   private _smartDiff?: SmartDiffUseCases;
   private _repoDocs?: RepoDocsReader;
   private _projectContext?: ProjectContextUseCases;
+  private _evals?: EvalUseCases;
+  private _evalCases?: EvalCaseUseCases;
+  private _runStartLimiter?: RunStartLimiter;
 
   constructor(config: AppConfig, db: Db, private overrides: ContainerOverrides = {}) {
     this.config = config;
@@ -264,6 +297,61 @@ export class Container {
         })),
     });
     return this._projectContext;
+  }
+
+  /**
+   * Eval pipeline. `EvalService` takes a narrow structural `EvalDeps` (not the
+   * Container), so no `container.ts` <-> service cycle. The diff parser is
+   * injected here because modules may not import `adapters/**`.
+   */
+  get evals(): EvalUseCases {
+    this._evals ??= new EvalService({
+      repo: new EvalRepository(this.db),
+      skills: new SkillEvalRepository(this.db),
+      llm: (p) => this.llm(p),
+      parseDiff: parseUnifiedDiff,
+      tokenizer: this.tokenizer,
+      promptLogMode: this.config.promptLog,
+    });
+    return this._evals;
+  }
+
+  /**
+   * Case editor (SPEC-06). `EvalCaseService` takes a narrow structural
+   * `EvalCaseDeps` (not the Container); the run-config reads come from the eval
+   * repositories and the diff parser is injected here, as for `evals`.
+   */
+  get evalCases(): EvalCaseUseCases {
+    if (this._evalCases) return this._evalCases;
+    const evalRepo = new EvalRepository(this.db);
+    const skillRepo = new SkillEvalRepository(this.db);
+    this._evalCases = new EvalCaseService({
+      cases: new EvalCaseRepository(this.db),
+      config: {
+        agentConfigSource: (w, a) => evalRepo.agentConfigSource(w, a),
+        skillForRun: (w, s) => skillRepo.skillForRun(w, s),
+        evalAgent: (w, s) => skillRepo.evalAgent(w, s),
+      },
+      runner: {
+        llm: (p) => this.llm(p),
+        parseDiff: parseUnifiedDiff,
+        tokenizer: this.tokenizer,
+        promptLogMode: this.config.promptLog,
+      },
+    });
+    return this._evalCases;
+  }
+
+  /**
+   * One per-workspace counter of eval run starts, shared by every run-start
+   * route. Unlimited under `nodeEnv === 'test'`, like the global IP limit.
+   */
+  get runStartLimiter(): RunStartLimiter {
+    if (this.overrides.runStartLimiter) return this.overrides.runStartLimiter;
+    this._runStartLimiter ??= new RunStartLimiter(
+      this.config.nodeEnv === 'test' ? { max: Number.POSITIVE_INFINITY } : {},
+    );
+    return this._runStartLimiter;
   }
 
   /**

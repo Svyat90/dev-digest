@@ -66,6 +66,11 @@ export class ReviewRepository {
     return reviewRepo.reviewsForPull(this.db, prId);
   }
 
+  /** finding id -> eval case id for the given findings (one query). */
+  evalCaseIdsForFindings(workspaceId: string, findingIds: string[]): Promise<Map<string, string>> {
+    return reviewRepo.evalCaseIdsForFindings(this.db, workspaceId, findingIds);
+  }
+
   getReview(reviewId: string): Promise<ReviewRow | undefined> {
     return reviewRepo.getReview(this.db, reviewId);
   }

@@ -16,6 +16,17 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-13 — A plan task that asks `doc-writer` for `<pkg>/specs/<topic>.md` invariants for a feature that already has a SPEC-NN comes back `NEEDS_CONTEXT`.**
+  doc-writer's placement rules forbid a second invariants spec for the same
+  feature and route the explanation to `<pkg>/docs/`; T017 of the eval-pipeline
+  plan asked for `server/specs/evals.md` anyway and the first dispatch wrote
+  nothing. Re-dispatching with the user's recorded decision (R2/A16) and an
+  explicit "override the no-second-spec rule" line produced the file.
+  Rule: when a plan wants a package spec for a SPEC-NN feature, either route it to
+  `<pkg>/docs/` in the plan, or put the user's decision and the override into the
+  doc-writer dispatch from the start.
+  `docs/plans/2026-10-11-eval-pipeline.md` (T017 · Execution log › Decisions)
+
 - **2026-10-11 — A relative path in a package `CLAUDE.md` "Read when" row is read from the repo root.**
   `server/CLAUDE.md` said "Read `README.md` before adding a route"; in workflow
   evals the model opened the root `README.md` instead, in both runs, and never
@@ -105,6 +116,15 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 ## Tool & Library Notes
 
 Quirks of tooling shared across packages: Docker, pnpm/npm, CI.
+
+- **2026-10-14 — A scratch tsconfig for `server/test/**` also needs `typeRoots` when it lives outside `server/` (amends 2026-10-03).**
+  A scratch tsconfig in the session scratchpad that `extends` `server/tsconfig.json`
+  resolves `types: ["node"]` from its own directory and fails with
+  `TS2688: Cannot find type definition file for 'node'` — a failure that says nothing
+  about the tests (hit by four implementers in the SPEC-06 plan).
+  Rule: add `"typeRoots": ["<repo>/server/node_modules/@types"]` next to
+  `"rootDir": ".."`, or create the scratch file inside `server/` and delete it after.
+  `server/tsconfig.json` · `tsc -p <scratch>` → `error TS2688`
 
 - **2026-10-12 — Evals on OpenRouter hit 402 on a low-limit key because Claude Code reserves 64000 output tokens.**
   The Agent SDK sends `max_tokens=64000` on every `/v1/messages` call (captured

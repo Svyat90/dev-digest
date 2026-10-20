@@ -1,0 +1,76 @@
+import type { CSSProperties } from "react";
+import type { LineDiffOpType } from "@/lib/line-diff";
+
+const DIFF_BG: Record<LineDiffOpType, string> = {
+  add: "var(--ok-bg)",
+  remove: "var(--crit-bg)",
+  equal: "transparent",
+};
+const DIFF_COLOR: Record<LineDiffOpType, string> = {
+  add: "var(--ok)",
+  remove: "var(--crit)",
+  equal: "var(--text-secondary)",
+};
+
+export const s = {
+  body: { display: "flex", flexDirection: "column", gap: 18, padding: "16px 20px", maxHeight: "65vh", overflow: "auto" } satisfies CSSProperties,
+  section: { display: "flex", flexDirection: "column", gap: 8 } satisfies CSSProperties,
+  heading: { margin: 0, fontSize: 11, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--text-muted)" } satisfies CSSProperties,
+  tiles: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 } satisfies CSSProperties,
+  tile: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    padding: "12px 14px",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "var(--border)",
+    background: "var(--bg-surface)",
+  } satisfies CSSProperties,
+  tileValues: { display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, color: "var(--text-muted)" } satisfies CSSProperties,
+  oldValue: { fontSize: 14, color: "var(--text-muted)" } satisfies CSSProperties,
+  newValue: { fontSize: 24, fontWeight: 700, lineHeight: 1.1 } satisfies CSSProperties,
+  srOnly: {
+    position: "absolute",
+    width: 1,
+    height: 1,
+    overflow: "hidden",
+    clip: "rect(0 0 0 0)",
+    whiteSpace: "nowrap",
+  } satisfies CSSProperties,
+  legend: { display: "inline-flex", alignItems: "center", gap: 14, fontSize: 12, color: "var(--text-muted)" } satisfies CSSProperties,
+  legendItem: { display: "inline-flex", alignItems: "center", gap: 6 } satisfies CSSProperties,
+  swatch: { width: 10, height: 10, borderRadius: 3, display: "inline-block" } satisfies CSSProperties,
+  metricRow: { display: "flex", alignItems: "center", gap: 12, fontSize: 13.5 } satisfies CSSProperties,
+  metricName: { width: 110, color: "var(--text-secondary)" } satisfies CSSProperties,
+  delta: { display: "inline-flex", alignItems: "center", gap: 3, color: "var(--text-secondary)" } satisfies CSSProperties,
+  notice: { fontSize: 13, color: "var(--text-secondary)" } satisfies CSSProperties,
+  muted: { fontSize: 13, color: "var(--text-muted)" } satisfies CSSProperties,
+  changeLine: { fontSize: 13.5, color: "var(--text-primary)" } satisfies CSSProperties,
+  change: { display: "flex", flexDirection: "column", gap: 6 } satisfies CSSProperties,
+  diffBody: {
+    maxHeight: 220,
+    overflow: "auto",
+    fontSize: 12.5,
+    lineHeight: "20px",
+    fontFamily: "var(--font-mono, ui-monospace, monospace)",
+    padding: "12px 14px",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "var(--border)",
+    background: "var(--code-bg)",
+  } satisfies CSSProperties,
+  diffLine: (type: LineDiffOpType): CSSProperties => ({
+    display: "flex",
+    gap: 10,
+    background: DIFF_BG[type],
+    color: DIFF_COLOR[type],
+  }),
+  diffMarker: { width: 14, flexShrink: 0, textAlign: "center", opacity: 0.8 } satisfies CSSProperties,
+  diffText: { whiteSpace: "pre-wrap", wordBreak: "break-word" } satisfies CSSProperties,
+  footer: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12, padding: "12px 20px" } satisfies CSSProperties,
+  hint: { fontSize: 12.5, color: "var(--text-muted)" } satisfies CSSProperties,
+  error: { padding: "0 20px 12px", fontSize: 13, color: "var(--crit)" } satisfies CSSProperties,
+} as const;

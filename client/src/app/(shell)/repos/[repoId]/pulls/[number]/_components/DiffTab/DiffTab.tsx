@@ -3,6 +3,7 @@
 import React from "react";
 import { DiffViewer, type DiffCommentApi, type DiffFindingApi, type DiffTarget } from "@/components/diff-viewer";
 import { usePrComments, useCreatePrComment, usePrReviews, useFindingAction } from "@/lib/hooks/reviews";
+import { useFindingEvalCaseAction } from "@/lib/hooks/evals";
 import { useSmartDiff } from "@/lib/hooks/smart-diff";
 import { useTranslations } from "next-intl";
 import { notify } from "@/lib/toast";
@@ -31,6 +32,7 @@ export function DiffTab({ prId, files, canComment, repoFullName, headSha, target
   const { data: smartDiff } = useSmartDiff(prId);
   const { data: reviews } = usePrReviews(prId);
   const action = useFindingAction();
+  const evalCaseFor = useFindingEvalCaseAction();
 
   const [order, setOrder] = React.useState<DiffOrder>("smart");
   // `null` means "no explicit choice yet" — the effective value defaults to
@@ -73,6 +75,7 @@ export function DiffTab({ prId, files, canComment, repoFullName, headSha, target
     pending: action.isPending,
     repoFullName,
     headSha,
+    evalCaseFor,
   };
 
   return (

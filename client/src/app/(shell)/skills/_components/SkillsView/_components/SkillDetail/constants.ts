@@ -6,11 +6,12 @@ export interface DetailTab {
   icon: IconName;
 }
 
-/** Skill detail tabs. Deliberately NO Evals tab — evals are out of scope for
-   this feature even though the agent editor may grow one later. */
+/** Skill detail tabs. Evals sits right after Preview (SPEC-06 AC17); an
+   unknown `?tab=` falls back to `config`. */
 export const TABS: readonly DetailTab[] = [
   { key: "config", labelKey: "detail.tabs.config", icon: "Settings" },
   { key: "preview", labelKey: "detail.tabs.preview", icon: "Eye" },
+  { key: "evals", labelKey: "detail.tabs.evals", icon: "FlaskConical" },
   { key: "stats", labelKey: "detail.tabs.stats", icon: "Gauge" },
   { key: "versions", labelKey: "detail.tabs.versions", icon: "History" },
   { key: "context", labelKey: "detail.tabs.context", icon: "FileText" },

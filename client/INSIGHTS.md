@@ -14,6 +14,49 @@ Approaches and solutions that held up here.
 Dead ends and antipatterns. The most frequently skipped section and the most
 valuable one.
 
+- **2026-10-13 — `var(--warning, #d97706)` never fails: the token is `--warn`.**
+  The vendored kit defines `--warn` and `--warn-bg` (`styles.css:27`, `:66`); there
+  is no `--warning`, so a `var(--warning, <fallback>)` silently always renders the
+  hard-coded fallback, in both themes. Nothing errors and tests pass (the alert
+  banner shipped that way; `ContextTab/styles.ts:24` has the same pattern).
+  Rule: before using `var(--x, fallback)`, `grep -n "^  --x:" client/src/vendor/ui/styles.css`;
+  an undefined token is a bug even though a fallback hides it.
+  `client/src/vendor/ui/styles.css:27`
+
+
+- **2026-10-13 — `borderColor` + `borderLeftColor` is the same shorthand trap as `border` + `borderColor` (extends 2026-09-19).**
+  `FindingCard`'s `card` style was "all-longhand" by its own comment, yet clicking
+  Accept logged "Updating a style property during rerender (borderColor) when a
+  conflicting property is set (borderLeftColor)": `borderColor` and `borderWidth`
+  are themselves shorthands for four sides. Only the rerender after the colour
+  changed (focus / decided) fires it; tests and the first render stay silent.
+  Rule: when one side has its own colour or width, set ALL four sides
+  (`borderTopColor`, `borderRightColor`, …) — never `borderColor`/`borderWidth`
+  next to a `borderLeft*`.
+  `client/src/components/finding-card/styles.ts:5`
+
+- **2026-10-13 — A runtime import from the `@devdigest/shared` barrel breaks `next build`/dev while `tsc` and vitest stay green.**
+  `src/vendor/shared/index.ts` re-exports `./contracts/findings.js` (NodeNext
+  style). tsc and vitest map `.js` to `.ts`; webpack does not. Every earlier
+  client import of the barrel was `import type` (erased by SWC), so nothing
+  resolved it until `EvalCaseAction.tsx` imported the zod enum `EvalErrorCode`.
+  Fixed with `resolve.extensionAlias` (`.js` → `.ts`, `.tsx`, `.js`) in
+  `next.config.mjs`; a deep import of `contracts/eval-ci` would not have helped,
+  that file imports `./findings.js` itself.
+  Rule: after a client change that adds a non-type import from `@devdigest/shared`,
+  run `NEXT_DIST_DIR=.next-e2e-fixcheck pnpm exec next build` — typecheck and
+  tests cannot see this. Delete that dir and `git restore next-env.d.ts tsconfig.json` afterwards.
+  `Module not found: Can't resolve './contracts/findings.js'` ·
+  `client/next.config.mjs`, `client/src/components/finding-card/EvalCaseAction.tsx:7`
+
+- **2026-10-13 — `@devdigest/ui` `Tabs` renders no `role="tab"`, so `getAllByRole("tab")` finds nothing.**
+  `client/src/vendor/ui/kit/Tabs.tsx` has no `role` attribute at all; a test that
+  queries tabs by role fails with a query error that looks like the feature is
+  missing (the T013 first "red" run was this, not the missing Evals tab).
+  Rule: in a test, find a tab by its label text (`getByText`) and assert order
+  with `compareDocumentPosition`; never query it by role.
+  `client/src/app/(shell)/agents/[id]/_components/AgentEditor/AgentEditor.test.tsx:62`
+
 - **2026-10-04 — Wrapping `SectionLabel` in your own flex row next to a button misaligns it.**
   `SectionLabel` carries `marginBottom: 14` inside the primitive, so in an
   `align-items: center` row with a button the label sits above the button's

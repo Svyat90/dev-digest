@@ -13,6 +13,7 @@ export interface ReviewDtoFinding extends Finding {
   review_id: string;
   accepted_at: string | null;
   dismissed_at: string | null;
+  eval_case_id?: string | null;
 }
 
 export interface ReviewDto {
@@ -31,7 +32,7 @@ export interface ReviewDto {
   findings: ReviewDtoFinding[];
 }
 
-export function findingRowToDto(row: FindingRow): ReviewDtoFinding {
+export function findingRowToDto(row: FindingRow, evalCaseId?: string | null): ReviewDtoFinding {
   return {
     id: row.id,
     severity: row.severity as Finding['severity'],
@@ -49,6 +50,7 @@ export function findingRowToDto(row: FindingRow): ReviewDtoFinding {
     review_id: row.reviewId,
     accepted_at: row.acceptedAt?.toISOString() ?? null,
     dismissed_at: row.dismissedAt?.toISOString() ?? null,
+    eval_case_id: evalCaseId ?? null,
   };
 }
 
@@ -56,6 +58,7 @@ export function reviewToDto(
   review: ReviewRow,
   findings: FindingRow[],
   agentName?: string | null,
+  evalCaseIds?: Map<string, string>,
 ): ReviewDto {
   return {
     id: review.id,
@@ -69,7 +72,7 @@ export function reviewToDto(
     score: review.score,
     model: review.model,
     created_at: review.createdAt.toISOString(),
-    findings: findings.map(findingRowToDto),
+    findings: findings.map((f) => findingRowToDto(f, evalCaseIds?.get(f.id))),
   };
 }
 

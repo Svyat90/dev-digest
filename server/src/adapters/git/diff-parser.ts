@@ -60,6 +60,9 @@ export function parseUnifiedDiff(raw: string): UnifiedDiff {
       continue;
     }
     if (!current || !hunk) continue;
+    // `\ No newline at end of file` describes the previous line; it is not a
+    // diff line, so it takes no new-side number (matches the case editor parser).
+    if (line.startsWith('\\')) continue;
     if (line.startsWith('+') && !line.startsWith('+++')) {
       current.additions++;
       hunk.newLineNumbers.push(newLineCursor);

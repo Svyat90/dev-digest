@@ -24,6 +24,7 @@ import { SEV_COLOR, SEV_COLOR_FALLBACK } from "./constants";
 import { lineLabel } from "@/components/findings-preview/helpers";
 import { githubBlobUrl } from "@/lib/github-urls";
 import { s } from "./styles";
+import { EvalCaseAction, type EvalCaseControl } from "./EvalCaseAction";
 
 export function FindingCard({
   f,
@@ -33,6 +34,7 @@ export function FindingCard({
   pending,
   repoFullName,
   headSha,
+  evalCase,
 }: {
   f: FindingRecord;
   focused?: boolean;
@@ -41,6 +43,8 @@ export function FindingCard({
   pending?: boolean;
   repoFullName?: string | null;
   headSha?: string | null;
+  /** "Turn into eval case" control; the action is not rendered without it. */
+  evalCase?: EvalCaseControl;
 }) {
   const t = useTranslations("prReview");
   const [expanded, setExpanded] = React.useState(defaultExpanded ?? false);
@@ -112,6 +116,14 @@ export function FindingCard({
               {t("finding.dismiss")}
             </Button>
           </div>
+          {evalCase && (
+            <EvalCaseAction
+              findingId={f.id}
+              decided={accepted || dismissed}
+              exists={!!f.eval_case_id}
+              control={evalCase}
+            />
+          )}
         </div>
       )}
     </div>

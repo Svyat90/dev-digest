@@ -120,6 +120,27 @@
       "when": 1791086188644,
       "tag": "0016_quick_iron_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791901710827,
+      "tag": "0017_clear_champions",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791901716724,
+      "tag": "0018_sour_squadron_supreme",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791951167922,
+      "tag": "0019_rich_peter_quill",
+      "breakpoints": true
     }
   ]
 }

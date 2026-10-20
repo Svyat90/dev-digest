@@ -29,6 +29,16 @@ vi.mock("@/lib/hooks/smart-diff", () => ({
   useSmartDiff: (prId: string | null) => useSmartDiff(prId),
 }));
 
+const onCreateEvalCase = vi.fn();
+const evalCaseFor = vi.fn((_findingId: string) => ({
+  onCreate: onCreateEvalCase,
+  pending: false,
+  errorCode: null,
+}));
+vi.mock("@/lib/hooks/evals", () => ({
+  useFindingEvalCaseAction: () => evalCaseFor,
+}));
+
 import { DiffTab } from "./DiffTab";
 
 // jsdom has no scrollIntoView; FileCard calls it for a targeted file.
@@ -209,5 +219,30 @@ describe("DiffTab — target from the PR Brief", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("src/nope.ts is not in this pull request's changed files.");
     expect(screen.getAllByRole("button", { name: /group/i })).toHaveLength(5);
+  });
+});
+
+describe("DiffTab — eval case action on inline findings", () => {
+  it("shows 'Turn into eval case' on an accepted inline finding and routes the click to its control", () => {
+    stubBaseHooks();
+    const files = FILES.map((f) =>
+      f.path === "src/a.ts" ? { ...f, patch: "@@ -1,1 +1,2 @@\n context\n+added line" } : f,
+    );
+    usePrReviews.mockReturnValue({
+      data: [
+        review({
+          id: "rev1",
+          findings: [
+            finding({ id: "f1", file: "src/a.ts", start_line: 2, accepted_at: "2026-01-01T00:00:00Z" }),
+          ],
+        }),
+      ],
+    });
+
+    renderDiffTab({ files });
+
+    fireEvent.click(screen.getByRole("button", { name: "Turn into eval case" }));
+    expect(evalCaseFor).toHaveBeenCalledWith("f1");
+    expect(onCreateEvalCase).toHaveBeenCalledTimes(1);
   });
 });

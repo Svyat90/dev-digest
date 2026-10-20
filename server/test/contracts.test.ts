@@ -21,6 +21,20 @@ import {
   BlastRadiusResponse,
   PrHistoryResponse,
   PutContextDocsBody,
+  AgentEvalCase,
+  AgentEvalRunDetail,
+  EvalExpectation,
+  EvalRunCaseRef,
+  EvalErrorCode,
+  EvalDashboard,
+  EvalDashboardRange,
+  EvalRegressionAlert,
+  EvalRunComparison,
+  EvalCaseDetail,
+  EvalExpectedOutput,
+  SkillEvalRunSummary,
+  EvalRunDetail,
+  FindingRecord,
 } from '@devdigest/shared';
 
 /**
@@ -409,5 +423,333 @@ describe('blast radius responses', () => {
 
   it('rejects an unknown degraded reason', () => {
     expect(() => BlastRadiusResponse.parse({ ...base, reason: 'bogus' })).toThrow();
+  });
+});
+
+describe('eval pipeline contracts', () => {
+  const expectation = { file: 'src/a.ts', start_line: 3, end_line: 5 };
+  const provenance = {
+    finding_id: 'f1',
+    review_id: 'r1',
+    pr_id: 'p1',
+    pr_number: 7,
+    repo_id: 'repo1',
+    repo_full_name: 'o/n',
+    decision: 'accepted',
+    decided_at: '2026-10-11T10:00:00Z',
+    agent_version: null,
+    severity: 'WARNING',
+    category: 'bug',
+    title: 'Null deref',
+  };
+  const evalCase = {
+    id: 'c1',
+    agent_id: 'a1',
+    name: 'null-deref',
+    revision_id: 'rev1',
+    revision: 1,
+    expectation_type: 'must_find',
+    expectation,
+    input_file: 'src/a.ts',
+    input_meta: { pr_title: 'T', pr_description: '' },
+    provenance,
+    created_at: '2026-10-11T10:00:00Z',
+  };
+  const skill = {
+    id: 's1',
+    name: 'sec',
+    description: 'd',
+    version: 2,
+    order: 0,
+    link_enabled: true,
+    skill_enabled: true,
+    body: 'rules',
+  };
+  const baseRecord = {
+    id: 'er1',
+    case_id: 'c1',
+    case_name: 'null-deref',
+    ran_at: '2026-10-11T10:00:00Z',
+    actual_output: { findings: [] },
+    pass: true,
+    recall: 1,
+    precision: 1,
+    citation_accuracy: 1,
+    duration_ms: 10,
+    cost_usd: null,
+    eval_run_id: 'run1',
+    case_revision_id: 'rev1',
+    status: 'passed',
+    error: null,
+    expectation_type: 'must_find',
+    expectation,
+    findings_returned: 1,
+    findings_grounded: 1,
+    findings_matching: 1,
+  };
+  const detail = {
+    id: 'run1',
+    agent_id: 'a1',
+    status: 'completed',
+    started_at: '2026-10-11T10:00:00Z',
+    finished_at: '2026-10-11T10:01:00Z',
+    duration_ms: 60000,
+    agent_version: 3,
+    cases_total: 2,
+    cases_done: 2,
+    cases_scored: 1,
+    cases_passed: 1,
+    recall: 1,
+    precision: 1,
+    citation_accuracy: 1,
+    cost_usd: null,
+    error: null,
+    config: {
+      agent_version: 3,
+      provider: 'openrouter',
+      model: 'm',
+      system_prompt: 'p',
+      strategy: 'single-pass',
+      skills: [skill, { ...skill, id: 's2', order: 1, skill_enabled: false, body: null }],
+    },
+    cases: [
+      { case_id: 'c1', revision_id: 'rev1', revision: 1 },
+      { case_id: 'c2', revision_id: 'rev2', revision: 1 },
+    ],
+    results: [
+      baseRecord,
+      {
+        ...baseRecord,
+        id: 'er2',
+        case_id: null,
+        case_revision_id: null,
+        status: 'errored',
+        pass: null,
+        error: 'timeout',
+        findings_returned: null,
+        findings_grounded: null,
+        findings_matching: null,
+      },
+    ],
+  };
+
+  it('parses a run detail with ordered skills, covered revisions and an errored result', () => {
+    expect(() => AgentEvalRunDetail.parse(detail)).not.toThrow();
+  });
+
+  it('parses a case that carries its revision', () => {
+    expect(() => AgentEvalCase.parse(evalCase)).not.toThrow();
+  });
+
+  it('rejects a zero line, a zero revision and an unknown error code', () => {
+    expect(() => EvalExpectation.parse({ ...expectation, start_line: 0 })).toThrow();
+    expect(() => EvalRunCaseRef.parse({ case_id: 'c', revision_id: 'r', revision: 0 })).toThrow();
+    expect(() => EvalErrorCode.parse('nope')).toThrow();
+  });
+
+  describe('eval dashboard contracts (SPEC-05)', () => {
+    const run = {
+      id: 'r1',
+      agent_id: 'a1',
+      status: 'completed',
+      started_at: '2026-10-12T10:00:00.000Z',
+      finished_at: '2026-10-12T10:01:00.000Z',
+      duration_ms: 60000,
+      agent_version: 3,
+      cases_total: 4,
+      cases_done: 4,
+      cases_scored: 4,
+      cases_passed: 3,
+      recall: 0.75,
+      precision: null,
+      citation_accuracy: 1,
+      cost_usd: null,
+      error: null,
+    };
+    const config = {
+      agent_version: 3,
+      provider: 'openrouter',
+      model: 'm',
+      system_prompt: 'p',
+      strategy: 'single-pass',
+      skills: [],
+    };
+    const alert = {
+      metric: 'recall',
+      drop_points: 5,
+      agent_version: 3,
+      run_id: 'r1',
+      previous_run_id: 'r0',
+      others: [{ metric: 'precision', direction: 'same' }],
+      case_sets: { added: 2, removed: 0 },
+    };
+
+    it('parses a dashboard with an alert, a one-point trend with a gap and no running run', () => {
+      const dashboard = {
+        agent: { id: 'a1', name: 'A', provider: 'openrouter', model: 'm' },
+        range: '30d',
+        cases_total: 4,
+        latest: run,
+        previous: null,
+        running_run: null,
+        alert,
+        trend: [
+          {
+            run_id: 'r1',
+            started_at: run.started_at,
+            agent_version: 3,
+            recall: null,
+            precision: 0.5,
+            citation_accuracy: null,
+            cost_usd: null,
+          },
+        ],
+        trend_truncated: false,
+        runs: [run],
+      };
+      expect(() => EvalDashboard.parse(dashboard)).not.toThrow();
+    });
+
+    it('parses a comparison with a version_changed skill whose body is unknown', () => {
+      const comparison = {
+        agent_id: 'a1',
+        earlier: { ...run, config },
+        later: { ...run, id: 'r2', config },
+        case_sets: { added: 0, removed: 1 },
+        config_changes: [{ field: 'model', from: 'a', to: 'b' }],
+        skill_changes: [
+          {
+            skill_id: 's1',
+            name: 'S',
+            change: 'version_changed',
+            from_version: 1,
+            to_version: 2,
+            from_body: null,
+            to_body: 'x',
+          },
+        ],
+        promote: {
+          run_id: 'r2',
+          run_agent_version: 3,
+          current_agent_version: 4,
+          is_current: false,
+          skills_to_restore: [{ skill_id: 's1', name: 'S', current_version: 2, recorded_version: 1 }],
+          affected_agents: [],
+          deleted_skills: [],
+        },
+      };
+      expect(() => EvalRunComparison.parse(comparison)).not.toThrow();
+    });
+
+    it('rejects a zero drop, an unknown range and accepts the new error codes', () => {
+      expect(() => EvalRegressionAlert.parse({ ...alert, drop_points: 0 })).toThrow();
+      expect(() => EvalDashboardRange.parse('banana')).toThrow();
+      expect(EvalErrorCode.parse('eval_promote_noop')).toBe('eval_promote_noop');
+    });
+  });
+
+  describe('case editor contracts (SPEC-06)', () => {
+    const finding = {
+      severity: 'WARNING',
+      category: 'bug',
+      title: 'Null deref',
+      file: 'src/a.ts',
+      start_line: 3,
+    };
+    const skillRun = {
+      ...detail,
+      agent_id: null,
+      skill_id: 's1',
+      skill_version: 2,
+      agent_name: 'Security Reviewer',
+      agent_deleted: true,
+    };
+
+    it('parses the detail of a manual skill case with a check and a last run', () => {
+      const manual = {
+        ...evalCase,
+        agent_id: null,
+        provenance: null,
+        owner: { kind: 'skill', id: 's1' },
+        origin: 'manual',
+        input_diff: '--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1 +1 @@\n-a\n+b\n',
+        input_files: ['src/a.ts'],
+        expected_output: [finding],
+        latest_result: null,
+        check: {
+          id: 'chk1',
+          case_revision_id: 'rev1',
+          status: 'failed',
+          started_at: '2026-10-13T10:00:00Z',
+          finished_at: '2026-10-13T10:00:05Z',
+          duration_ms: 5000,
+          expected: 1,
+          got: 0,
+          error: null,
+          cost_usd: null,
+        },
+        last_run: {
+          source: 'check',
+          status: 'failed',
+          expected: 1,
+          got: 0,
+          error: null,
+          duration_ms: 5000,
+          cost_usd: null,
+          finished_at: '2026-10-13T10:00:05Z',
+        },
+      };
+      const parsed = EvalCaseDetail.parse(manual);
+      expect(parsed.provenance).toBeNull();
+      expect(parsed.expected_output[0]?.end_line).toBeUndefined();
+    });
+
+    it('rejects an unknown key, a 201-character title and two expected findings', () => {
+      expect(() => EvalExpectedOutput.parse([finding])).not.toThrow();
+      expect(() =>
+        EvalExpectedOutput.parse(JSON.parse(JSON.stringify([finding]).replace('{', '{"__proto__":1,'))),
+      ).toThrow();
+      expect(() => EvalExpectedOutput.parse([{ ...finding, title: 'x'.repeat(201) }])).toThrow();
+      expect(() => EvalExpectedOutput.parse([finding, finding])).toThrow();
+    });
+
+    it('parses a skill run summary whose agent was deleted', () => {
+      const { config: _c, cases: _cs, results: _r, ...summary } = skillRun;
+      expect(SkillEvalRunSummary.parse(summary).agent_deleted).toBe(true);
+    });
+
+    it('tags the run detail by owner and refuses an untagged one', () => {
+      const asSkill = EvalRunDetail.parse({ ...skillRun, owner_kind: 'skill' });
+      expect(asSkill.owner_kind).toBe('skill');
+      if (asSkill.owner_kind === 'skill') {
+        expect(asSkill.skill_id).toBe('s1');
+        expect(asSkill.agent_name).toBe('Security Reviewer');
+      }
+      expect(EvalRunDetail.parse({ ...detail, owner_kind: 'agent' }).owner_kind).toBe('agent');
+      expect(() => EvalRunDetail.parse(detail)).toThrow();
+    });
+
+    it('accepts the new error codes', () => {
+      expect(EvalErrorCode.parse('eval_case_invalid')).toBe('eval_case_invalid');
+    });
+  });
+
+  it('FindingRecord parses with and without eval_case_id', () => {
+    const rec = {
+      id: 'f1',
+      severity: 'WARNING',
+      category: 'bug',
+      title: 't',
+      file: 'a.ts',
+      start_line: 1,
+      end_line: 2,
+      rationale: 'r',
+      confidence: 0.5,
+      review_id: 'r1',
+      accepted_at: null,
+      dismissed_at: null,
+    };
+    expect(() => FindingRecord.parse(rec)).not.toThrow();
+    expect(FindingRecord.parse({ ...rec, eval_case_id: 'c1' }).eval_case_id).toBe('c1');
   });
 });

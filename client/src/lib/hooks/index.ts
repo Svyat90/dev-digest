@@ -13,3 +13,6 @@ export * from "./smart-diff";
 export * from "./blast";
 export * from "./brief";
 export * from "./project-context";
+export * from "./evals";
+export * from "./eval-cases";
+export * from "./eval-dashboard";

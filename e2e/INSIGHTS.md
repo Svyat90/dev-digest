@@ -33,6 +33,16 @@ Conventions and structural decisions a newcomer would otherwise re-derive.
 
 Quirks of the dependencies this package pins.
 
+- **2026-10-14 — `wait --text` proves nothing when the text is also on the page; and an `<option>` is never "visible".**
+  `wait --text "New eval case"` passed with the dialog closed because the page button
+  has the same text, and `wait "option[value='src/e2e.ts']"` timed out after 25 s
+  because agent-browser waits for a visible element and an option in a closed
+  `<select>` never is. `wait <sel> --state attached` is no way out: `--state` is read
+  as the global state-file flag and resets the session to `about:blank`.
+  Rule: assert a dialog with `get text "[role='dialog']"` + `assert.stdoutIncludes`,
+  and wait for an option with `wait --fn "document.querySelector(\"[aria-label='File'] option[value='…']\") !== null"`.
+  `e2e/specs/10-case-editor.flow.json:14`
+
 - **2026-09-26 — A `find` step with no action verb CLICKS the element; it is not a presence check.**
   `agent-browser find <locator> <value> [action]` defaults the action to `click`
   (`agent-browser find --help` → "Actions (default: click)"). Flow 08's
